@@ -7,7 +7,14 @@ export interface DashboardMetrics {
   comprasMes: number;
 }
 
-export type MetodoPago = 'EFECTIVO' | 'YAPE' | 'PLIN' | 'TARJETA' | 'TRANSFERENCIA';
+export type MetodoPago =
+  | 'EFECTIVO'
+  | 'YAPE'
+  | 'PLIN'
+  | 'TARJETA'
+  | 'TRANSFERENCIA'
+  | 'MIXTO'
+  | 'CREDITO';
 export type EstadoVenta = 'COMPLETADA' | 'PENDIENTE' | 'ANULADA';
 
 export interface RecentSale {

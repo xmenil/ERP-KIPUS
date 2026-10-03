@@ -9,6 +9,7 @@ export interface Producto {
   stockMinimo: number;
   unidadMedida: string; // UNIDAD, GALON, KILO, PAQUETE
   activo: boolean;
+  ubicacion?: string; // Estante, pasillo o vitrina de almacenamiento
 }
 
 export interface NuevoProductoPayload {
@@ -20,4 +21,6 @@ export interface NuevoProductoPayload {
   stock: number;
   stockMinimo: number;
   unidadMedida: string;
+  ubicacion?: string;
 }
+

@@ -28,7 +28,7 @@ export const kipusIaService = {
       titulo: 'Control de Efectivo en Gaveta',
       descripcion: `Tienes un saldo en efectivo esperado de ${formatCurrency(
         caja.saldoEfectivoEsperado
-      )} y ${formatCurrency(caja.ingresosDigitales)} en cobros electrónicos.`,
+      )} y ${formatCurrency(caja.totalVentasDigitales)} en cobros electrónicos.`,
       accionSugerida: 'Mantener sencillo suficiente en caja y conciliar Yape al cierre de turno.',
     });
 
@@ -73,13 +73,13 @@ export const kipusIaService = {
       respuesta = `Tu estado de caja actual reporta un saldo en efectivo en gaveta de ${formatCurrency(
         caja.saldoEfectivoEsperado
       )} (Saldo inicial: ${formatCurrency(caja.saldoInicial)} + Ventas en efectivo: ${formatCurrency(
-        caja.ingresosEfectivo
+        caja.ventasEfectivo
       )} - Egresos: ${formatCurrency(caja.egresosEfectivo)}). Además, tienes ${formatCurrency(
-        caja.ingresosDigitales
+        caja.totalVentasDigitales
       )} en billeteras digitales y transferencias.`;
       dataPoints = [
         { label: 'Efectivo en Gaveta', value: formatCurrency(caja.saldoEfectivoEsperado) },
-        { label: 'Cobros Digitales (Yape/Plin/Tarj)', value: formatCurrency(caja.ingresosDigitales) },
+        { label: 'Cobros Digitales (Yape/Plin/Tarj)', value: formatCurrency(caja.totalVentasDigitales) },
       ];
     } else if (p.includes('venta') || p.includes('factura') || p.includes('hoy') || p.includes('producto')) {
       const totalVendido = ventas.reduce((acc, v) => acc + v.total, 0);

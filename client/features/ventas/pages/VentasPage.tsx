@@ -1,223 +1,363 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { StatusBadge } from '@/components/common/StatusBadge';
-import { MetricCard } from '@/components/common/MetricCard';
-import { NuevaVentaDialog } from '../components/NuevaVentaDialog';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { PosTerminalView } from '../components/PosTerminalView';
+import { VentasDashboardView } from '../components/VentasDashboardView';
+import { VentasHistorialView } from '../components/VentasHistorialView';
+import { VentaDetalleModal } from '../components/VentaDetalleModal';
+import { DevolucionesView } from '../components/DevolucionesView';
+import { PedidosView } from '../components/PedidosView';
+import { CotizacionesView } from '../components/CotizacionesView';
+import { KipusIaVentasSheet } from '../components/KipusIaVentasSheet';
 import { ventasService } from '../services/ventasService';
-import { Venta, NuevaVentaPayload } from '../types/ventas.types';
-import { subscribeToErp } from '@/services/erp/erpStore';
-import { formatCurrency } from '@/utils/formatters';
+import { productosService } from '@/features/productos/services/productosService';
+import { clientesService } from '@/features/clientes/services/clientesService';
 import {
-  PlusCircle,
-  Search,
+  Venta,
+  NuevaVentaPayload,
+  Pedido,
+  Cotizacion,
+  Devolucion,
+  ResumenVentasKpis,
+  NivelComplejidadNegocio,
+  EstadoPedido,
+} from '../types/ventas.types';
+import { Producto } from '@/features/productos/types/productos.types';
+import { Cliente } from '@/features/clientes/types/clientes.types';
+import { subscribeToErp } from '@/services/erp/erpStore';
+import {
   ShoppingCart,
-  FileText,
-  DollarSign,
-  Printer,
-  CheckCircle,
+  LayoutDashboard,
+  Receipt,
+  ShoppingBag,
+  FileCheck,
+  RotateCcw,
+  Sparkles,
+  Store,
+  Building2,
+  Sliders,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const VentasPage: React.FC = () => {
-  const [ventas, setVentas] = useState<Venta[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [openModal, setOpenModal] = useState(false);
+  // Estado de navegación
+  const [tabActiva, setTabActiva] = useState<string>('pos');
 
-  const fetchVentas = async () => {
+  // Complejidad progresiva (adaptable al tamaño de negocio)
+  const [nivelNegocio, setNivelNegocio] = useState<NivelComplejidadNegocio>('COMERCIO_MEDIANO');
+
+  // Sucursal y caja activa
+  const [sucursalActiva, setSucursalActiva] = useState('Sede Central (Tingo María)');
+  const [cajaActiva, setCajaActiva] = useState('Caja 01 - Mostrador');
+
+  // Datos principales
+  const [ventas, setVentas] = useState<Venta[]>([]);
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [cotizaciones, setCotizaciones] = useState<Cotizacion[]>([]);
+  const [devoluciones, setDevoluciones] = useState<Devolucion[]>([]);
+  const [kpis, setKpis] = useState<ResumenVentasKpis | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Modales
+  const [ventaSeleccionadaDetalle, setVentaSeleccionadaDetalle] = useState<Venta | null>(null);
+  const [openDetalleModal, setOpenDetalleModal] = useState(false);
+  const [openIaSheet, setOpenIaSheet] = useState(false);
+  const [ventaParaDevolucion, setVentaParaDevolucion] = useState<Venta | null>(null);
+
+  // Carga de datos
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const data = await ventasService.getVentas();
-      setVentas(data);
+      const [ventasData, prodsData, cliData, pedData, cotData, devData, kpisData] =
+        await Promise.all([
+          ventasService.getVentas(),
+          productosService.getProductos(),
+          clientesService.getClientes(),
+          ventasService.getPedidos(),
+          ventasService.getCotizaciones(),
+          ventasService.getDevoluciones(),
+          ventasService.getKpisVentas(),
+        ]);
+
+      setVentas(ventasData);
+      setProductos(prodsData);
+      setClientes(cliData);
+      setPedidos(pedData);
+      setCotizaciones(cotData);
+      setDevoluciones(devData);
+      setKpis(kpisData);
     } catch {
-      toast.error('Error al cargar la lista de ventas');
+      toast.error('Error al cargar datos del módulo de ventas');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchVentas();
+    fetchData();
     const unsubscribe = subscribeToErp(() => {
-      fetchVentas();
+      fetchData();
     });
     return unsubscribe;
   }, []);
 
-  const handleCrearVenta = async (payload: NuevaVentaPayload) => {
-    try {
-      const nueva = await ventasService.crearVenta(payload);
-      setVentas((prev) => [nueva, ...prev]);
-      toast.success(`Venta ${nueva.serieCorrelativo} emitida con éxito`);
-    } catch {
-      toast.error('No se pudo emitir la venta');
-    }
+  // Handlers
+  const handleEmitirVenta = async (payload: NuevaVentaPayload): Promise<Venta> => {
+    const nueva = await ventasService.crearVenta(payload);
+    await fetchData();
+    return nueva;
   };
 
-  const filteredVentas = ventas.filter(
-    (v) =>
-      v.serieCorrelativo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      v.clienteNombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      v.clienteDocumento.includes(searchTerm)
-  );
+  const handleAnularVenta = async (id: string, motivo: string) => {
+    await ventasService.anularVenta(id, motivo);
+    await fetchData();
+  };
 
-  const totalVendido = ventas.reduce((acc, v) => acc + (v.estado !== 'ANULADA' ? v.total : 0), 0);
-  const totalFacturas = ventas.filter((v) => v.tipoComprobante === 'FACTURA').length;
-  const totalBoletas = ventas.filter((v) => v.tipoComprobante === 'BOLETA').length;
+  const handleRegistrarDevolucion = async (payload: any) => {
+    await ventasService.registrarDevolucion(payload);
+    await fetchData();
+  };
+
+  const handleCambiarEstadoPedido = async (id: string, nuevoEstado: EstadoPedido) => {
+    await ventasService.cambiarEstadoPedido(id, nuevoEstado);
+    await fetchData();
+  };
+
+  const handleConvertirPedidoAVenta = async (pedidoId: string) => {
+    await ventasService.convertirPedidoAVenta(pedidoId);
+    await fetchData();
+  };
+
+  const handleCrearPedido = async (payload: any) => {
+    await ventasService.crearPedido(payload);
+    await fetchData();
+  };
+
+  const handleConvertirCotizacionAVenta = async (cotizacionId: string) => {
+    await ventasService.convertirCotizacionAVenta(cotizacionId);
+    await fetchData();
+  };
+
+  const handleCrearCotizacion = async (payload: any) => {
+    await ventasService.crearCotizacion(payload);
+    await fetchData();
+  };
+
+  const handleVerDetalleVenta = (v: Venta) => {
+    setVentaSeleccionadaDetalle(v);
+    setOpenDetalleModal(true);
+  };
+
+  const handleIniciarDevolucionDesdeVenta = (v: Venta) => {
+    setVentaParaDevolucion(v);
+    setTabActiva('devoluciones');
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Encabezado Principal */}
       <PageHeader
-        title="Gestión de Ventas y Comprobantes"
-        description="Emisión de comprobantes electrónicos, boletas, facturas y control de caja de ventas"
-        badge="SUNAT Integrable"
+        title="Módulo de Ventas y Facturación"
+        description="Punto de venta rápido, comprobantes electrónicos SUNAT, pedidos, cotizaciones y devoluciones."
+        badge="POS KIPU'S"
       >
-        <Button
-          size="sm"
-          onClick={() => setOpenModal(true)}
-          className="gap-2 bg-primary text-primary-foreground font-semibold shadow-sm"
-        >
-          <PlusCircle className="h-4 w-4" />
-          <span>Emitir Nuevo Comprobante</span>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Selector de complejidad progresiva del negocio */}
+          <div className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1 text-xs">
+            <Sliders className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-muted-foreground hidden sm:inline">Modo:</span>
+            <select
+              value={nivelNegocio}
+              onChange={(e) => setNivelNegocio(e.target.value as NivelComplejidadNegocio)}
+              className="bg-transparent font-medium text-foreground text-xs focus:outline-none cursor-pointer"
+            >
+              <option value="TIENDA_PEQUENA">Tienda Rápida / Bodega</option>
+              <option value="COMERCIO_MEDIANO">Comercio Mediano</option>
+              <option value="CADENA_EMPRESARIAL">Cadena Multitienda</option>
+            </select>
+          </div>
+
+          {/* Selector de Sucursal si es mediano o empresarial */}
+          {nivelNegocio !== 'TIENDA_PEQUENA' && (
+            <div className="hidden md:flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1 text-xs">
+              <Building2 className="h-3.5 w-3.5 text-primary" />
+              <select
+                value={sucursalActiva}
+                onChange={(e) => setSucursalActiva(e.target.value)}
+                className="bg-transparent font-medium text-foreground text-xs focus:outline-none cursor-pointer"
+              >
+                <option value="Sede Central (Tingo María)">Sede Central</option>
+                <option value="Tienda Mostrador (Tingo María)">Tienda Mostrador</option>
+                <option value="Sucursal Huánuco">Sucursal Huánuco</option>
+              </select>
+            </div>
+          )}
+
+          {/* Botón Asistente KIPU'S IA */}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setOpenIaSheet(true)}
+            className="gap-1.5 h-8 text-xs font-semibold text-primary border-primary/30 hover:bg-primary-soft cursor-pointer"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>KIPU'S IA</span>
+          </Button>
+        </div>
       </PageHeader>
 
-      {/* Métricas rápidas de ventas */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <MetricCard
-          title="Facturación del Día"
-          value={formatCurrency(totalVendido)}
-          subtitle={`${ventas.length} transacciones registradas`}
-          icon={DollarSign}
-          iconColor="text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40"
-        />
-        <MetricCard
-          title="Boletas Electrónicas"
-          value={`${totalBoletas}`}
-          subtitle="Emitidas para consumidor final"
-          icon={ShoppingCart}
-          iconColor="text-blue-600 bg-blue-50 dark:bg-blue-950/40"
-        />
-        <MetricCard
-          title="Facturas con RUC"
-          value={`${totalFacturas}`}
-          subtitle="Empresas y crédito fiscal"
-          icon={FileText}
-          iconColor="text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40"
-        />
-      </div>
+      {/* Navegación por pestañas de ventas */}
+      <Tabs value={tabActiva} onValueChange={setTabActiva} className="w-full space-y-3.5">
+        <TabsList className="bg-muted/70 p-1 flex flex-wrap h-auto gap-1 border border-border/60">
+          <TabsTrigger value="pos" className="text-xs font-semibold py-1.5 px-3 gap-1.5">
+            <ShoppingCart className="h-3.5 w-3.5" />
+            <span>Punto de Venta (POS)</span>
+          </TabsTrigger>
 
-      {/* Buscador y Tabla */}
-      <Card className="border-border/80">
-        <CardContent className="p-4 space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
-            <div className="relative w-full sm:w-80">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por cliente, RUC/DNI o serie..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 h-9 text-xs"
-              />
-            </div>
-            <span className="text-xs text-muted-foreground">
-              Mostrando {filteredVentas.length} comprobantes
-            </span>
-          </div>
+          <TabsTrigger value="dashboard" className="text-xs font-medium py-1.5 px-3 gap-1.5">
+            <LayoutDashboard className="h-3.5 w-3.5" />
+            <span>Resumen del Día</span>
+          </TabsTrigger>
 
-          <div className="overflow-x-auto rounded border border-border bg-card shadow-2xs">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent bg-slate-100/90 dark:bg-slate-800/90 border-b border-border">
-                  <TableHead className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider py-2.5">Comprobante</TableHead>
-                  <TableHead className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider py-2.5">Cliente</TableHead>
-                  <TableHead className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider py-2.5">Fecha y Hora</TableHead>
-                  <TableHead className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider py-2.5">Medio de Pago</TableHead>
-                  <TableHead className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider py-2.5">Estado</TableHead>
-                  <TableHead className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider text-right py-2.5">Total Cobrado</TableHead>
-                  <TableHead className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider text-center py-2.5">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center text-xs text-muted-foreground">
-                      Cargando ventas...
-                    </TableCell>
-                  </TableRow>
-                ) : filteredVentas.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center text-xs text-muted-foreground">
-                      No se encontraron comprobantes con el criterio de búsqueda.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredVentas.map((venta) => (
-                    <TableRow key={venta.id} className="text-[13px] hover:bg-slate-50 dark:hover:bg-slate-800/40 border-b border-border/70 transition-colors">
-                      <TableCell className="py-2.5">
-                        <span className="font-mono font-bold text-primary block text-[13px]">
-                          {venta.serieCorrelativo}
-                        </span>
-                        <span className="text-[11px] text-muted-foreground font-medium">
-                          {venta.tipoComprobante}
-                        </span>
-                      </TableCell>
-                      <TableCell className="py-2.5">
-                        <span className="font-semibold text-foreground block text-[13px]">{venta.clienteNombre}</span>
-                        <span className="text-[11px] text-muted-foreground">Doc: {venta.clienteDocumento}</span>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground py-2.5 font-mono text-xs">{venta.fecha}</TableCell>
-                      <TableCell className="py-2.5">
-                        <span className="px-2 py-0.5 rounded text-xs font-semibold bg-muted border border-border/60">
-                          {venta.metodoPago}
-                        </span>
-                      </TableCell>
-                      <TableCell className="py-2.5">
-                        <StatusBadge
-                          status={venta.estado}
-                          variant={venta.estado === 'COMPLETADA' ? 'success' : venta.estado === 'PENDIENTE' ? 'warning' : 'danger'}
-                        />
-                      </TableCell>
-                      <TableCell className="text-right font-black font-mono text-foreground py-2.5 text-[14px] tabular-nums">
-                        {formatCurrency(venta.total)}
-                      </TableCell>
-                      <TableCell className="text-center py-2.5">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 px-2 text-xs gap-1 font-medium hover:bg-muted"
-                          title="Imprimir Ticket"
-                          onClick={() => toast.info(`Imprimiendo comprobante ${venta.serieCorrelativo}...`)}
-                        >
-                          <Printer className="h-3.5 w-3.5" />
-                          <span>Ticket</span>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+          <TabsTrigger value="historial" className="text-xs font-medium py-1.5 px-3 gap-1.5">
+            <Receipt className="h-3.5 w-3.5" />
+            <span>Historial de Comprobantes</span>
+          </TabsTrigger>
 
-      {/* Modal Nueva Venta */}
-      <NuevaVentaDialog
-        open={openModal}
-        onOpenChange={setOpenModal}
-        onVentaCreada={handleCrearVenta}
+          {/* Pestañas habilitadas en Modo Comercio Mediano y Cadena */}
+          {nivelNegocio !== 'TIENDA_PEQUENA' && (
+            <>
+              <TabsTrigger value="pedidos" className="text-xs font-medium py-1.5 px-3 gap-1.5">
+                <ShoppingBag className="h-3.5 w-3.5" />
+                <span>Pedidos ({pedidos.filter((p) => p.estado !== 'ENTREGADO').length})</span>
+              </TabsTrigger>
+
+              <TabsTrigger value="cotizaciones" className="text-xs font-medium py-1.5 px-3 gap-1.5">
+                <FileCheck className="h-3.5 w-3.5" />
+                <span>Cotizaciones / Proformas</span>
+              </TabsTrigger>
+            </>
+          )}
+
+          {/* Pestaña habilitada en Modo Cadena Empresarial */}
+          {nivelNegocio === 'CADENA_EMPRESARIAL' && (
+            <TabsTrigger value="devoluciones" className="text-xs font-medium py-1.5 px-3 gap-1.5">
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span>Devoluciones</span>
+            </TabsTrigger>
+          )}
+        </TabsList>
+
+        {/* ========================================================================= */}
+        {/* PESTAÑA 1: TERMINAL PUNTO DE VENTA (POS)                                  */}
+        {/* ========================================================================= */}
+        <TabsContent value="pos" className="space-y-4">
+          <PosTerminalView
+            productos={productos}
+            clientes={clientes}
+            onEmitirVenta={handleEmitirVenta}
+            sucursalActiva={sucursalActiva}
+            cajaActiva={cajaActiva}
+            vendedorActivo="Carlos Vega"
+          />
+        </TabsContent>
+
+        {/* ========================================================================= */}
+        {/* PESTAÑA 2: DASHBOARD RESUMEN DE VENTAS                                    */}
+        {/* ========================================================================= */}
+        <TabsContent value="dashboard" className="space-y-4">
+          <VentasDashboardView
+            ventas={ventas}
+            kpis={kpis}
+            onIrAPos={() => setTabActiva('pos')}
+            onVerDetalleVenta={handleVerDetalleVenta}
+          />
+        </TabsContent>
+
+        {/* ========================================================================= */}
+        {/* PESTAÑA 3: HISTORIAL DE VENTAS                                            */}
+        {/* ========================================================================= */}
+        <TabsContent value="historial" className="space-y-4">
+          <VentasHistorialView
+            ventas={ventas}
+            loading={loading}
+            onVerDetalle={handleVerDetalleVenta}
+            onIniciarDevolucion={handleIniciarDevolucionDesdeVenta}
+          />
+        </TabsContent>
+
+        {/* ========================================================================= */}
+        {/* PESTAÑA 4: PEDIDOS                                                        */}
+        {/* ========================================================================= */}
+        {nivelNegocio !== 'TIENDA_PEQUENA' && (
+          <TabsContent value="pedidos" className="space-y-4">
+            <PedidosView
+              pedidos={pedidos}
+              productos={productos}
+              clientes={clientes}
+              onCambiarEstado={handleCambiarEstadoPedido}
+              onConvertirAVenta={handleConvertirPedidoAVenta}
+              onCrearPedido={handleCrearPedido}
+            />
+          </TabsContent>
+        )}
+
+        {/* ========================================================================= */}
+        {/* PESTAÑA 5: COTIZACIONES                                                   */}
+        {/* ========================================================================= */}
+        {nivelNegocio !== 'TIENDA_PEQUENA' && (
+          <TabsContent value="cotizaciones" className="space-y-4">
+            <CotizacionesView
+              cotizaciones={cotizaciones}
+              productos={productos}
+              clientes={clientes}
+              onConvertirAVenta={handleConvertirCotizacionAVenta}
+              onCrearCotizacion={handleCrearCotizacion}
+            />
+          </TabsContent>
+        )}
+
+        {/* ========================================================================= */}
+        {/* PESTAÑA 6: DEVOLUCIONES                                                   */}
+        {/* ========================================================================= */}
+        {nivelNegocio === 'CADENA_EMPRESARIAL' && (
+          <TabsContent value="devoluciones" className="space-y-4">
+            <DevolucionesView
+              ventas={ventas}
+              devoluciones={devoluciones}
+              onRegistrarDevolucion={handleRegistrarDevolucion}
+              ventaPreseleccionada={ventaParaDevolucion}
+            />
+          </TabsContent>
+        )}
+      </Tabs>
+
+      {/* Modal de Detalle de Venta */}
+      <VentaDetalleModal
+        open={openDetalleModal}
+        onOpenChange={setOpenDetalleModal}
+        venta={ventaSeleccionadaDetalle}
+        onAnularVenta={handleAnularVenta}
+        onIniciarDevolucion={handleIniciarDevolucionDesdeVenta}
+      />
+
+      {/* Panel lateral KIPU'S IA */}
+      <KipusIaVentasSheet
+        open={openIaSheet}
+        onOpenChange={setOpenIaSheet}
+        ventas={ventas}
+        productos={productos}
+        kpis={kpis}
       />
     </div>
   );

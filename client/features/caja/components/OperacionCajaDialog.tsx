@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -18,30 +18,69 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TipoOperacionCaja, MetodoCaja, NuevaOperacionCajaPayload } from '../types/caja.types';
-import { DollarSign } from 'lucide-react';
+import { formatCurrency } from '@/utils/formatters';
+import {
+  ArrowDownCircle,
+  ArrowUpCircle,
+  AlertTriangle,
+  Wallet,
+  Sparkles,
+  ShieldCheck,
+} from 'lucide-react';
 
 interface OperacionCajaDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onOperacionRegistrada: (payload: NuevaOperacionCajaPayload) => Promise<void>;
   tipoInicial?: TipoOperacionCaja;
+  saldoActual?: number;
 }
+
+const CATEGORIAS_INGRESO = [
+  'Aporte de sencillo / cambio',
+  'Cobranza extraordinaria',
+  'Ajuste a favor de caja',
+  'Otros ingresos',
+];
+
+const CATEGORIAS_EGRESO = [
+  'Compras menores / Insumos de tienda',
+  'Servicios básicos o pasajes',
+  'Refrigerios o alimentación del personal',
+  'Retiro a caja fuerte / depósito banco',
+  'Otros egresos',
+];
 
 export const OperacionCajaDialog: React.FC<OperacionCajaDialogProps> = ({
   open,
   onOpenChange,
   onOperacionRegistrada,
   tipoInicial = 'INGRESO',
+  saldoActual = 0,
 }) => {
   const [tipo, setTipo] = useState<TipoOperacionCaja>(tipoInicial);
   const [concepto, setConcepto] = useState('');
+  const [categoria, setCategoria] = useState('');
   const [metodo, setMetodo] = useState<MetodoCaja>('EFECTIVO');
   const [monto, setMonto] = useState<number>(50);
+  const [observaciones, setObservaciones] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setTipo(tipoInicial);
-  }, [tipoInicial]);
+    setCategoria(tipoInicial === 'INGRESO' ? CATEGORIAS_INGRESO[0] : CATEGORIAS_EGRESO[0]);
+  }, [tipoInicial, open]);
+
+  // Si cambia el tipo manualmente en el select
+  const handleCambioTipo = (nuevoTipo: TipoOperacionCaja) => {
+    setTipo(nuevoTipo);
+    setCategoria(nuevoTipo === 'INGRESO' ? CATEGORIAS_INGRESO[0] : CATEGORIAS_EGRESO[0]);
+  };
+
+  const nuevoSaldoProyectado =
+    tipo === 'INGRESO' ? saldoActual + (monto || 0) : Math.max(0, saldoActual - (monto || 0));
+
+  const requiereAutorizacion = tipo === 'EGRESO' && monto >= 250;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,12 +90,15 @@ export const OperacionCajaDialog: React.FC<OperacionCajaDialogProps> = ({
     try {
       await onOperacionRegistrada({
         tipo,
-        concepto,
+        concepto: concepto.trim(),
+        categoria,
         metodo,
         monto: Number(monto),
+        observaciones: observaciones.trim() || undefined,
       });
       onOpenChange(false);
       setConcepto('');
+      setObservaciones('');
       setMonto(50);
     } finally {
       setIsSubmitting(false);
@@ -65,74 +107,160 @@ export const OperacionCajaDialog: React.FC<OperacionCajaDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-primary" />
-            {tipo === 'INGRESO' ? 'Registrar Ingreso a Caja' : 'Registrar Salida / Retiro de Efectivo'}
+      <DialogContent className="max-w-md p-0 overflow-hidden">
+        <DialogHeader className="p-6 pb-4 border-b border-border/60 bg-muted/20">
+          <div className="flex items-center gap-2 text-xs font-semibold">
+            {tipo === 'INGRESO' ? (
+              <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                <ArrowDownCircle className="h-3.5 w-3.5" />
+                Ingreso manual
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                <ArrowUpCircle className="h-3.5 w-3.5" />
+                Egreso / Salida
+              </span>
+            )}
+          </div>
+          <DialogTitle className="text-xl font-bold pt-1">
+            {tipo === 'INGRESO' ? 'Registrar nuevo ingreso' : 'Registrar nuevo egreso'}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs">
             {tipo === 'INGRESO'
-              ? 'Ingreso manual por sencillo adicional, cobranza extraordinaria o aporte.'
-              : 'Retiro para compras menores, viáticos o pagos de emergencia en efectivo.'}
+              ? 'Ingresa dinero extraordinario que entra a la caja sin ser una venta directa.'
+              : 'Registra un gasto menor o salida de dinero físico de la gaveta.'}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-3 pt-2">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Tipo y Método */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Tipo de Movimiento</Label>
-              <Select value={tipo} onValueChange={(val: TipoOperacionCaja) => setTipo(val)}>
-                <SelectTrigger className="h-8 text-xs">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground">Tipo de operación</Label>
+              <Select value={tipo} onValueChange={(val: TipoOperacionCaja) => handleCambioTipo(val)}>
+                <SelectTrigger className="h-9 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="INGRESO">Ingreso (+)</SelectItem>
-                  <SelectItem value="EGRESO">Egreso / Retiro (-)</SelectItem>
+                  <SelectItem value="EGRESO">Egreso (-)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Medio de Pago</Label>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-foreground">Método de pago</Label>
               <Select value={metodo} onValueChange={(val: MetodoCaja) => setMetodo(val)}>
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className="h-9 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="EFECTIVO">Efectivo en Mano</SelectItem>
+                  <SelectItem value="EFECTIVO">Efectivo (Gaveta)</SelectItem>
                   <SelectItem value="YAPE">Yape</SelectItem>
                   <SelectItem value="PLIN">Plin</SelectItem>
-                  <SelectItem value="TRANSFERENCIA">Transferencia Bancaria</SelectItem>
+                  <SelectItem value="TRANSFERENCIA">Transferencia</SelectItem>
+                  <SelectItem value="TARJETA">Tarjeta POS</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          <div className="space-y-1">
-            <Label className="text-xs">Motivo o Concepto</Label>
+          {/* Categoría Operativa */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold text-foreground">Categoría</Label>
+            <Select value={categoria} onValueChange={setCategoria}>
+              <SelectTrigger className="h-9 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(tipo === 'INGRESO' ? CATEGORIAS_INGRESO : CATEGORIAS_EGRESO).map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Concepto / Motivo */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold text-foreground">
+              Concepto / Motivo <span className="text-rose-500">*</span>
+            </Label>
             <Input
               value={concepto}
               onChange={(e) => setConcepto(e.target.value)}
-              placeholder="Ej. Compra de útiles de limpieza o aporte de cambio"
+              placeholder={
+                tipo === 'INGRESO'
+                  ? 'Ej. Sencillo adicional traído por administración'
+                  : 'Ej. Compra de bolsas y cinta de embalaje'
+              }
               required
+              className="h-9 text-xs"
+            />
+          </div>
+
+          {/* Monto con previsualización del saldo */}
+          <div className="space-y-2 p-3.5 rounded-xl bg-muted/40 border border-border">
+            <div className="flex justify-between items-center">
+              <Label className="text-xs font-bold text-foreground">Monto (S/)</Label>
+              <span className="text-[11px] text-muted-foreground">
+                Saldo actual: <strong className="tabular-nums">{formatCurrency(saldoActual)}</strong>
+              </span>
+            </div>
+
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">
+                S/
+              </span>
+              <Input
+                type="number"
+                step="0.10"
+                min="0.5"
+                value={monto}
+                onChange={(e) => setMonto(Number(e.target.value))}
+                required
+                className="h-10 pl-9 text-lg font-bold text-foreground tabular-nums"
+              />
+            </div>
+
+            <div className="flex justify-between items-center text-[11px] pt-1">
+              <span className="text-muted-foreground">Nuevo saldo proyectado:</span>
+              <span
+                className={`font-bold tabular-nums ${
+                  tipo === 'INGRESO' ? 'text-emerald-700' : 'text-foreground'
+                }`}
+              >
+                {formatCurrency(nuevoSaldoProyectado)}
+              </span>
+            </div>
+          </div>
+
+          {/* Advertencia si egreso supera umbral (regla 12) */}
+          {requiereAutorizacion && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs">
+              <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-semibold block">Este egreso requiere autorización.</span>
+                <span className="text-[11px] text-amber-800">
+                  El monto supera el límite operativo diario (S/ 250.00). El movimiento quedará registrado con alerta para auditoría de supervisión.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Observación opcional */}
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Observación (Opcional)</Label>
+            <Input
+              value={observaciones}
+              onChange={(e) => setObservaciones(e.target.value)}
+              placeholder="Ej. Comprobante adjunto en gaveta, firmado por cajero"
               className="h-8 text-xs"
             />
           </div>
 
-          <div className="space-y-1">
-            <Label className="text-xs">Monto (S/)</Label>
-            <Input
-              type="number"
-              step="0.1"
-              min="0.5"
-              value={monto}
-              onChange={(e) => setMonto(Number(e.target.value))}
-              required
-              className="h-8 text-xs font-bold text-lg"
-            />
-          </div>
-
-          <DialogFooter className="pt-2">
+          <DialogFooter className="pt-2 gap-2 sm:gap-0">
             <Button
               type="button"
               variant="outline"
@@ -142,8 +270,21 @@ export const OperacionCajaDialog: React.FC<OperacionCajaDialogProps> = ({
             >
               Cancelar
             </Button>
-            <Button type="submit" size="sm" disabled={isSubmitting || !concepto.trim()}>
-              {isSubmitting ? 'Guardando...' : 'Confirmar Operación'}
+            <Button
+              type="submit"
+              size="sm"
+              disabled={isSubmitting || !concepto.trim() || monto <= 0}
+              className={`font-semibold ${
+                tipo === 'EGRESO'
+                  ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+              }`}
+            >
+              {isSubmitting
+                ? 'Registrando...'
+                : tipo === 'INGRESO'
+                ? 'Registrar ingreso'
+                : 'Registrar egreso'}
             </Button>
           </DialogFooter>
         </form>

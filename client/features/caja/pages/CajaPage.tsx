@@ -1,246 +1,477 @@
 import React, { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { MetricCard } from '@/components/common/MetricCard';
-import { StatusBadge } from '@/components/common/StatusBadge';
-import { OperacionCajaDialog } from '../components/OperacionCajaDialog';
+import { Card, CardContent } from '@/components/ui/card';
 import { cajaService } from '../services/cajaService';
-import { EstadoCaja, MovimientoCaja, NuevaOperacionCajaPayload, TipoOperacionCaja } from '../types/caja.types';
+import {
+  EstadoCaja,
+  MovimientoCaja,
+  CajaInfo,
+  CierreCaja,
+  AuditoriaCaja,
+  NuevaOperacionCajaPayload,
+  AperturaCajaPayload,
+  CierreCajaPayload,
+  ArqueoConteo,
+  TipoOperacionCaja,
+} from '../types/caja.types';
 import { subscribeToErp } from '@/services/erp/erpStore';
 import { formatCurrency } from '@/utils/formatters';
+
+// Componentes del Módulo
+import { MiCajaView } from '../components/MiCajaView';
+import { CajaCerradaEmptyState } from '../components/CajaCerradaEmptyState';
+import { AbrirCajaDialog } from '../components/AbrirCajaDialog';
+import { OperacionCajaDialog } from '../components/OperacionCajaDialog';
+import { ArqueoConteoDialog } from '../components/ArqueoConteoDialog';
+import { CierreCajaDialog } from '../components/CierreCajaDialog';
+import { CierreResultadoModal } from '../components/CierreResultadoModal';
+import { MovimientosCajaView } from '../components/MovimientosCajaView';
+import { GestionCajasView } from '../components/GestionCajasView';
+import { HistorialCierresView } from '../components/HistorialCierresView';
+import { AuditoriaCajaView } from '../components/AuditoriaCajaView';
+import { KipusIACajaDialog } from '../components/KipusIACajaDialog';
+
+// Iconos
 import {
-  DollarSign,
+  Store,
+  Coins,
   ArrowDownCircle,
   ArrowUpCircle,
-  Lock,
-  Wallet,
-  Smartphone,
-  CheckCircle,
+  Calculator,
+  LockKeyhole,
+  History,
+  ShieldCheck,
+  Sparkles,
+  Bot,
+  Layers,
+  CheckCircle2,
+  RefreshCw,
+  Plus,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+type NivelComplejidad = 'BODEGA' | 'MEDIANO' | 'EMPRESARIAL';
+type TabCaja = 'MI_CAJA' | 'MOVIMIENTOS' | 'ARQUEO' | 'CIERRES' | 'CAJAS' | 'AUDITORIA';
+
 export const CajaPage: React.FC = () => {
+  // Estado de Datos
   const [estado, setEstado] = useState<EstadoCaja | null>(null);
   const [movimientos, setMovimientos] = useState<MovimientoCaja[]>([]);
+  const [cajas, setCajas] = useState<CajaInfo[]>([]);
+  const [cierres, setCierres] = useState<CierreCaja[]>([]);
+  const [auditorias, setAuditorias] = useState<AuditoriaCaja[]>([]);
   const [loading, setLoading] = useState(true);
-  const [openModal, setOpenModal] = useState(false);
-  const [modalTipo, setModalTipo] = useState<TipoOperacionCaja>('INGRESO');
 
-  const fetchCaja = async () => {
-    setLoading(true);
+  // Navegación y Complejidad Progresiva
+  const [nivel, setNivel] = useState<NivelComplejidad>('EMPRESARIAL');
+  const [activeTab, setActiveTab] = useState<TabCaja>('MI_CAJA');
+
+  // Diálogos Modales
+  const [modalAbrirOpen, setModalAbrirOpen] = useState(false);
+  const [modalOperacionOpen, setModalOperacionOpen] = useState(false);
+  const [operacionTipo, setOperacionTipo] = useState<TipoOperacionCaja>('INGRESO');
+  const [modalArqueoOpen, setModalArqueoOpen] = useState(false);
+  const [modalCierreOpen, setModalCierreOpen] = useState(false);
+  const [ultimoArqueo, setUltimoArqueo] = useState<ArqueoConteo | null>(null);
+  const [modalResultadoCierreOpen, setModalResultadoCierreOpen] = useState(false);
+  const [ultimoCierreRealizado, setUltimoCierreRealizado] = useState<CierreCaja | null>(null);
+  const [modalIAOpen, setModalIAOpen] = useState(false);
+
+  // Carga reactiva de datos
+  const fetchDatos = async () => {
     try {
-      const [est, movs] = await Promise.all([
+      const [est, movs, cjs, cies, auds] = await Promise.all([
         cajaService.getEstado(),
         cajaService.getMovimientos(),
+        cajaService.getCajas(),
+        cajaService.getCierres(),
+        cajaService.getAuditoria(),
       ]);
       setEstado(est);
       setMovimientos(movs);
+      setCajas(cjs);
+      setCierres(cies);
+      setAuditorias(auds);
     } catch {
-      toast.error('Error al cargar datos de caja');
+      toast.error('Error al sincronizar el módulo de caja');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchCaja();
+    fetchDatos();
     const unsubscribe = subscribeToErp(() => {
-      fetchCaja();
+      fetchDatos();
     });
     return unsubscribe;
   }, []);
 
-  const handleOpenDialog = (tipo: TipoOperacionCaja) => {
-    setModalTipo(tipo);
-    setOpenModal(true);
-  };
-
-  const handleOperacion = async (payload: NuevaOperacionCajaPayload) => {
+  // Handlers Operativos
+  const handleAbrirCaja = async (payload: AperturaCajaPayload) => {
     try {
-      const nuevo = await cajaService.registrarOperacion(payload);
-      setMovimientos((prev) => [nuevo, ...prev]);
-      // Refrescar estado consolidado
-      const estActual = await cajaService.getEstado();
-      setEstado(estActual);
+      const nuevoEstado = await cajaService.abrirCaja(payload);
+      setEstado(nuevoEstado);
       toast.success(
-        `${payload.tipo === 'INGRESO' ? 'Ingreso' : 'Retiro'} de ${formatCurrency(payload.monto)} registrado`
+        `Caja abierta con sencillo inicial de ${formatCurrency(payload.saldoInicial)}`
       );
+      fetchDatos();
     } catch {
-      toast.error('No se pudo registrar la operación de caja');
+      toast.error('No se pudo abrir la caja');
     }
   };
 
-  const handleCerrarCaja = async () => {
-    if (!window.confirm('¿Está seguro de cerrar el turno de caja actual? Se generará el resumen de arqueo.')) {
-      return;
-    }
+  const handleOpenOperacion = (tipo: TipoOperacionCaja) => {
+    setOperacionTipo(tipo);
+    setModalOperacionOpen(true);
+  };
+
+  const handleRegistrarOperacion = async (payload: NuevaOperacionCajaPayload) => {
     try {
-      const est = await cajaService.cerrarTurno();
-      setEstado(est);
-      toast.success('Turno de caja cerrado exitosamente.');
+      await cajaService.registrarOperacion(payload);
+      toast.success(
+        `${payload.tipo === 'INGRESO' ? 'Ingreso' : 'Egreso'} de ${formatCurrency(
+          payload.monto
+        )} registrado correctamente`
+      );
+      fetchDatos();
     } catch {
-      toast.error('Error al cerrar caja');
+      toast.error('Error al registrar la operación');
     }
   };
+
+  const handleArqueoGuardado = async (arqueo: ArqueoConteo) => {
+    try {
+      await cajaService.registrarArqueo(arqueo);
+      setUltimoArqueo(arqueo);
+      toast.success(
+        `Conteo guardado: ${
+          arqueo.estadoCuadre === 'CUADRADA'
+            ? 'Caja cuadrada sin diferencia'
+            : `Diferencia de ${formatCurrency(arqueo.diferencia)} registrada`
+        }`
+      );
+      fetchDatos();
+    } catch {
+      toast.error('No se pudo guardar el arqueo');
+    }
+  };
+
+  const handleProcederCierreDesdeArqueo = (arqueo: ArqueoConteo) => {
+    setUltimoArqueo(arqueo);
+    setModalCierreOpen(true);
+  };
+
+  const handleCierreConfirmado = async (payload: CierreCajaPayload) => {
+    try {
+      const res = await cajaService.cerrarCaja(payload);
+      setUltimoCierreRealizado(res);
+      setModalResultadoCierreOpen(true);
+      toast.success('Turno de caja cerrado exitosamente.');
+      fetchDatos();
+    } catch {
+      toast.error('Error al procesar el cierre de caja');
+    }
+  };
+
+  // Determinar tabs visibles según el nivel de complejidad progresiva (Regla 35)
+  const tabsVisibles = React.useMemo(() => {
+    if (nivel === 'BODEGA') {
+      return [
+        { id: 'MI_CAJA', label: 'Mi caja', icon: Coins },
+        { id: 'MOVIMIENTOS', label: 'Movimientos', icon: RefreshCw },
+        { id: 'ARQUEO', label: 'Contar dinero', icon: Calculator },
+      ];
+    }
+    if (nivel === 'MEDIANO') {
+      return [
+        { id: 'MI_CAJA', label: 'Mi caja', icon: Coins },
+        { id: 'MOVIMIENTOS', label: 'Movimientos', icon: RefreshCw },
+        { id: 'ARQUEO', label: 'Arqueo', icon: Calculator },
+        { id: 'CIERRES', label: 'Historial de Cierres', icon: History },
+      ];
+    }
+    // EMPRESARIAL (Admin y cadenas)
+    return [
+      { id: 'MI_CAJA', label: 'Mi caja', icon: Coins },
+      { id: 'MOVIMIENTOS', label: 'Movimientos', icon: RefreshCw },
+      { id: 'ARQUEO', label: 'Arqueo', icon: Calculator },
+      { id: 'CIERRES', label: 'Historial Cierres', icon: History },
+      { id: 'CAJAS', label: 'Todas las Cajas', icon: Store },
+      { id: 'AUDITORIA', label: 'Auditoría', icon: ShieldCheck },
+    ];
+  }, [nivel]);
+
+  if (loading || !estado) {
+    return (
+      <div className="p-8 text-center space-y-3">
+        <Coins className="h-8 w-8 text-primary animate-pulse mx-auto" />
+        <p className="text-xs font-semibold text-muted-foreground">
+          Sincronizando estado de caja...
+        </p>
+      </div>
+    );
+  }
+
+  const cajaEstaAbierta = estado.abierta;
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Control de Caja y Arqueo Diario"
-        description="Conciliación de pagos en efectivo, transferencias bancarias y cobros por billeteras digitales"
-        badge={estado?.abierta ? 'Turno Abierto' : 'Turno Cerrado'}
-      >
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleOpenDialog('INGRESO')}
-          className="gap-2"
-        >
-          <ArrowDownCircle className="h-4 w-4 text-emerald-600" />
-          <span>Ingreso a Caja</span>
-        </Button>
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      {/* 1. Header Principal con Estado Semántico y Selector Progresivo */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border/80 pb-4">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-black tracking-tight text-foreground">
+              Módulo de Caja
+            </h1>
+            {/* Estado Semántico (Regla 6) */}
+            <span
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                cajaEstaAbierta
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : 'bg-rose-50 text-rose-700 border border-rose-200'
+              }`}
+            >
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  cajaEstaAbierta ? 'bg-emerald-600 animate-pulse' : 'bg-rose-600'
+                }`}
+              />
+              {cajaEstaAbierta ? '🟢 Caja abierta' : '🔴 Caja cerrada'}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Control de efectivo en gaveta, ventas automáticas, cobros digitales y cierres de turno.
+          </p>
+        </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleOpenDialog('EGRESO')}
-          className="gap-2"
-        >
-          <ArrowUpCircle className="h-4 w-4 text-rose-600" />
-          <span>Retiro / Salida</span>
-        </Button>
+        {/* Acciones de Cabecera: Selector Progresivo y KIPU'S IA */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Selector de Complejidad Progresiva (Regla 35) */}
+          <div className="flex items-center gap-1 p-1 bg-muted/60 rounded-lg border border-border/60">
+            <span className="text-[11px] font-bold text-muted-foreground px-2 hidden sm:inline">
+              Modo:
+            </span>
+            {(
+              [
+                { id: 'BODEGA', label: 'Tienda Rápida' },
+                { id: 'MEDIANO', label: 'Comercio Mediano' },
+                { id: 'EMPRESARIAL', label: 'Cadena / Admin' },
+              ] as const
+            ).map((mod) => (
+              <button
+                key={mod.id}
+                type="button"
+                onClick={() => {
+                  setNivel(mod.id);
+                  if (mod.id === 'BODEGA' && (activeTab === 'CAJAS' || activeTab === 'AUDITORIA' || activeTab === 'CIERRES')) {
+                    setActiveTab('MI_CAJA');
+                  }
+                }}
+                className={`px-2.5 py-1 rounded text-xs font-semibold transition-all ${
+                  nivel === mod.id
+                    ? 'bg-card text-foreground shadow-xs border border-border font-bold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {mod.label}
+              </button>
+            ))}
+          </div>
 
-        <Button
-          size="sm"
-          onClick={handleCerrarCaja}
-          disabled={!estado?.abierta}
-          className="gap-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground font-semibold"
-        >
-          <Lock className="h-4 w-4" />
-          <span>Cierre de Turno</span>
-        </Button>
-      </PageHeader>
+          {/* Botón KIPU'S IA */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setModalIAOpen(true)}
+            className="h-8 text-xs font-semibold gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>KIPU'S IA</span>
+          </Button>
 
-      {/* Arqueo de Caja Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard
-          title="Saldo Inicial (Apertura)"
-          value={formatCurrency(estado?.saldoInicial ?? 0)}
-          subtitle={estado?.turno ?? 'Turno Activo'}
-          icon={Wallet}
-          iconColor="text-slate-700 bg-slate-100 dark:bg-slate-800"
-        />
-
-        <MetricCard
-          title="Cobros Digitales (Yape/Tarj.)"
-          value={formatCurrency(estado?.ingresosDigitales ?? 0)}
-          subtitle="Directo a cuenta bancaria"
-          icon={Smartphone}
-          iconColor="text-blue-600 bg-blue-50 dark:bg-blue-950/40"
-        />
-
-        <MetricCard
-          title="Gastos / Retiros Efectivo"
-          value={formatCurrency(estado?.egresosEfectivo ?? 0)}
-          subtitle="Pagos menores en caja"
-          icon={ArrowUpCircle}
-          iconColor="text-rose-600 bg-rose-50 dark:bg-rose-950/40"
-        />
-
-        <MetricCard
-          title="Efectivo Esperado en Gaveta"
-          value={formatCurrency(estado?.saldoEfectivoEsperado ?? 0)}
-          subtitle="A cuadrar en conteo físico"
-          icon={DollarSign}
-          iconColor="text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40"
-        />
+          {/* Botón Abrir Caja (si está cerrada) */}
+          {!cajaEstaAbierta && (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setModalAbrirOpen(true)}
+              className="h-8 text-xs font-semibold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Abrir caja</span>
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Historial de Movimientos de Caja */}
-      <Card className="border-border/80">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-bold text-foreground">
-            Movimientos y Cobranzas del Turno Actual
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto rounded border border-border bg-card shadow-2xs">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent bg-slate-100/90 dark:bg-slate-800/90 border-b border-border">
-                  <TableHead className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider py-2.5">Hora Registro</TableHead>
-                  <TableHead className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider py-2.5">Tipo Operación</TableHead>
-                  <TableHead className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider py-2.5">Concepto / Glosa</TableHead>
-                  <TableHead className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider py-2.5">Medio de Pago</TableHead>
-                  <TableHead className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider text-right py-2.5">Monto de Operación</TableHead>
-                  <TableHead className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider text-right py-2.5">Operador</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-32 text-center text-xs text-muted-foreground">
-                      Cargando movimientos de caja...
-                    </TableCell>
-                  </TableRow>
-                ) : movimientos.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-32 text-center text-xs text-muted-foreground">
-                      No se han registrado operaciones en este turno de caja.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  movimientos.map((mov) => {
-                    const isIngreso = mov.tipo === 'INGRESO';
-                    return (
-                      <TableRow key={mov.id} className="text-[13px] hover:bg-slate-50 dark:hover:bg-slate-800/40 border-b border-border/70 transition-colors">
-                        <TableCell className="font-mono text-muted-foreground font-semibold py-2.5">
-                          {mov.fecha}
-                        </TableCell>
-                        <TableCell className="py-2.5">
-                          <StatusBadge
-                            status={mov.tipo}
-                            variant={isIngreso ? 'success' : 'danger'}
-                          />
-                        </TableCell>
-                        <TableCell className="font-semibold text-foreground py-2.5">
-                          {mov.concepto}
-                        </TableCell>
-                        <TableCell className="py-2.5">
-                          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-muted border border-border/60">
-                            {mov.metodo}
-                          </span>
-                        </TableCell>
-                        <TableCell className={`text-right font-black font-mono py-2.5 text-[14px] tabular-nums ${isIngreso ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
-                          {isIngreso ? `+${formatCurrency(mov.monto)}` : `-${formatCurrency(mov.monto)}`}
-                        </TableCell>
-                        <TableCell className="text-right text-muted-foreground py-2.5 text-xs font-medium">
-                          {mov.usuario}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      {/* 2. Barra de Navegación por Tabs Adaptativa (Reglas 3 y 35) */}
+      <div className="flex items-center gap-1.5 border-b border-border overflow-x-auto pb-px">
+        {tabsVisibles.map((tab) => {
+          const Icon = tab.icon;
+          const esActivo = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id as TabCaja)}
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold transition-all border-b-2 whitespace-nowrap ${
+                esActivo
+                  ? 'border-primary text-primary font-bold bg-primary/5 rounded-t-lg'
+                  : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-t-lg'
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              <span>{tab.label}</span>
+              {tab.id === 'MOVIMIENTOS' && (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-muted font-bold">
+                  {movimientos.length}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
 
+      {/* 3. Contenido Principal según Tab Activo */}
+      <div className="min-h-[420px]">
+        {/* TAB 1: MI CAJA */}
+        {activeTab === 'MI_CAJA' && (
+          <>
+            {cajaEstaAbierta ? (
+              <MiCajaView
+                estado={estado}
+                movimientos={movimientos}
+                onOpenIngreso={() => handleOpenOperacion('INGRESO')}
+                onOpenEgreso={() => handleOpenOperacion('EGRESO')}
+                onOpenArqueo={() => setModalArqueoOpen(true)}
+                onOpenCierre={() => setModalCierreOpen(true)}
+                onVerTodosMovimientos={() => setActiveTab('MOVIMIENTOS')}
+              />
+            ) : (
+              /* REGLA 8: Si no tiene caja abierta, mostrar pantalla clara sin errores técnicos */
+              <CajaCerradaEmptyState
+                onAbrirCajaClick={() => setModalAbrirOpen(true)}
+                sucursal={estado.sucursal}
+                cajaNombre={estado.nombre}
+              />
+            )}
+          </>
+        )}
+
+        {/* TAB 2: MOVIMIENTOS */}
+        {activeTab === 'MOVIMIENTOS' && (
+          <MovimientosCajaView
+            movimientos={movimientos}
+            cajaNombre={estado.nombre}
+          />
+        )}
+
+        {/* TAB 3: CONTAR DINERO / ARQUEO */}
+        {activeTab === 'ARQUEO' && (
+          <Card className="border border-border/80 shadow-xs bg-card p-6 text-center space-y-4 max-w-lg mx-auto">
+            <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+              <Calculator className="h-7 w-7" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-foreground">
+                Conteo y Arqueo de Caja
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Cuenta los billetes y monedas físicos de tu gaveta para comprobar que no existan sobrantes ni faltantes en tu turno.
+              </p>
+            </div>
+            <div className="pt-2">
+              <Button
+                onClick={() => setModalArqueoOpen(true)}
+                className="font-semibold text-xs h-10 px-6 gap-2"
+                disabled={!cajaEstaAbierta}
+              >
+                <Calculator className="h-4 w-4" />
+                {cajaEstaAbierta ? 'Abrir calculadora de conteo' : 'Abre tu caja primero para arquear'}
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* TAB 4: HISTORIAL DE CIERRES */}
+        {activeTab === 'CIERRES' && (
+          <HistorialCierresView
+            cierres={cierres}
+            onNuevaApertura={() => setModalAbrirOpen(true)}
+          />
+        )}
+
+        {/* TAB 5: TODAS LAS CAJAS (Solo Admin / Nivel Empresarial) */}
+        {activeTab === 'CAJAS' && (
+          <GestionCajasView
+            cajas={cajas}
+            onSeleccionarCaja={(caja) => {
+              toast.info(`Consultando ${caja.nombre} de ${caja.sucursal}`);
+              setActiveTab('MOVIMIENTOS');
+            }}
+          />
+        )}
+
+        {/* TAB 6: AUDITORÍA (Solo Admin / Nivel Empresarial) */}
+        {activeTab === 'AUDITORIA' && (
+          <AuditoriaCajaView auditorias={auditorias} />
+        )}
+      </div>
+
+      {/* 4. Diálogos Modales del Flujo */}
+      {/* Modal Abrir Caja */}
+      <AbrirCajaDialog
+        open={modalAbrirOpen}
+        onOpenChange={setModalAbrirOpen}
+        onCajaAbierta={handleAbrirCaja}
+        sucursalDefecto={estado.sucursal}
+      />
+
+      {/* Modal Operación (Ingreso / Egreso) */}
       <OperacionCajaDialog
-        open={openModal}
-        onOpenChange={setOpenModal}
-        tipoInicial={modalTipo}
-        onOperacionRegistrada={handleOperacion}
+        open={modalOperacionOpen}
+        onOpenChange={setModalOperacionOpen}
+        onOperacionRegistrada={handleRegistrarOperacion}
+        tipoInicial={operacionTipo}
+        saldoActual={estado.saldoEfectivoEsperado}
+      />
+
+      {/* Modal Arqueo / Contar Dinero */}
+      <ArqueoConteoDialog
+        open={modalArqueoOpen}
+        onOpenChange={setModalArqueoOpen}
+        estadoCaja={estado}
+        onArqueoGuardado={handleArqueoGuardado}
+        onProcederCierre={handleProcederCierreDesdeArqueo}
+      />
+
+      {/* Modal Cierre de Caja */}
+      <CierreCajaDialog
+        open={modalCierreOpen}
+        onOpenChange={setModalCierreOpen}
+        estadoCaja={estado}
+        arqueoPrevio={ultimoArqueo}
+        onCierreConfirmado={handleCierreConfirmado}
+      />
+
+      {/* Modal Resultado del Cierre (Comprobante imprimible) */}
+      <CierreResultadoModal
+        open={modalResultadoCierreOpen}
+        onOpenChange={setModalResultadoCierreOpen}
+        cierre={ultimoCierreRealizado}
+        onNuevaAperturaClick={() => setModalAbrirOpen(true)}
+      />
+
+      {/* Modal KIPU'S IA */}
+      <KipusIACajaDialog
+        open={modalIAOpen}
+        onOpenChange={setModalIAOpen}
+        estadoCaja={estado}
+        movimientos={movimientos}
+        cierres={cierres}
       />
     </div>
   );
