@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import {
   Dialog,
   DialogContent,
@@ -7,9 +10,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -17,8 +27,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Loader2 } from 'lucide-react';
 import { NuevoProductoPayload } from '../types/productos.types';
-import { PackagePlus } from 'lucide-react';
+
+const nuevoProductoSchema = z.object({
+  sku: z.string().trim().optional(),
+  nombre: z
+    .string({ required_error: 'Ingresa la descripción del producto' })
+    .trim()
+    .min(3, 'La descripción debe tener al menos 3 caracteres'),
+  categoria: z
+    .string({ required_error: 'Selecciona una categoría' })
+    .min(1, 'Selecciona una categoría'),
+  precioCompra: z.coerce
+    .number({ invalid_type_error: 'Ingresa un precio de costo válido' })
+    .min(0, 'El precio de costo no puede ser negativo'),
+  precioVenta: z.coerce
+    .number({ invalid_type_error: 'Ingresa un precio de venta válido' })
+    .gt(0, 'El precio de venta debe ser mayor a S/ 0.00'),
+  stock: z.coerce
+    .number({ invalid_type_error: 'Ingresa una cantidad válida' })
+    .min(0, 'El stock inicial no puede ser negativo'),
+  stockMinimo: z.coerce
+    .number({ invalid_type_error: 'Ingresa el stock mínimo' })
+    .min(1, 'El stock mínimo de alerta debe ser al menos 1'),
+  unidadMedida: z
+    .string({ required_error: 'Selecciona la unidad de medida' })
+    .min(1, 'Selecciona la unidad de medida'),
+});
+
+type FormValues = z.infer<typeof nuevoProductoSchema>;
 
 interface NuevoProductoDialogProps {
   open: boolean;
@@ -26,180 +64,290 @@ interface NuevoProductoDialogProps {
   onProductoCreado: (payload: NuevoProductoPayload) => Promise<void>;
 }
 
+const DEFAULT_VALUES: FormValues = {
+  sku: '',
+  nombre: '',
+  categoria: 'Lubricantes',
+  precioCompra: 0,
+  precioVenta: 0,
+  stock: 10,
+  stockMinimo: 5,
+  unidadMedida: 'UNIDAD',
+};
+
 export const NuevoProductoDialog: React.FC<NuevoProductoDialogProps> = ({
   open,
   onOpenChange,
   onProductoCreado,
 }) => {
-  const [sku, setSku] = useState('');
-  const [nombre, setNombre] = useState('');
-  const [categoria, setCategoria] = useState('Lubricantes');
-  const [precioCompra, setPrecioCompra] = useState(0);
-  const [precioVenta, setPrecioVenta] = useState(0);
-  const [stock, setStock] = useState(10);
-  const [stockMinimo, setStockMinimo] = useState(5);
-  const [unidadMedida, setUnidadMedida] = useState('UNIDAD');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const form = useForm<FormValues>({
+    resolver: zodResolver(nuevoProductoSchema),
+    defaultValues: DEFAULT_VALUES,
+    mode: 'onBlur',
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nombre.trim()) return;
+  const { isSubmitting } = form.formState;
 
-    setIsSubmitting(true);
+  const handleSubmit = async (values: FormValues) => {
     try {
       await onProductoCreado({
-        sku: sku || `SKU-${Date.now().toString().slice(-5)}`,
-        nombre,
-        categoria,
-        precioCompra: Number(precioCompra),
-        precioVenta: Number(precioVenta),
-        stock: Number(stock),
-        stockMinimo: Number(stockMinimo),
-        unidadMedida,
+        sku: values.sku?.trim() || `SKU-${Date.now().toString().slice(-5)}`,
+        nombre: values.nombre.trim(),
+        categoria: values.categoria,
+        precioCompra: Number(values.precioCompra),
+        precioVenta: Number(values.precioVenta),
+        stock: Number(values.stock),
+        stockMinimo: Number(values.stockMinimo),
+        unidadMedida: values.unidadMedida,
       });
+      form.reset(DEFAULT_VALUES);
       onOpenChange(false);
-      // Reset
-      setSku('');
-      setNombre('');
-      setPrecioCompra(0);
-      setPrecioVenta(0);
-    } finally {
-      setIsSubmitting(false);
+    } catch {
+      // El error se maneja con toast en el handler padre
     }
   };
 
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      form.reset(DEFAULT_VALUES);
+    }
+    onOpenChange(newOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <PackagePlus className="h-5 w-5 text-primary" />
-            Registrar Nuevo Producto o Servicio
+          <DialogTitle className="text-lg font-semibold">
+            Nuevo producto o servicio
           </DialogTitle>
-          <DialogDescription>
-            Ingresa los datos comerciales, precios y límites de stock del artículo.
+          <DialogDescription className="text-xs text-muted-foreground">
+            Ingresa los datos comerciales, precios de venta y límites de stock del artículo.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-3 pt-2">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Código / SKU</Label>
-              <Input
-                value={sku}
-                onChange={(e) => setSku(e.target.value)}
-                placeholder="Ej. REP-001"
-                className="h-8 text-xs"
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="sku"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium">
+                      Código SKU <span className="text-muted-foreground font-normal">(opcional)</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Ej. REP-001"
+                        className="h-9 font-mono text-base md:text-sm"
+                        disabled={isSubmitting}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="categoria"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium">Categoría</FormLabel>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={isSubmitting}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-9 text-base md:text-sm">
+                          <SelectValue placeholder="Seleccionar categoría" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Lubricantes">Lubricantes</SelectItem>
+                        <SelectItem value="Filtros">Filtros</SelectItem>
+                        <SelectItem value="Frenos">Frenos</SelectItem>
+                        <SelectItem value="Eléctrico">Eléctrico</SelectItem>
+                        <SelectItem value="Químicos">Químicos</SelectItem>
+                        <SelectItem value="Encendido">Encendido</SelectItem>
+                        <SelectItem value="Servicios">Servicios / M.O.</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
               />
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Categoría</Label>
-              <Select value={categoria} onValueChange={setCategoria}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Lubricantes">Lubricantes</SelectItem>
-                  <SelectItem value="Filtros">Filtros</SelectItem>
-                  <SelectItem value="Frenos">Frenos</SelectItem>
-                  <SelectItem value="Eléctrico">Eléctrico</SelectItem>
-                  <SelectItem value="Químicos">Químicos</SelectItem>
-                  <SelectItem value="Encendido">Encendido</SelectItem>
-                  <SelectItem value="Servicios">Servicios / M.O.</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
 
-          <div className="space-y-1">
-            <Label className="text-xs">Descripción del Producto</Label>
-            <Input
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              placeholder="Ej. Batería 12V 70Ah Libre Mantenimiento"
-              required
-              className="h-8 text-xs"
+            <FormField
+              control={form.control}
+              name="nombre"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-medium">Descripción del producto</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Ej. Aceite Shell Helix 20W-50 Multigrado"
+                      className="h-9 text-base md:text-sm"
+                      disabled={isSubmitting}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Precio de Costo (S/)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={precioCompra}
-                onChange={(e) => setPrecioCompra(Number(e.target.value))}
-                className="h-8 text-xs"
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="precioCompra"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium">Precio de costo (S/)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        inputMode="decimal"
+                        className="h-9 text-base md:text-sm tabular-nums"
+                        disabled={isSubmitting}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
               />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Precio de Venta (S/)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={precioVenta}
-                onChange={(e) => setPrecioVenta(Number(e.target.value))}
-                required
-                className="h-8 text-xs font-semibold"
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-3 gap-2">
-            <div className="space-y-1">
-              <Label className="text-xs">Stock Inicial</Label>
-              <Input
-                type="number"
-                min="0"
-                value={stock}
-                onChange={(e) => setStock(Number(e.target.value))}
-                className="h-8 text-xs text-center"
+              <FormField
+                control={form.control}
+                name="precioVenta"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium">Precio de venta (S/)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        inputMode="decimal"
+                        className="h-9 text-base md:text-sm font-medium tabular-nums"
+                        disabled={isSubmitting}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
               />
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Stock Mínimo</Label>
-              <Input
-                type="number"
-                min="1"
-                value={stockMinimo}
-                onChange={(e) => setStockMinimo(Number(e.target.value))}
-                className="h-8 text-xs text-center"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">U. Medida</Label>
-              <Select value={unidadMedida} onValueChange={setUnidadMedida}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="UNIDAD">Unidad</SelectItem>
-                  <SelectItem value="GALON">Galón</SelectItem>
-                  <SelectItem value="JUEGO">Juego</SelectItem>
-                  <SelectItem value="KILO">Kilo</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
 
-          <DialogFooter className="pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" size="sm" disabled={isSubmitting || !nombre.trim()}>
-              {isSubmitting ? 'Guardando...' : 'Guardar Producto'}
-            </Button>
-          </DialogFooter>
-        </form>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <FormField
+                control={form.control}
+                name="stock"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium">Stock inicial</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        inputMode="numeric"
+                        className="h-9 text-base md:text-sm text-center tabular-nums"
+                        disabled={isSubmitting}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="stockMinimo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium">Stock mínimo</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="1"
+                        inputMode="numeric"
+                        className="h-9 text-base md:text-sm text-center tabular-nums"
+                        disabled={isSubmitting}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="unidadMedida"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium">U. Medida</FormLabel>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={isSubmitting}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-9 text-base md:text-sm">
+                          <SelectValue placeholder="Unidad" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="UNIDAD">Unidad</SelectItem>
+                        <SelectItem value="GALON">Galón</SelectItem>
+                        <SelectItem value="JUEGO">Juego</SelectItem>
+                        <SelectItem value="KILO">Kilo</SelectItem>
+                        <SelectItem value="LITRO">Litro</SelectItem>
+                        <SelectItem value="PAQUETE">Paquete</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <DialogFooter className="pt-3 gap-2 sm:gap-0">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleOpenChange(false)}
+                disabled={isSubmitting}
+                className="h-9"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="h-9"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <span>Guardando producto…</span>
+                  </>
+                ) : (
+                  'Guardar producto'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

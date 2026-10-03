@@ -1,7 +1,5 @@
-/**
- * Funciones formateadoras estándar para KIPU'S ERP.
- * Garantizan consistencia en la visualización de montos, porcentajes y fechas.
- */
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 export function formatCurrency(
   amount: number,
@@ -14,6 +12,8 @@ export function formatCurrency(
   })}`;
 }
 
+export const formatMoney = formatCurrency;
+
 export function formatNumber(value: number): string {
   return value.toLocaleString('es-PE');
 }
@@ -22,3 +22,24 @@ export function formatPercentage(value: number): string {
   const sign = value > 0 ? '+' : '';
   return `${sign}${value.toFixed(1)}%`;
 }
+
+export function formatDate(dateString: string): string {
+  try {
+    const cleanDate = dateString.includes('T') ? parseISO(dateString) : new Date(dateString.replace(' ', 'T'));
+    if (isNaN(cleanDate.getTime())) return dateString;
+    return format(cleanDate, 'dd MMM yyyy', { locale: es });
+  } catch {
+    return dateString;
+  }
+}
+
+export function formatDateTime(dateString: string): string {
+  try {
+    const cleanDate = dateString.includes('T') ? parseISO(dateString) : new Date(dateString.replace(' ', 'T'));
+    if (isNaN(cleanDate.getTime())) return dateString;
+    return format(cleanDate, 'dd MMM yyyy, HH:mm', { locale: es });
+  } catch {
+    return dateString;
+  }
+}
+
