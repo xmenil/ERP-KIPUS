@@ -41,17 +41,17 @@ interface NavItemConfig {
 
 const gestionItems: NavItemConfig[] = [
   { name: 'Dashboard', path: APP_ROUTES.DASHBOARD, icon: LayoutDashboard },
+  { name: 'Ventas', path: APP_ROUTES.VENTAS, icon: ShoppingCart },
   { name: 'Productos', path: APP_ROUTES.PRODUCTOS, icon: Package },
   { name: 'Inventario', path: APP_ROUTES.INVENTARIO, icon: Warehouse },
-  { name: 'Clientes', path: APP_ROUTES.CLIENTES, icon: Users },
-  { name: 'Proveedores', path: APP_ROUTES.PROVEEDORES, icon: Building2 },
 ];
 
 const operacionesItems: NavItemConfig[] = [
-  { name: 'Ventas', path: APP_ROUTES.VENTAS, icon: ShoppingCart },
   { name: 'Caja', path: APP_ROUTES.CAJA, icon: DollarSign },
   { name: 'Gastos', path: APP_ROUTES.GASTOS, icon: Receipt },
   { name: 'Compras', path: APP_ROUTES.COMPRAS, icon: Truck },
+  { name: 'Proveedores', path: APP_ROUTES.PROVEEDORES, icon: Building2 },
+  { name: 'Clientes', path: APP_ROUTES.CLIENTES, icon: Users },
 ];
 
 const inteligenciaItems: NavItemConfig[] = [

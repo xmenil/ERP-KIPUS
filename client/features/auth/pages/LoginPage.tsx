@@ -80,8 +80,7 @@ export const LoginPage: React.FC = () => {
     <div className="min-h-screen w-full flex flex-col justify-between bg-background p-4 sm:p-6 lg:p-8">
       {/* Encabezado mínimo */}
       <header className="w-full max-w-sm mx-auto flex items-center justify-between text-xs text-muted-foreground pt-2">
-        <span className="font-medium text-foreground">KIPU'S ERP</span>
-        <span>Tingo María</span>
+        
       </header>
 
       {/* Tarjeta central de acceso */}
@@ -89,12 +88,9 @@ export const LoginPage: React.FC = () => {
         <div className="bg-card border border-border rounded-md shadow-xs p-6 sm:p-8 space-y-6">
           {/* Título de la pantalla */}
           <div className="space-y-1">
-            <h1 className="text-xl font-semibold text-foreground tracking-tight">
+            <h1 className="text-xl font-semibold text-center text-foreground tracking-tight">
               Iniciar sesión
             </h1>
-            <p className="text-xs text-muted-foreground">
-              Sistema de ventas, caja e inventario para micro y pequeñas empresas.
-            </p>
           </div>
 
           {/* Mensaje de error visible si la autenticación falla */}
@@ -249,7 +245,7 @@ export const LoginPage: React.FC = () => {
 
       {/* Pie institucional sobrio */}
       <footer className="w-full max-w-sm mx-auto text-center text-xs text-muted-foreground pb-2">
-        <p>Instituto de Educación Superior Privado Fibonacci · Tingo María, 2026</p>
+        <p>© 2026 - KIPU'S</p>
       </footer>
     </div>
   );
