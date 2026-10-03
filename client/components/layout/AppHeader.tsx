@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +25,7 @@ import {
 import { toast } from 'sonner';
 
 export const AppHeader: React.FC = () => {
+  const { user, logout } = useAuth();
   const [isDark, setIsDark] = useState<boolean>(() => {
     return document.documentElement.classList.contains('dark');
   });
@@ -128,29 +130,39 @@ export const AppHeader: React.FC = () => {
               className="flex items-center gap-2 pl-2 pr-3 py-1 h-8 rounded border-border/90 bg-background text-xs font-semibold hover:bg-muted"
             >
               <div className="flex h-5 w-5 items-center justify-center rounded bg-primary text-primary-foreground font-bold text-[11px]">
-                A
+                {user?.avatarInitials || 'A'}
               </div>
-              <span className="hidden sm:inline-block text-foreground">Administrador</span>
+              <span className="hidden sm:inline-block text-foreground max-w-[120px] truncate">
+                {user?.nombreCompleto ? user.nombreCompleto.split(' ')[0] : 'Administrador'}
+              </span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52">
+          <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel className="font-normal py-1.5">
               <div className="flex flex-col space-y-0.5">
-                <p className="text-xs font-bold text-foreground">Administrador General</p>
-                <p className="text-[11px] text-muted-foreground">admin@comerciallosandes.pe</p>
+                <p className="text-xs font-bold text-foreground">
+                  {user?.nombreCompleto || 'Administrador'}
+                </p>
+                <p className="text-[11px] text-muted-foreground">{user?.email || 'admin@kipus.pe'}</p>
+                <span className="inline-block mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary w-fit">
+                  {user?.rol || 'ADMINISTRADOR'}
+                </span>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="cursor-pointer gap-2 text-xs">
               <User className="h-3.5 w-3.5" />
-              <span>Mi Perfil</span>
+              <span>Mi Perfil ({user?.sucursal || 'Sede Central'})</span>
             </DropdownMenuItem>
             <DropdownMenuItem className="cursor-pointer gap-2 text-xs">
               <HelpCircle className="h-3.5 w-3.5" />
               <span>Manual de Usuario</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer gap-2 text-xs text-rose-600 focus:text-rose-600">
+            <DropdownMenuItem
+              onClick={logout}
+              className="cursor-pointer gap-2 text-xs text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/40"
+            >
               <LogOut className="h-3.5 w-3.5" />
               <span>Cerrar Sesión</span>
             </DropdownMenuItem>

@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
+import { AuthProvider } from '@/features/auth/context/AuthContext';
 
 // Instancia única del cliente de Query
 const queryClient = new QueryClient({
@@ -21,16 +22,19 @@ interface AppProvidersProps {
 
 /**
  * Envoltorio global de Providers para la aplicación.
- * Centraliza la inyección de contexto de Query, Tooltips y Notificaciones Toasts.
+ * Centraliza la inyección de contexto de Autenticación, Query, Tooltips y Notificaciones Toasts.
  */
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        {children}
-        <Toaster />
-        <Sonner position="top-right" richColors closeButton />
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          {children}
+          <Toaster />
+          <Sonner position="top-right" richColors closeButton />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 };
+
