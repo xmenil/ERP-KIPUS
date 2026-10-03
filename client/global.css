@@ -1,0 +1,147 @@
+/** @import must precede all other statements */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /**
+   * Tailwind CSS theme
+   * tailwind.config.ts expects the following color variables to be expressed as HSL values.
+   * A different format will require also updating the theme in tailwind.config.ts.
+  */
+:root {
+  /* Fondo plomo suave corporativo y textos slate de alto contraste */
+  --background: 216 20% 97%;
+  --foreground: 222 47% 13%;
+
+  /* Tarjetas blancas sobre fondo plomo */
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 13%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 13%;
+
+  /* Azul Empresarial Corporativo (Deep Executive Navy) */
+  --primary: 221 78% 42%;
+  --primary-foreground: 0 0% 100%;
+  --primary-hover: 221 78% 35%;
+
+  /* Plomo secundario y fondos suaves */
+  --secondary: 215 22% 93%;
+  --secondary-foreground: 222 47% 13%;
+
+  /* Estados semánticos */
+  --success: 142 70% 36%;
+  --success-foreground: 0 0% 100%;
+
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 100%;
+
+  /* Plomos neutros para textos secundarios y divisores */
+  --muted: 215 22% 93%;
+  --muted-foreground: 215 16% 45%;
+  --accent: 215 22% 93%;
+  --accent-foreground: 222 47% 13%;
+
+  /* Bordes plomos definidos */
+  --border: 215 20% 88%;
+  --input: 215 20% 88%;
+  --ring: var(--primary);
+
+  /* Radio de bordes ejecutivo */
+  --radius: 0.5rem;
+
+  /* Sidebar en plomo corporativo claro */
+  --sidebar-background: 216 25% 95%;
+  --sidebar-foreground: 218 35% 24%;
+  --sidebar-primary: 221 78% 42%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 215 22% 89%;
+  --sidebar-accent-foreground: 222 47% 13%;
+  --sidebar-border: 215 20% 86%;
+  --sidebar-ring: 221 78% 42%;
+}
+
+  .dark {
+    --background: 222 35% 8%;
+    --foreground: 210 25% 96%;
+    --card: 222 35% 11%;
+    --card-foreground: 210 25% 96%;
+    --popover: 222 35% 11%;
+    --popover-foreground: 210 25% 96%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 221 83% 60%;
+    --secondary: 217 28% 18%;
+    --secondary-foreground: 210 25% 96%;
+    --muted: 217 28% 18%;
+    --muted-foreground: 215 18% 65%;
+    --accent: 217 28% 18%;
+    --accent-foreground: 210 25% 96%;
+    --destructive: 0 65% 45%;
+    --destructive-foreground: 210 25% 96%;
+    --border: 217 25% 20%;
+    --input: 217 25% 20%;
+    --ring: 221 83% 53%;
+    --sidebar-background: 222 35% 10%;
+    --sidebar-foreground: 210 25% 92%;
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 28% 16%;
+    --sidebar-accent-foreground: 210 25% 96%;
+    --sidebar-border: 217 25% 18%;
+    --sidebar-ring: 221 83% 53%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 13.5px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Números tabulares para cuadre contable y montos */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  :where(p, span, li, h1, h2, h3, h4, h5, h6, a, button, label, td, th) {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  pre,
+  code {
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  /* Scrollbars modernos y discretos para el ERP */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.4);
+  }
+}
+
