@@ -1,8 +1,7 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { StatusBadge } from '@/components/common/StatusBadge';
 import { StockAlert } from '../types/dashboard.types';
-import { AlertCircle, ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { APP_ROUTES } from '@/constants/routes';
 
@@ -13,70 +12,86 @@ interface StockAlertsCardProps {
 
 export const StockAlertsCard: React.FC<StockAlertsCardProps> = ({ alerts, isLoading }) => {
   return (
-    <Card className="border-border/80">
+    <Card className="rounded-md border-border bg-card shadow-xs h-full flex flex-col justify-between">
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <div>
-          <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-rose-500" />
-            Alertas de Reabastecimiento
+          <CardTitle className="text-base font-semibold text-foreground">
+            Alertas de reabastecimiento
           </CardTitle>
-          <CardDescription className="text-xs">
-            Artículos por debajo del stock de seguridad
+          <CardDescription className="text-xs text-muted-foreground">
+            Artículos por debajo del stock mínimo
           </CardDescription>
         </div>
         <Link
           to={APP_ROUTES.INVENTARIO}
-          className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
+          className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-0.5"
         >
-          Ir a Inventario
-          <ArrowUpRight className="h-3.5 w-3.5" />
+          Ver inventario
+          <ArrowUpRight className="h-3 w-3" />
         </Link>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1">
         {isLoading ? (
-          <div className="space-y-3">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-14 bg-muted/40 rounded animate-pulse" />
+          <div className="space-y-2.5">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-12 bg-muted/40 rounded-md animate-pulse" />
             ))}
           </div>
         ) : alerts.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">
-            No hay alertas de stock pendientes.
-          </p>
+          <div className="h-44 flex flex-col items-center justify-center text-center p-4 border border-dashed border-border rounded-md">
+            <CheckCircle2 className="h-5 w-5 text-success-text mb-1" />
+            <p className="text-sm font-medium text-foreground">Stock en orden</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Todos los artículos tienen stock suficiente.
+            </p>
+          </div>
         ) : (
-          <div className="space-y-3">
-            {alerts.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between p-3 rounded-lg border border-border/80 bg-card hover:bg-muted/40 transition-colors shadow-2xs"
-              >
-                <div className="space-y-0.5">
-                  <p className="text-[13px] font-semibold text-foreground line-clamp-1">
-                    {item.producto}
-                  </p>
-                  <p className="text-xs text-muted-foreground font-mono">
-                    SKU: {item.sku} • {item.almacen}
-                  </p>
-                </div>
-                <div className="text-right flex items-center gap-3">
-                  <div>
-                    <span className="text-[13px] font-bold text-rose-600 dark:text-rose-400 block font-mono tabular-nums">
-                      {item.stockActual} en stock
-                    </span>
-                    <span className="text-xs text-muted-foreground font-mono">
-                      Mín: {item.stockMinimo}
+          <div className="space-y-2">
+            {alerts.slice(0, 4).map((item) => {
+              const isCritico = item.urgencia === 'CRITICO';
+
+              return (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between p-2.5 rounded-md border border-border bg-background hover:bg-muted/40 transition-colors"
+                >
+                  <div className="space-y-0.5 min-w-0 pr-2">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {item.producto}
+                    </p>
+                    <p className="text-xs text-muted-foreground font-mono">
+                      {item.sku} · {item.almacen}
+                    </p>
+                  </div>
+
+                  <div className="text-right shrink-0 flex items-center gap-2">
+                    <div>
+                      <span className="text-xs font-medium font-mono tabular-nums text-danger-text block">
+                        {item.stockActual} unid.
+                      </span>
+                      <span className="text-xs text-muted-foreground font-mono block">
+                        Mín: {item.stockMinimo}
+                      </span>
+                    </div>
+
+                    <span
+                      className={`text-xs font-medium px-1.5 py-0.5 rounded-sm ${
+                        isCritico
+                          ? 'bg-danger-soft text-danger-text'
+                          : 'bg-warning-soft text-warning-text'
+                      }`}
+                    >
+                      {isCritico ? 'Crítico' : 'Bajo'}
                     </span>
                   </div>
-                  <StatusBadge
-                    status={item.urgencia}
-                    variant={item.urgencia === 'CRITICO' ? 'danger' : 'warning'}
-                  />
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardContent>
     </Card>
   );
 };
+
+export default StockAlertsCard;

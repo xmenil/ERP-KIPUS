@@ -1,6 +1,6 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* KIPU'S ERP — tokens de diseño
+   Pegar dentro de src/styles/global.css (reemplaza el bloque :root y .dark existentes).
+   Formato HSL sin la función hsl(), como espera shadcn/Tailwind: hsl(var(--token)). */
 
 @layer base {
   :root {
@@ -13,7 +13,7 @@
 
     /* Texto */
     --foreground: 222 47% 13%;            /* #111827 texto principal */
-    --muted-foreground: 215 15% 39%;      /* #556274 texto secundario */
+    --muted-foreground: 215 15% 39%;      /* #556274 texto secundario (antes #64748B) */
     --muted: 216 20% 94%;                 /* fondos neutros suaves, filas hover */
 
     /* Bordes */
@@ -24,7 +24,6 @@
     /* Acento único de la interfaz */
     --primary: 221 78% 42%;               /* #1855C6 */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 221 78% 35%;
     --primary-soft: 221 100% 96%;         /* #EEF3FF fondo suave: ítem activo, badge informativo */
     --secondary: 216 20% 94%;
     --secondary-foreground: 222 47% 13%;
@@ -46,21 +45,11 @@
     --danger-text: 0 74% 42%;             /* #B91C1C */
     --danger-soft: 0 86% 97%;             /* #FEF2F2 */
 
-    /* Sidebar */
-    --sidebar-background: 216 25% 95%;
-    --sidebar-foreground: 218 35% 24%;
-    --sidebar-primary: 221 78% 42%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 221 100% 96%;
-    --sidebar-accent-foreground: 221 78% 42%;
-    --sidebar-border: 215 20% 86%;
-    --sidebar-ring: 221 78% 42%;
-
     /* Forma */
     --radius: 0.375rem;                   /* 6 px, radio base único */
   }
 
-  /* Modo oscuro */
+  /* Modo oscuro (opcional): activar solo cuando se pruebe en todas las pantallas */
   .dark {
     --background: 222 25% 9%;
     --card: 222 22% 12%;
@@ -78,7 +67,6 @@
 
     --primary: 217 91% 62%;
     --primary-foreground: 222 47% 11%;
-    --primary-hover: 217 91% 70%;
     --primary-soft: 222 40% 18%;
     --secondary: 222 18% 17%;
     --secondary-foreground: 214 32% 94%;
@@ -97,15 +85,6 @@
     --destructive-foreground: 0 0% 100%;
     --danger-text: 0 90% 72%;
     --danger-soft: 0 45% 15%;
-
-    --sidebar-background: 222 35% 10%;
-    --sidebar-foreground: 210 25% 92%;
-    --sidebar-primary: 217 91% 62%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 40% 18%;
-    --sidebar-accent-foreground: 214 32% 94%;
-    --sidebar-border: 217 25% 18%;
-    --sidebar-ring: 217 91% 62%;
   }
 
   html {
@@ -120,52 +99,44 @@
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply bg-background text-foreground;
-    font-size: 13.5px;
-    line-height: 1.45;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  /* Números tabulares para cuadre contable y montos */
-  .tabular-nums {
-    font-variant-numeric: tabular-nums;
-  }
-
-  :where(p, span, li, h1, h2, h3, h4, h5, h6, a, button, label, td, th) {
-    overflow-wrap: anywhere;
-    word-break: break-word;
-  }
-
-  pre,
-  code {
-    overflow-x: auto;
-    white-space: pre;
-  }
-
-  /* Scrollbars modernos y discretos para el ERP */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: hsl(var(--border));
-    border-radius: 9999px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.4);
-  }
-}
-
 @layer utilities {
   .tabular-nums { font-variant-numeric: tabular-nums; }
 }
+
+/* ---------------------------------------------------------------
+   tailwind.config.ts — dentro de theme.extend.colors, agregar:
+
+   success: {
+     DEFAULT: "hsl(var(--success))",
+     text: "hsl(var(--success-text))",
+     soft: "hsl(var(--success-soft))",
+   },
+   warning: {
+     DEFAULT: "hsl(var(--warning))",
+     text: "hsl(var(--warning-text))",
+     soft: "hsl(var(--warning-soft))",
+   },
+   danger: {
+     text: "hsl(var(--danger-text))",
+     soft: "hsl(var(--danger-soft))",
+   },
+   primary: {
+     DEFAULT: "hsl(var(--primary))",
+     foreground: "hsl(var(--primary-foreground))",
+     soft: "hsl(var(--primary-soft))",
+   },
+
+   theme.extend.fontFamily:
+   sans: ["Inter Variable", "Inter", "system-ui", "sans-serif"],
+   mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"],
+
+   main.tsx — instalar y cargar la fuente en local:
+   npm i @fontsource-variable/inter
+   import "@fontsource-variable/inter";
+
+   Uso en componentes:
+   Badge de estado:   className="bg-success-soft text-success-text"
+   Advertencia:       className="bg-warning-soft text-warning-text"
+   Error:             className="bg-danger-soft text-danger-text"
+   Ítem activo menú:  className="bg-primary-soft text-primary"
+   --------------------------------------------------------------- */

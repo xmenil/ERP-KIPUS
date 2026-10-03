@@ -6,7 +6,7 @@ import { DashboardKpiCards } from '../components/DashboardKpiCards';
 import { SalesTrendChart } from '../components/SalesTrendChart';
 import { RecentSalesTable } from '../components/RecentSalesTable';
 import { StockAlertsCard } from '../components/StockAlertsCard';
-import { PlusCircle, RefreshCw, ShoppingCart, DollarSign } from 'lucide-react';
+import { RefreshCw, ShoppingCart, DollarSign } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { APP_ROUTES } from '@/constants/routes';
 
@@ -17,47 +17,46 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Encabezado con acciones */}
+      {/* Encabezado con acción primaria única y secundarias */}
       <PageHeader
-        title="Dashboard General"
-        description="Monitoreo operativo y financiero en tiempo real para tu negocio"
-        badge="En Línea"
+        title="Dashboard"
+        description="Resumen operativo de ventas, caja e inventario del día."
       >
         <Button
           variant="outline"
           size="sm"
           onClick={refetchAll}
           disabled={isLoading}
-          className="gap-2"
+          className="h-9 px-3 gap-1.5 text-xs font-medium rounded-md"
         >
-          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          <span className="hidden sm:inline">Actualizar</span>
+          <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+          <span>Actualizar</span>
         </Button>
 
         <Button
           variant="outline"
           size="sm"
           onClick={() => navigate(APP_ROUTES.CAJA)}
-          className="gap-2"
+          className="h-9 px-3 gap-1.5 text-xs font-medium rounded-md"
         >
-          <DollarSign className="h-4 w-4 text-emerald-600" />
-          <span>Arqueo de Caja</span>
+          <DollarSign className="h-3.5 w-3.5" />
+          <span>Arqueo de caja</span>
         </Button>
 
         <Button
           size="sm"
           onClick={() => navigate(APP_ROUTES.VENTAS)}
-          className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm"
+          className="h-9 px-3.5 gap-1.5 bg-primary text-primary-foreground font-medium text-xs rounded-md shadow-xs hover:bg-primary/90"
         >
-          <ShoppingCart className="h-4 w-4" />
-          <span>Nueva Venta</span>
+          <ShoppingCart className="h-3.5 w-3.5" />
+          <span>Registrar venta</span>
         </Button>
       </PageHeader>
 
-      {/* Tarjetas de Métricas / KPIs */}
+      {/* Bloque 1: Resumen de Dinero y Alertas Operativas */}
       <DashboardKpiCards metrics={metrics} isLoading={isLoading} />
 
-      {/* Gráficos y Tablas Principales */}
+      {/* Bloque 2: Gráfico y Alertas Críticas de Stock */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <SalesTrendChart data={salesTrend} isLoading={isLoading} />
@@ -67,7 +66,7 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Últimas Ventas */}
+      {/* Bloque 3: Tabla de Últimas Ventas */}
       <RecentSalesTable sales={recentSales} isLoading={isLoading} />
     </div>
   );
