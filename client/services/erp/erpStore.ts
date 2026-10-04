@@ -18,6 +18,8 @@ import {
   AlmacenResumen,
   RecepcionMercanciaPayload,
   AjusteAuditoriaPayload,
+  AjusteInventario,
+  NuevoAjustePayload,
 } from '@/features/inventario/types/inventario.types';
 import {
   EstadoCaja,
@@ -253,7 +255,8 @@ let movimientosKardex: MovimientoKardex[] = [
     cantidad: 5,
     stockResultante: 8,
     referencia: 'Boleta B001-000482',
-    usuario: 'Admin',
+    usuario: 'Carlos Vega',
+    origen: 'Venta',
   },
   {
     id: 'k-2',
@@ -266,7 +269,81 @@ let movimientosKardex: MovimientoKardex[] = [
     cantidad: 4,
     stockResultante: 5,
     referencia: 'Factura F001-000129',
-    usuario: 'Admin',
+    usuario: 'Carlos Vega',
+    origen: 'Venta',
+  },
+  {
+    id: 'k-3',
+    fecha: '2026-10-01 10:15',
+    tipo: 'AJUSTE',
+    motivo: 'MERMA',
+    productoNombre: 'Líquido de Frenos DOT 4 500ml',
+    sku: 'LIQ-FRN-04',
+    almacen: 'Almacén Principal',
+    cantidad: 2,
+    stockResultante: 16,
+    referencia: 'Ajuste: Merma / rotura de envase',
+    usuario: 'Carlos Vega',
+    origen: 'Ajuste de inventario',
+  },
+  {
+    id: 'k-4',
+    fecha: '2026-09-30 09:20',
+    tipo: 'ENTRADA',
+    motivo: 'COMPRA',
+    productoNombre: 'Refrigerante Orgánico 50/50 1 Galón',
+    sku: 'REF-ORG-01',
+    almacen: 'Almacén Principal',
+    cantidad: 15,
+    stockResultante: 24,
+    referencia: 'Factura F002-8821 (Distribuidora Selva)',
+    usuario: 'Almacenero / Admin',
+    origen: 'Compra',
+  },
+  {
+    id: 'k-5',
+    fecha: '2026-09-28 17:40',
+    tipo: 'AJUSTE',
+    motivo: 'AUDITORIA_CONTEO',
+    productoNombre: 'Filtro de Aire Universal Premium',
+    sku: 'FLT-AIR-08',
+    almacen: 'Almacén Principal',
+    cantidad: 2,
+    stockResultante: 12,
+    referencia: 'Ajuste: Conteo físico',
+    usuario: 'Almacenero / Admin',
+    origen: 'Ajuste de inventario',
+  },
+];
+
+let ajustesInventario: AjusteInventario[] = [
+  {
+    id: 'aj-1',
+    productoId: 'prod-4',
+    productoNombre: 'Líquido de Frenos DOT 4 500ml',
+    sku: 'LIQ-FRN-04',
+    stockAnterior: 18,
+    nuevoStock: 16,
+    diferencia: -2,
+    motivo: 'Merma / daño de envase',
+    observacion: 'Envase con fisura durante traslado a vitrina',
+    fecha: '2026-10-01 10:15',
+    usuario: 'Carlos Vega',
+    almacen: 'Almacén Principal',
+  },
+  {
+    id: 'aj-2',
+    productoId: 'prod-2',
+    productoNombre: 'Filtro de Aire Universal Premium',
+    sku: 'FLT-AIR-08',
+    stockAnterior: 10,
+    nuevoStock: 12,
+    diferencia: 2,
+    motivo: 'Conteo físico',
+    observacion: '2 unidades encontradas en anaquel posterior',
+    fecha: '2026-09-28 17:40',
+    usuario: 'Almacenero / Admin',
+    almacen: 'Almacén Principal',
   },
 ];
 
@@ -1377,6 +1454,124 @@ export const erpStore = {
     movimientosKardex = [movKardex, ...movimientosKardex];
     notify();
     return movKardex;
+  },
+
+  /**
+   * MÓDULO INVENTARIO: AJUSTES DE INVENTARIO
+   */
+  getAjustesInventario: (): AjusteInventario[] => [...ajustesInventario],
+
+  registrarAjusteInventario: (payload: NuevoAjustePayload): AjusteInventario => {
+    const prod = productos.find((p) => p.id === payload.productoId);
+    if (!prod) throw new Error('Producto no encontrado');
+
+    const ahora = new Date().toISOString().replace('T', ' ').slice(0, 16);
+    const stockAnterior = prod.stock;
+    const nuevoStock = Math.max(0, payload.nuevoStock);
+    const diferencia = nuevoStock - stockAnterior;
+
+    prod.stock = nuevoStock;
+
+    const nuevoAjuste: AjusteInventario = {
+      id: `aj-${Date.now()}`,
+      productoId: prod.id,
+      productoNombre: prod.nombre,
+      sku: prod.sku,
+      stockAnterior,
+      nuevoStock,
+      diferencia,
+      motivo: payload.motivo,
+      observacion: payload.observacion,
+      fecha: ahora,
+      usuario: 'Carlos Vega',
+      almacen: payload.almacen || 'Almacén Principal',
+    };
+
+    ajustesInventario = [nuevoAjuste, ...ajustesInventario];
+
+    const tipo: 'ENTRADA' | 'SALIDA' | 'AJUSTE' =
+      diferencia > 0 ? 'ENTRADA' : diferencia < 0 ? 'SALIDA' : 'AJUSTE';
+
+    const movKardex: MovimientoKardex = {
+      id: `k-${Date.now()}`,
+      fecha: ahora,
+      tipo,
+      motivo: diferencia < 0 ? 'MERMA' : 'AUDITORIA_CONTEO',
+      productoNombre: prod.nombre,
+      sku: prod.sku,
+      almacen: payload.almacen || 'Almacén Principal',
+      cantidad: Math.abs(diferencia),
+      stockResultante: nuevoStock,
+      referencia: `Ajuste: ${payload.motivo}${payload.observacion ? ` (${payload.observacion})` : ''}`,
+      usuario: 'Carlos Vega',
+      origen: 'Ajuste de inventario',
+    };
+
+    movimientosKardex = [movKardex, ...movimientosKardex];
+    notify();
+    return nuevoAjuste;
+  },
+
+  aplicarAjustesFisicos: (items: { productoId: string; stockFisico: number; motivo?: string }[]): AjusteInventario[] => {
+    const ahora = new Date().toISOString().replace('T', ' ').slice(0, 16);
+    const nuevosAjustes: AjusteInventario[] = [];
+
+    items.forEach((item) => {
+      const prod = productos.find((p) => p.id === item.productoId);
+      if (!prod) return;
+
+      const stockAnterior = prod.stock;
+      const nuevoStock = Math.max(0, item.stockFisico);
+      const diferencia = nuevoStock - stockAnterior;
+
+      if (diferencia === 0) return; // No requiere ajuste si coincide
+
+      prod.stock = nuevoStock;
+
+      const aj: AjusteInventario = {
+        id: `aj-${Date.now()}-${prod.id}`,
+        productoId: prod.id,
+        productoNombre: prod.nombre,
+        sku: prod.sku,
+        stockAnterior,
+        nuevoStock,
+        diferencia,
+        motivo: item.motivo || 'Inventario físico',
+        observacion: `Ajuste automático por conteo físico (Sistema: ${stockAnterior}, Físico: ${nuevoStock})`,
+        fecha: ahora,
+        usuario: 'Carlos Vega',
+        almacen: 'Almacén Principal',
+      };
+
+      nuevosAjustes.push(aj);
+
+      const tipo: 'ENTRADA' | 'SALIDA' | 'AJUSTE' =
+        diferencia > 0 ? 'ENTRADA' : 'SALIDA';
+
+      const movKardex: MovimientoKardex = {
+        id: `k-${Date.now()}-${prod.id}`,
+        fecha: ahora,
+        tipo,
+        motivo: 'AUDITORIA_CONTEO',
+        productoNombre: prod.nombre,
+        sku: prod.sku,
+        almacen: 'Almacén Principal',
+        cantidad: Math.abs(diferencia),
+        stockResultante: nuevoStock,
+        referencia: `Inventario físico: ${diferencia > 0 ? '+' : ''}${diferencia} unid.`,
+        usuario: 'Carlos Vega',
+        origen: 'Ajuste de inventario',
+      };
+
+      movimientosKardex = [movKardex, ...movimientosKardex];
+    });
+
+    if (nuevosAjustes.length > 0) {
+      ajustesInventario = [...nuevosAjustes, ...ajustesInventario];
+      notify();
+    }
+
+    return nuevosAjustes;
   },
 
   // ==========================================

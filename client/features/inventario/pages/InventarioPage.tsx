@@ -1,926 +1,416 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '@/components/common/PageHeader';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { StatusBadge } from '@/components/common/StatusBadge';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { InventarioFlowBanner } from '../components/InventarioFlowBanner';
-import { TablaControlStock } from '../components/TablaControlStock';
-import { RecepcionMercanciaDialog } from '../components/RecepcionMercanciaDialog';
-import { AuditoriaConteoDialog } from '../components/AuditoriaConteoDialog';
-import { NuevoMovimientoDialog } from '../components/NuevoMovimientoDialog';
-import { ModuloAuditoriaFisica } from '../components/ModuloAuditoriaFisica';
-import { AnalisisRotacionReporte } from '../components/AnalisisRotacionReporte';
+import { Button } from '@/components/ui/button';
+import { SummaryCard } from '../components/SummaryCard';
+import { FilterBar } from '../components/FilterBar';
+import { InventoryTable } from '../components/InventoryTable';
+import { ProductInventoryDetail } from '../components/ProductInventoryDetail';
+import { MovementTable } from '../components/MovementTable';
+import { AdjustmentTable } from '../components/AdjustmentTable';
+import { AdjustmentForm } from '../components/AdjustmentForm';
+import { PhysicalInventoryTable } from '../components/PhysicalInventoryTable';
+import { LoadingState } from '../components/LoadingState';
+import { ErrorState } from '../components/ErrorState';
 import { inventarioService } from '../services/inventarioService';
 import {
-  MovimientoKardex,
-  AlmacenResumen,
   ItemStockDetalle,
-  NuevoMovimientoPayload,
-  RecepcionMercanciaPayload,
-  AjusteAuditoriaPayload,
-  EtapaFlujoInventario,
+  MovimientoStock,
+  AjusteInventario,
+  AlmacenResumen,
+  NuevoAjustePayload,
 } from '../types/inventario.types';
 import { subscribeToErp } from '@/services/erp/erpStore';
-import { formatDateTime } from '@/utils/formatters';
-import { cn } from '@/lib/utils';
-import {
-  Warehouse,
-  ArrowLeftRight,
-  ArrowDownRight,
-  ArrowUpRight,
-  Truck,
-  ClipboardCheck,
-  Search,
-  MapPin,
-  Plus,
-  RotateCcw,
-  PackageSearch,
-} from 'lucide-react';
+import { formatCurrency } from '@/utils/formatters';
+import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
+type SeccionInventario = 'existencias' | 'entradas-salidas' | 'ajustes' | 'inventario-fisico';
+
+/**
+ * Módulo de INVENTARIO de KIPU'S ERP.
+ * Centro de control del stock estructurado en 4 áreas esenciales:
+ * 1. Existencias
+ * 2. Entradas y salidas
+ * 3. Ajustes
+ * 4. Inventario físico
+ */
 export const InventarioPage: React.FC = () => {
-  // Datos principales
-  const [productosStock, setProductosStock] = useState<ItemStockDetalle[]>([]);
-  const [movimientos, setMovimientos] = useState<MovimientoKardex[]>([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Estados de datos
+  const [productos, setProductos] = useState<ItemStockDetalle[]>([]);
+  const [movimientos, setMovimientos] = useState<MovimientoStock[]>([]);
+  const [ajustes, setAjustes] = useState<AjusteInventario[]>([]);
   const [almacenes, setAlmacenes] = useState<AlmacenResumen[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Navegación de pestañas sincronizada con las 6 etapas
-  const [tabActiva, setTabActiva] = useState<string>('control-stock');
-  const [etapaActiva, setEtapaActiva] = useState<EtapaFlujoInventario>('CONTROL_STOCK');
+  // Sección activa (controlada por URL param o estado)
+  const tabParam = searchParams.get('tab') as SeccionInventario | null;
+  const [seccionActiva, setSeccionActiva] = useState<SeccionInventario>(
+    tabParam && ['existencias', 'entradas-salidas', 'ajustes', 'inventario-fisico'].includes(tabParam)
+      ? tabParam
+      : 'existencias'
+  );
+
+  // Sincronizar estado cuando cambia URL param
+  useEffect(() => {
+    if (tabParam && ['existencias', 'entradas-salidas', 'ajustes', 'inventario-fisico'].includes(tabParam)) {
+      setSeccionActiva(tabParam);
+    }
+  }, [tabParam]);
+
+  const handleTabChange = (value: string) => {
+    const nuevaSeccion = value as SeccionInventario;
+    setSeccionActiva(nuevaSeccion);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', nuevaSeccion);
+      return next;
+    });
+  };
 
   // Modales
-  const [openRecepcionModal, setOpenRecepcionModal] = useState(false);
-  const [openAuditoriaModal, setOpenAuditoriaModal] = useState(false);
-  const [openMovimientoModal, setOpenMovimientoModal] = useState(false);
-  const [productoSeleccionadoId, setProductoSeleccionadoId] = useState<string | undefined>(undefined);
+  const [productoSeleccionado, setProductoSeleccionado] = useState<ItemStockDetalle | null>(null);
+  const [openDetalleModal, setOpenDetalleModal] = useState(false);
+  const [openAjusteModal, setOpenAjusteModal] = useState(false);
 
-  // Filtros del Kardex
-  const [kardexSearch, setKardexSearch] = useState('');
-  const [kardexTipoFiltro, setKardexTipoFiltro] = useState<string>('TODOS');
-  const [kardexAlmacenFiltro, setKardexAlmacenFiltro] = useState<string>('TODOS');
+  // Filtro de búsqueda cruzada para Entradas y Salidas
+  const [filtroMovimientosProducto, setFiltroMovimientosProducto] = useState<string>('');
 
-  // Carga de datos
-  const fetchData = async () => {
+  // Filtros de la pantalla de Existencias
+  const [busquedaExistencias, setBusquedaExistencias] = useState('');
+  const [categoriaFiltro, setCategoriaFiltro] = useState('TODAS');
+  const [estadoFiltro, setEstadoFiltro] = useState('TODOS');
+  const [almacenFiltro, setAlmacenFiltro] = useState('TODOS');
+
+  // Carga de datos unificada
+  const cargarDatos = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const [kardexData, almacenesData, stockData] = await Promise.all([
-        inventarioService.getMovimientosKardex(),
-        inventarioService.getAlmacenes(),
+      const [prodsData, movsData, ajustesData, almacenesData] = await Promise.all([
         inventarioService.getProductosStock(),
+        inventarioService.getMovimientos(),
+        inventarioService.getAjustes(),
+        inventarioService.getAlmacenes(),
       ]);
-      setMovimientos(kardexData);
+      setProductos(prodsData);
+      setMovimientos(movsData);
+      setAjustes(ajustesData);
       setAlmacenes(almacenesData);
-      setProductosStock(stockData);
     } catch {
-      toast.error('No se pudo cargar el inventario. Revisa tu conexión.');
+      setError('No se pudo cargar la información del inventario. Revisa tu conexión a internet.');
+      toast.error('Error al sincronizar inventario');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    cargarDatos();
     const unsubscribe = subscribeToErp(() => {
-      fetchData();
+      cargarDatos();
     });
     return unsubscribe;
   }, []);
 
-  // Mapear selección del banner a pestañas
-  const handleSelectEtapa = (etapa: EtapaFlujoInventario) => {
-    setEtapaActiva(etapa);
-    switch (etapa) {
-      case 'RECEPCION':
-        setTabActiva('recepcion');
-        break;
-      case 'CLASIFICACION':
-        setTabActiva('almacenes');
-        break;
-      case 'MOVIMIENTOS':
-        setTabActiva('kardex');
-        break;
-      case 'CONTROL_STOCK':
-        setTabActiva('control-stock');
-        break;
-      case 'AUDITORIA':
-        setTabActiva('auditoria');
-        break;
-      case 'ANALISIS':
-        setTabActiva('analisis');
-        break;
-    }
+  // Lista de categorías únicas para los filtros
+  const categorias = useMemo(() => {
+    return Array.from(new Set(productos.map((p) => p.categoria))).filter(Boolean);
+  }, [productos]);
+
+  // Indicadores superiores (Sección 3)
+  const metricas = useMemo(() => {
+    const total = productos.length;
+    const stockBajo = productos.filter((p) => p.estadoNivel === 'STOCK_BAJO').length;
+    const agotados = productos.filter((p) => p.estadoNivel === 'AGOTADO').length;
+    const valorAprox = productos.reduce((acc, p) => acc + p.valorizadoCosto, 0);
+
+    return {
+      total,
+      stockBajo,
+      agotados,
+      valorAprox,
+    };
+  }, [productos]);
+
+  // Filtrado de la tabla de Existencias
+  const productosFiltrados = useMemo(() => {
+    return productos.filter((p) => {
+      const matchBusqueda =
+        p.nombre.toLowerCase().includes(busquedaExistencias.toLowerCase()) ||
+        p.sku.toLowerCase().includes(busquedaExistencias.toLowerCase());
+
+      const matchCategoria =
+        categoriaFiltro === 'TODAS' || p.categoria === categoriaFiltro;
+
+      const matchEstado =
+        estadoFiltro === 'TODOS' || p.estadoNivel === estadoFiltro;
+
+      const matchAlmacen =
+        almacenFiltro === 'TODOS' || (p.almacen && p.almacen.includes(almacenFiltro));
+
+      return matchBusqueda && matchCategoria && matchEstado && matchAlmacen;
+    });
+  }, [productos, busquedaExistencias, categoriaFiltro, estadoFiltro, almacenFiltro]);
+
+  const hayFiltrosExistenciasActivos =
+    busquedaExistencias !== '' ||
+    categoriaFiltro !== 'TODAS' ||
+    estadoFiltro !== 'TODOS' ||
+    almacenFiltro !== 'TODOS';
+
+  const resetFiltrosExistencias = () => {
+    setBusquedaExistencias('');
+    setCategoriaFiltro('TODAS');
+    setEstadoFiltro('TODOS');
+    setAlmacenFiltro('TODOS');
   };
 
-  // Mapear cambio de tab al banner
-  const handleTabChange = (value: string) => {
-    setTabActiva(value);
-    switch (value) {
-      case 'recepcion':
-        setEtapaActiva('RECEPCION');
-        break;
-      case 'almacenes':
-        setEtapaActiva('CLASIFICACION');
-        break;
-      case 'kardex':
-        setEtapaActiva('MOVIMIENTOS');
-        break;
-      case 'control-stock':
-        setEtapaActiva('CONTROL_STOCK');
-        break;
-      case 'auditoria':
-        setEtapaActiva('AUDITORIA');
-        break;
-      case 'analisis':
-        setEtapaActiva('ANALISIS');
-        break;
-    }
+  // Ver detalle de producto
+  const handleVerDetalle = (prod: ItemStockDetalle) => {
+    setProductoSeleccionado(prod);
+    setOpenDetalleModal(true);
   };
 
-  // Handlers para acciones
-  const handleRecepcionMercancia = async (payload: RecepcionMercanciaPayload) => {
-    await inventarioService.recepcionarMercancia(payload);
-    await fetchData();
+  // Navegación fluida: de Detalle de Producto a Entradas y Salidas
+  const handleIrAEntradasSalidas = (sku: string, _nombre: string) => {
+    setFiltroMovimientosProducto(sku);
+    handleTabChange('entradas-salidas');
   };
 
-  const handleAjusteAuditoria = async (payload: AjusteAuditoriaPayload) => {
-    await inventarioService.registrarAjusteAuditoria(payload);
-    await fetchData();
+  // Registrar nuevo ajuste individual
+  const handleGuardarAjuste = async (payload: NuevoAjustePayload) => {
+    await inventarioService.registrarAjuste(payload);
+    await cargarDatos();
   };
 
-  const handleCrearMovimientoManual = async (payload: NuevoMovimientoPayload) => {
-    await inventarioService.registrarMovimiento(payload);
-    await fetchData();
-    const signo = payload.tipo === 'ENTRADA' ? '+' : payload.tipo === 'SALIDA' ? '-' : '';
-    toast.success(
-      `Movimiento registrado: ${signo}${payload.cantidad} unid. (${payload.productoNombre})`
+  // Aplicar ajustes masivos de inventario físico
+  const handleAplicarAjustesFisicos = async (
+    items: { productoId: string; stockFisico: number; motivo?: string }[]
+  ) => {
+    await inventarioService.aplicarAjustesFisicos(items);
+    await cargarDatos();
+  };
+
+  // Movimientos filtrados para el modal de detalle del producto seleccionado
+  const movimientosDelProductoSeleccionado = useMemo(() => {
+    if (!productoSeleccionado) return [];
+    return movimientos.filter(
+      (m) =>
+        m.sku === productoSeleccionado.sku ||
+        m.productoNombre === productoSeleccionado.nombre
     );
-  };
-
-  // Abrir modal con producto específico desde la tabla
-  const handleOpenRecepcionConProd = (id: string) => {
-    setProductoSeleccionadoId(id);
-    setOpenRecepcionModal(true);
-  };
-
-  const handleOpenAuditoriaConProd = (id: string) => {
-    setProductoSeleccionadoId(id);
-    setOpenAuditoriaModal(true);
-  };
-
-  // Cálculos resumen
-  const productosBajoStock = productosStock.filter((p) => p.estadoNivel !== 'SUFICIENTE').length;
-  const totalValorizadoCosto = productosStock.reduce((acc, p) => acc + p.valorizadoCosto, 0);
-
-  // Filtrado de Kardex
-  const filteredKardex = movimientos.filter((m) => {
-    const matchSearch =
-      m.productoNombre.toLowerCase().includes(kardexSearch.toLowerCase()) ||
-      m.sku.toLowerCase().includes(kardexSearch.toLowerCase()) ||
-      m.referencia.toLowerCase().includes(kardexSearch.toLowerCase());
-    const matchTipo = kardexTipoFiltro === 'TODOS' || m.tipo === kardexTipoFiltro;
-    const matchAlmacen = kardexAlmacenFiltro === 'TODOS' || m.almacen.includes(kardexAlmacenFiltro);
-    return matchSearch && matchTipo && matchAlmacen;
-  });
-
-  const hayFiltrosKardexActivos =
-    kardexSearch !== '' || kardexTipoFiltro !== 'TODOS' || kardexAlmacenFiltro !== 'TODOS';
-
-  const resetKardexFilters = () => {
-    setKardexSearch('');
-    setKardexTipoFiltro('TODOS');
-    setKardexAlmacenFiltro('TODOS');
-  };
-
-  // Recepciones recientes (movimientos de entrada con motivo compra o inventario inicial)
-  const recepcionesRecientes = movimientos.filter(
-    (m) => m.tipo === 'ENTRADA' && (m.motivo === 'COMPRA' || m.motivo === 'INVENTARIO_INICIAL')
-  );
+  }, [movimientos, productoSeleccionado]);
 
   return (
     <div className="space-y-5">
-      {/* Encabezado Principal */}
+      {/* Encabezado Principal según sección 3 */}
       <PageHeader
-        title="Gestión y Control de Inventarios"
-        description="Ciclo completo de mercadería: recepción, clasificación, kardex, niveles de stock, auditorías y valorización."
-        badge="Multialmacén KIPU'S"
+        title="Inventario"
+        description="Consulta y controla el stock de tus productos."
       >
-        <div className="flex flex-wrap items-center gap-2">
+        {seccionActiva === 'ajustes' && (
           <Button
+            type="button"
             size="sm"
-            onClick={() => {
-              setProductoSeleccionadoId(undefined);
-              setOpenRecepcionModal(true);
-            }}
-            className="gap-1.5 bg-primary text-primary-foreground font-semibold shadow-xs"
+            onClick={() => setOpenAjusteModal(true)}
+            className="gap-1.5 text-xs font-semibold bg-primary text-primary-foreground shadow-xs"
           >
-            <Truck className="h-4 w-4" />
-            <span>+ Recepcionar Mercancía</span>
+            <Plus className="h-4 w-4" />
+            <span>Nuevo ajuste</span>
           </Button>
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              setProductoSeleccionadoId(undefined);
-              setOpenAuditoriaModal(true);
-            }}
-            className="gap-1.5 font-medium"
-          >
-            <ClipboardCheck className="h-4 w-4 text-primary" />
-            <span>Auditar Físicamente</span>
-          </Button>
-
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setOpenMovimientoModal(true)}
-            className="gap-1.5 text-muted-foreground hover:text-foreground text-xs"
-          >
-            <ArrowLeftRight className="h-3.5 w-3.5" />
-            <span>Movimiento manual</span>
-          </Button>
-        </div>
+        )}
       </PageHeader>
 
-      {/* Banner Visual del Flujo de 6 Etapas */}
-      <InventarioFlowBanner
-        etapaActiva={etapaActiva}
-        onSelectEtapa={handleSelectEtapa}
-        productosBajoStockCount={productosBajoStock}
-        totalMovimientos={movimientos.length}
-        totalValorizado={totalValorizadoCosto}
-      />
+      {/* Indicadores Superiores Discretos (Sección 3) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <SummaryCard
+          label="Total de productos"
+          value={metricas.total}
+          description="registrados en catálogo"
+        />
+        <SummaryCard
+          label="Stock bajo"
+          value={metricas.stockBajo}
+          description={metricas.stockBajo > 0 ? 'requieren reposición' : 'niveles estables'}
+          variant={metricas.stockBajo > 0 ? 'warning' : 'default'}
+        />
+        <SummaryCard
+          label="Agotados"
+          value={metricas.agotados}
+          description={metricas.agotados > 0 ? 'sin unidades disponibles' : 'ninguno agotado'}
+          variant={metricas.agotados > 0 ? 'danger' : 'default'}
+        />
+        <SummaryCard
+          label="Valor aprox. del inventario"
+          value={formatCurrency(metricas.valorAprox)}
+          description="calculado al costo de compra"
+        />
+      </div>
 
-      {/* Navegación por pestañas sincronizadas con el flujo */}
-      <Tabs value={tabActiva} onValueChange={handleTabChange} className="w-full space-y-4">
-        <TabsList className="bg-muted/70 p-1 flex flex-wrap h-auto gap-1 border border-border/60">
-          <TabsTrigger value="control-stock" className="text-xs font-medium py-1.5 px-3">
-            4. Control de Niveles de Stock
-          </TabsTrigger>
-          <TabsTrigger value="recepcion" className="text-xs font-medium py-1.5 px-3">
-            1. Recepción de Mercancía
-          </TabsTrigger>
-          <TabsTrigger value="kardex" className="text-xs font-medium py-1.5 px-3">
-            3. Registro de Movimientos (Kardex)
-          </TabsTrigger>
-          <TabsTrigger value="auditoria" className="text-xs font-medium py-1.5 px-3">
-            5. Auditorías y Conteo Físico
-          </TabsTrigger>
-          <TabsTrigger value="almacenes" className="text-xs font-medium py-1.5 px-3">
-            2. Clasificación y Ubicaciones
-          </TabsTrigger>
-          <TabsTrigger value="analisis" className="text-xs font-medium py-1.5 px-3">
-            6. Análisis y Reportes
-          </TabsTrigger>
-        </TabsList>
+      {/* Pestañas de Navegación del Módulo: Únicamente las 4 requeridas */}
+      <Tabs value={seccionActiva} onValueChange={handleTabChange} className="w-full space-y-4">
+        <div className="border-b border-border">
+          <TabsList className="bg-transparent p-0 h-auto flex flex-wrap gap-2 justify-start border-none">
+            <TabsTrigger
+              value="existencias"
+              className="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:font-semibold text-muted-foreground hover:text-foreground transition-all"
+            >
+              Existencias
+            </TabsTrigger>
+            <TabsTrigger
+              value="entradas-salidas"
+              className="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:font-semibold text-muted-foreground hover:text-foreground transition-all"
+            >
+              Entradas y salidas
+            </TabsTrigger>
+            <TabsTrigger
+              value="ajustes"
+              className="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:font-semibold text-muted-foreground hover:text-foreground transition-all"
+            >
+              Ajustes
+            </TabsTrigger>
+            <TabsTrigger
+              value="inventario-fisico"
+              className="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:font-semibold text-muted-foreground hover:text-foreground transition-all"
+            >
+              Inventario físico
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-        {/* ========================================================================= */}
-        {/* PESTAÑA 1: CONTROL DE NIVELES DE STOCK (Etapa 4)                          */}
-        {/* ========================================================================= */}
-        <TabsContent value="control-stock" className="space-y-4">
-          <TablaControlStock
-            productos={productosStock}
-            loading={loading}
-            onOpenRecepcionConProducto={handleOpenRecepcionConProd}
-            onOpenAuditoriaConProducto={handleOpenAuditoriaConProd}
-          />
-        </TabsContent>
+        {/* Estado de Error */}
+        {error && (
+          <ErrorState message={error} onRetry={cargarDatos} className="mt-2" />
+        )}
 
-        {/* ========================================================================= */}
-        {/* PESTAÑA 2: RECEPCIÓN DE MERCANCÍA (Etapa 1 - Conexión con Compras)       */}
-        {/* ========================================================================= */}
-        <TabsContent value="recepcion" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Panel de acción directa de recepción */}
-            <Card className="border-border/80 lg:col-span-1">
-              <CardContent className="p-4 space-y-3">
-                <div className="space-y-1">
-                  <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                    <Truck className="h-4 w-4 text-primary" />
-                    ¿Llegó un pedido de proveedor?
-                  </span>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Registra la llegada de mercadería para sumar las unidades al stock inmediatamente y dejar trazabilidad en el Kardex.
-                  </p>
-                </div>
-
-                <Button
-                  className="w-full gap-2 font-semibold text-xs h-9 bg-primary"
-                  onClick={() => {
-                    setProductoSeleccionadoId(undefined);
-                    setOpenRecepcionModal(true);
-                  }}
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Registrar Recepción con Guía / Factura</span>
-                </Button>
-
-                <div className="pt-2 border-t border-border/60 space-y-1.5 text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground block">
-                    Relación con el área de Compras:
-                  </span>
-                  <p className="text-xs leading-tight">
-                    También puedes generar una orden formal con costo total e impacto en caja desde el{' '}
-                    <a href="/compras" className="text-primary underline">
-                      Módulo de Compras
-                    </a>.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Historial de recepciones recientes */}
-            <Card className="border-border/80 lg:col-span-2">
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-foreground">
-                    Últimas recepciones e ingresos registrados
-                  </span>
-                  <span className="text-xs text-muted-foreground font-mono">
-                    {recepcionesRecientes.length} ingresos
-                  </span>
-                </div>
-
-                <div className="overflow-x-auto rounded border border-border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/40 border-b border-border">
-                        <TableHead className="text-xs py-2">Fecha</TableHead>
-                        <TableHead className="text-xs py-2">Producto / SKU</TableHead>
-                        <TableHead className="text-xs py-2 text-center">Ingreso</TableHead>
-                        <TableHead className="text-xs py-2">Comprobante / Proveedor</TableHead>
-                        <TableHead className="text-xs py-2">Almacén</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {recepcionesRecientes.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={5} className="h-24 text-center text-xs text-muted-foreground">
-                            Aún no hay recepciones registradas.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        recepcionesRecientes.slice(0, 5).map((rec) => (
-                          <TableRow key={rec.id} className="text-xs hover:bg-muted/20 border-b border-border/60">
-                            <TableCell className="font-mono text-muted-foreground py-2 text-xs">
-                              {rec.fecha}
-                            </TableCell>
-                            <TableCell className="py-2">
-                              <span className="font-medium text-foreground block">{rec.productoNombre}</span>
-                              <span className="text-xs text-muted-foreground font-mono">{rec.sku}</span>
-                            </TableCell>
-                            <TableCell className="py-2 text-center font-semibold font-mono text-success-text tabular-nums">
-                              +{rec.cantidad}
-                            </TableCell>
-                            <TableCell className="py-2 text-xs">
-                              <span className="font-medium text-foreground block">{rec.referencia}</span>
-                              <span className="text-xs text-muted-foreground">Por: {rec.usuario}</span>
-                            </TableCell>
-                            <TableCell className="py-2 text-muted-foreground text-xs">
-                              {rec.almacen}
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
+        {/* Estado de Carga */}
+        {loading && !error && <LoadingState rows={6} hasCards={false} />}
 
         {/* ========================================================================= */}
-        {/* PESTAÑA 3: KARDEX Y MOVIMIENTOS (Etapa 3 - Conexión con Ventas y Caja)    */}
+        {/* SECCIÓN 1: EXISTENCIAS (Pantalla Principal)                               */}
         {/* ========================================================================= */}
-        <TabsContent value="kardex" className="space-y-4">
-          <Card className="border-border bg-card shadow-sm">
-            <CardContent className="p-4 space-y-4">
-              {/* Barra de Filtros y Búsqueda en 2 filas limpias para evitar deformación */}
-              <div className="flex flex-col gap-3">
-                {/* Fila 1: Buscador y Selector de Sede */}
-                <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between">
-                  <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Buscar producto, SKU o comprobante…"
-                      value={kardexSearch}
-                      onChange={(e) => setKardexSearch(e.target.value)}
-                      className="pl-9 h-9 text-sm w-full"
-                    />
-                  </div>
+        {!loading && !error && (
+          <TabsContent value="existencias" className="space-y-4 m-0 focus-visible:outline-none">
+            {/* Barra de Filtros */}
+            <FilterBar
+              busqueda={busquedaExistencias}
+              onBusquedaChange={setBusquedaExistencias}
+              categoria={categoriaFiltro}
+              onCategoriaChange={setCategoriaFiltro}
+              categorias={categorias}
+              estado={estadoFiltro}
+              onEstadoChange={setEstadoFiltro}
+              almacen={almacenFiltro}
+              onAlmacenChange={setAlmacenFiltro}
+              almacenes={almacenes}
+              onResetFilters={resetFiltrosExistencias}
+              hayFiltrosActivos={hayFiltrosExistenciasActivos}
+              totalResultados={productosFiltrados.length}
+            />
 
-                  <div className="w-full sm:w-56 shrink-0">
-                    <Select value={kardexAlmacenFiltro} onValueChange={setKardexAlmacenFiltro}>
-                      <SelectTrigger className="h-9 text-xs w-full">
-                        <SelectValue placeholder="Filtrar por sede" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="TODOS" className="text-xs">Todas las sedes</SelectItem>
-                        {almacenes.map((alm) => (
-                          <SelectItem key={alm.id} value={alm.nombre} className="text-xs">
-                            {alm.nombre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+            {/* Tabla de Existencias */}
+            <InventoryTable
+              productos={productosFiltrados}
+              onVerDetalle={handleVerDetalle}
+              onResetFilters={resetFiltrosExistencias}
+              isFiltered={hayFiltrosExistenciasActivos}
+            />
+          </TabsContent>
+        )}
 
-                {/* Fila 2: Segmentación por Tipo, Limpiar y Conteo */}
-                <div className="flex items-center justify-between gap-2 pt-1 border-t border-border flex-wrap">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {[
-                      { key: 'TODOS', label: 'Todos' },
-                      { key: 'ENTRADA', label: 'Entradas' },
-                      { key: 'SALIDA', label: 'Salidas' },
-                      { key: 'AJUSTE', label: 'Ajustes' },
-                    ].map((tipo) => (
-                      <button
-                        key={tipo.key}
-                        onClick={() => setKardexTipoFiltro(tipo.key)}
-                        className={cn(
-                          'px-3 py-1 text-xs rounded-md border transition-colors cursor-pointer select-none whitespace-nowrap shrink-0',
-                          kardexTipoFiltro === tipo.key
-                            ? 'bg-primary text-primary-foreground border-primary font-semibold'
-                            : 'bg-card text-muted-foreground border-border hover:bg-muted/40 font-medium'
-                        )}
-                      >
-                        {tipo.label}
-                      </button>
-                    ))}
+        {/* ========================================================================= */}
+        {/* SECCIÓN 2: ENTRADAS Y SALIDAS                                             */}
+        {/* ========================================================================= */}
+        {!loading && !error && (
+          <TabsContent value="entradas-salidas" className="space-y-4 m-0 focus-visible:outline-none">
+            <div className="space-y-1">
+              <h2 className="text-base font-semibold text-foreground">Entradas y salidas</h2>
+              <p className="text-xs text-muted-foreground">
+                Consulta cómo ha cambiado el stock de tus productos a partir de compras, ventas y ajustes.
+              </p>
+            </div>
 
-                    {hayFiltrosKardexActivos && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={resetKardexFilters}
-                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1 ml-1"
-                      >
-                        <RotateCcw className="h-3 w-3" />
-                        Limpiar filtros
-                      </Button>
-                    )}
-                  </div>
+            <MovementTable
+              movimientos={movimientos}
+              initialSearch={filtroMovimientosProducto}
+              onClearInitialSearch={() => setFiltroMovimientosProducto('')}
+            />
+          </TabsContent>
+        )}
 
-                  <span className="text-xs text-muted-foreground tabular-nums shrink-0 ml-auto">
-                    Mostrando <strong className="text-foreground font-semibold">{filteredKardex.length}</strong> movimientos
-                  </span>
-                </div>
+        {/* ========================================================================= */}
+        {/* SECCIÓN 3: AJUSTES DE INVENTARIO                                          */}
+        {/* ========================================================================= */}
+        {!loading && !error && (
+          <TabsContent value="ajustes" className="space-y-4 m-0 focus-visible:outline-none">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="space-y-1">
+                <h2 className="text-base font-semibold text-foreground">Ajustes de inventario</h2>
+                <p className="text-xs text-muted-foreground">
+                  Corrige diferencias entre el stock registrado y el stock real por mermas, vencimientos o recuentos.
+                </p>
               </div>
 
-              {/* Vista para Pantallas Grandes (Escritorio): Tabla Completa con min-width */}
-              <div className="hidden lg:block overflow-x-auto rounded-md border border-border bg-card">
-                <Table className="min-w-table">
-                  <TableHeader>
-                    <TableRow className="bg-muted/40 border-b border-border hover:bg-transparent">
-                      <TableHead className="text-xs font-semibold py-3 px-3 whitespace-nowrap w-36">
-                        Fecha y hora
-                      </TableHead>
-                      <TableHead className="text-xs font-semibold py-3 px-3 whitespace-nowrap w-28">
-                        Tipo
-                      </TableHead>
-                      <TableHead className="text-xs font-semibold py-3 px-3 whitespace-nowrap">
-                        Producto / Código
-                      </TableHead>
-                      <TableHead className="text-xs font-semibold py-3 px-3 whitespace-nowrap w-44">
-                        Sede / Almacén
-                      </TableHead>
-                      <TableHead className="text-xs font-semibold py-3 px-3 text-right whitespace-nowrap w-28">
-                        Movimiento
-                      </TableHead>
-                      <TableHead className="text-xs font-semibold py-3 px-3 text-right whitespace-nowrap w-28">
-                        Saldo stock
-                      </TableHead>
-                      <TableHead className="text-xs font-semibold py-3 px-3 whitespace-nowrap w-48">
-                        Comprobante / Origen
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {loading ? (
-                      Array.from({ length: 5 }).map((_, i) => (
-                        <TableRow key={`skel-row-${i}`} className="border-b border-border">
-                          <TableCell className="px-3 py-3"><Skeleton className="h-4 w-28" /></TableCell>
-                          <TableCell className="px-3 py-3"><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
-                          <TableCell className="px-3 py-3"><Skeleton className="h-4 w-40" /></TableCell>
-                          <TableCell className="px-3 py-3"><Skeleton className="h-4 w-28" /></TableCell>
-                          <TableCell className="px-3 py-3"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
-                          <TableCell className="px-3 py-3"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
-                          <TableCell className="px-3 py-3"><Skeleton className="h-4 w-32" /></TableCell>
-                        </TableRow>
-                      ))
-                    ) : filteredKardex.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="h-40 text-center">
-                          <div className="flex flex-col items-center justify-center gap-2 py-4">
-                            <div className="p-3 rounded-full bg-muted/60 text-muted-foreground">
-                              <PackageSearch className="h-6 w-6" />
-                            </div>
-                            <p className="text-sm font-medium text-foreground">
-                              No se encontraron movimientos registrados
-                            </p>
-                            <p className="text-xs text-muted-foreground max-w-sm">
-                              {hayFiltrosKardexActivos
-                                ? 'Prueba ajustando los filtros o el texto de búsqueda.'
-                                : 'Aún no se han generado movimientos en el kardex físico.'}
-                            </p>
-                            {hayFiltrosKardexActivos && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={resetKardexFilters}
-                                className="mt-2 text-xs"
-                              >
-                                Restablecer filtros
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredKardex.map((mov) => {
-                        const isEntrada = mov.tipo === 'ENTRADA';
-                        const isSalida = mov.tipo === 'SALIDA';
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setOpenAjusteModal(true)}
+                className="gap-1.5 text-xs font-semibold bg-primary text-primary-foreground self-start sm:self-auto shadow-xs"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Nuevo ajuste</span>
+              </Button>
+            </div>
 
-                        return (
-                          <TableRow
-                            key={mov.id}
-                            className="border-b border-border hover:bg-muted/30 transition-colors"
-                          >
-                            <TableCell className="text-xs text-muted-foreground font-mono py-3 px-3 whitespace-nowrap">
-                              {formatDateTime(mov.fecha)}
-                            </TableCell>
-
-                            <TableCell className="py-3 px-3 whitespace-nowrap">
-                              <div className="flex items-center gap-1.5">
-                                {isEntrada ? (
-                                  <ArrowDownRight className="h-3.5 w-3.5 text-success-text shrink-0" />
-                                ) : isSalida ? (
-                                  <ArrowUpRight className="h-3.5 w-3.5 text-danger-text shrink-0" />
-                                ) : (
-                                  <ArrowLeftRight className="h-3.5 w-3.5 text-warning-text shrink-0" />
-                                )}
-                                <StatusBadge
-                                  status={
-                                    mov.tipo === 'ENTRADA'
-                                      ? 'Entrada'
-                                      : mov.tipo === 'SALIDA'
-                                      ? 'Salida'
-                                      : 'Ajuste'
-                                  }
-                                  variant={
-                                    isEntrada
-                                      ? 'success'
-                                      : isSalida
-                                      ? 'danger'
-                                      : 'warning'
-                                  }
-                                />
-                              </div>
-                            </TableCell>
-
-                            <TableCell className="py-3 px-3 whitespace-nowrap">
-                              <span className="font-medium text-sm text-foreground block">
-                                {mov.productoNombre}
-                              </span>
-                              <span className="text-xs text-muted-foreground font-mono">
-                                SKU: {mov.sku}
-                              </span>
-                            </TableCell>
-
-                            <TableCell className="text-xs text-foreground py-3 px-3 whitespace-nowrap">
-                              {mov.almacen}
-                            </TableCell>
-
-                            <TableCell className="text-right py-3 px-3 whitespace-nowrap">
-                              <span
-                                className={cn(
-                                  'font-semibold font-mono text-sm tabular-nums',
-                                  isEntrada
-                                    ? 'text-success-text'
-                                    : isSalida
-                                    ? 'text-danger-text'
-                                    : 'text-warning-text'
-                                )}
-                              >
-                                {isEntrada ? `+${mov.cantidad}` : isSalida ? `-${mov.cantidad}` : mov.cantidad} unid.
-                              </span>
-                            </TableCell>
-
-                            <TableCell className="text-right font-medium font-mono text-xs text-foreground py-3 px-3 tabular-nums whitespace-nowrap">
-                              {mov.stockResultante.toLocaleString('es-PE')} unid.
-                            </TableCell>
-
-                            <TableCell className="py-3 px-3 whitespace-nowrap">
-                              <span className="text-xs font-medium text-foreground block">
-                                {mov.referencia}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                Resp.: {mov.usuario}
-                              </span>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Vista para Móviles y Pantallas Angostas (< lg): Tarjetas Compactas */}
-              <div className="block lg:hidden space-y-3">
-                {loading ? (
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <Card key={`skel-card-${i}`} className="p-4 border-border space-y-2">
-                      <Skeleton className="h-5 w-3/4" />
-                      <Skeleton className="h-4 w-1/2" />
-                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
-                        <Skeleton className="h-8 w-full" />
-                        <Skeleton className="h-8 w-full" />
-                      </div>
-                    </Card>
-                  ))
-                ) : filteredKardex.length === 0 ? (
-                  <Card className="border-border p-8 text-center">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <div className="p-3 rounded-full bg-muted/60 text-muted-foreground">
-                        <PackageSearch className="h-6 w-6" />
-                      </div>
-                      <p className="text-sm font-medium text-foreground">
-                        No se encontraron movimientos registrados
-                      </p>
-                      <p className="text-xs text-muted-foreground max-w-sm">
-                        {hayFiltrosKardexActivos
-                          ? 'Prueba ajustando los filtros o el texto de búsqueda.'
-                          : 'Aún no se han generado movimientos en el kardex físico.'}
-                      </p>
-                      {hayFiltrosKardexActivos && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={resetKardexFilters}
-                          className="mt-2 text-xs"
-                        >
-                          Restablecer filtros
-                        </Button>
-                      )}
-                    </div>
-                  </Card>
-                ) : (
-                  filteredKardex.map((mov) => {
-                    const isEntrada = mov.tipo === 'ENTRADA';
-                    const isSalida = mov.tipo === 'SALIDA';
-
-                    return (
-                      <Card key={`card-${mov.id}`} className="border-border bg-card shadow-2xs">
-                        <CardContent className="p-3.5 space-y-2.5">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                              <h4 className="font-semibold text-sm text-foreground truncate">
-                                {mov.productoNombre}
-                              </h4>
-                              <p className="text-xs text-muted-foreground font-mono">
-                                SKU: {mov.sku}
-                              </p>
-                            </div>
-                            <StatusBadge
-                              status={
-                                mov.tipo === 'ENTRADA'
-                                  ? 'Entrada'
-                                  : mov.tipo === 'SALIDA'
-                                  ? 'Salida'
-                                  : 'Ajuste'
-                              }
-                              variant={
-                                isEntrada
-                                  ? 'success'
-                                  : isSalida
-                                  ? 'danger'
-                                  : 'warning'
-                              }
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2 text-xs py-2 px-2.5 rounded bg-muted/30 border border-border/50">
-                            <div>
-                              <span className="text-muted-foreground block text-xs">Movimiento</span>
-                              <span
-                                className={cn(
-                                  'font-semibold font-mono text-sm tabular-nums',
-                                  isEntrada
-                                    ? 'text-success-text'
-                                    : isSalida
-                                    ? 'text-danger-text'
-                                    : 'text-warning-text'
-                                )}
-                              >
-                                {isEntrada ? `+${mov.cantidad}` : isSalida ? `-${mov.cantidad}` : mov.cantidad} unid.
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground block text-xs">Saldo en almacén</span>
-                              <span className="font-semibold font-mono text-sm text-foreground tabular-nums">
-                                {mov.stockResultante.toLocaleString('es-PE')} unid.
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="space-y-1 text-xs text-muted-foreground pt-1 border-t border-border/40">
-                            <div className="flex items-center justify-between">
-                              <span>Sede: <strong className="text-foreground font-medium">{mov.almacen}</strong></span>
-                              <span className="font-mono text-xs">{formatDateTime(mov.fecha)}</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="truncate">Ref.: {mov.referencia}</span>
-                              <span className="text-xs">Resp.: {mov.usuario}</span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            <AdjustmentTable
+              ajustes={ajustes}
+              onNuevoAjuste={() => setOpenAjusteModal(true)}
+            />
+          </TabsContent>
+        )}
 
         {/* ========================================================================= */}
-        {/* PESTAÑA 4: AUDITORÍAS Y RECUENTOS FÍSICOS (Etapa 5)                       */}
+        {/* SECCIÓN 4: INVENTARIO FÍSICO                                              */}
         {/* ========================================================================= */}
-        <TabsContent value="auditoria" className="space-y-4">
-          <ModuloAuditoriaFisica
-            productos={productosStock}
-            onAjustar={handleAjusteAuditoria}
-          />
-        </TabsContent>
+        {!loading && !error && (
+          <TabsContent value="inventario-fisico" className="space-y-4 m-0 focus-visible:outline-none">
+            <div className="space-y-1">
+              <h2 className="text-base font-semibold text-foreground">Inventario físico</h2>
+              <p className="text-xs text-muted-foreground">
+                Compara el stock registrado con la cantidad real disponible ingresando el conteo de cada producto.
+              </p>
+            </div>
 
-        {/* ========================================================================= */}
-        {/* PESTAÑA 5: CLASIFICACIÓN Y UBICACIONES (Etapa 2 - Conexión con Catálogo)  */}
-        {/* ========================================================================= */}
-        <TabsContent value="almacenes" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {loading ? (
-              Array.from({ length: 2 }).map((_, i) => (
-                <Card key={`alm-skel-${i}`} className="border-border bg-card shadow-sm p-5 space-y-4">
-                  <Skeleton className="h-6 w-48" />
-                  <Skeleton className="h-4 w-32" />
-                  <div className="grid grid-cols-2 gap-3 pt-2">
-                    <Skeleton className="h-16 w-full" />
-                    <Skeleton className="h-16 w-full" />
-                  </div>
-                </Card>
-              ))
-            ) : almacenes.length === 0 ? (
-              <Card className="col-span-2 border-border p-8 text-center">
-                <p className="text-sm text-muted-foreground">No hay almacenes configurados en el sistema.</p>
-              </Card>
-            ) : (
-              almacenes.map((alm) => (
-                <Card key={alm.id} className="border-border bg-card shadow-sm">
-                  <CardContent className="p-5 space-y-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-md bg-primary-soft text-primary">
-                          <Warehouse className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-base text-foreground">{alm.nombre}</h4>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                            <MapPin className="h-3 w-3 text-muted-foreground" />
-                            {alm.direccion}
-                          </p>
-                        </div>
-                      </div>
-                      <StatusBadge status="Operativo" variant="success" />
-                    </div>
-
-                    {alm.responsable && (
-                      <div className="text-xs text-muted-foreground bg-muted/30 p-2.5 rounded-md">
-                        <span className="font-medium text-foreground">Responsable: </span>
-                        {alm.responsable}
-                      </div>
-                    )}
-
-                    {alm.zonas && (
-                      <div className="space-y-1">
-                        <span className="text-xs text-muted-foreground font-medium block">
-                          Zonas / Estanterías organizadas:
-                        </span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {alm.zonas.map((zona) => (
-                            <span
-                              key={zona}
-                              className="text-xs px-2 py-0.5 rounded bg-card border border-border text-foreground font-mono"
-                            >
-                              {zona}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border">
-                      <div className="p-3 rounded-md bg-muted/40">
-                        <span className="text-xs text-muted-foreground block">Variedad de artículos</span>
-                        <span className="text-lg font-semibold text-foreground tabular-nums">
-                          {alm.totalProductos} SKUs
-                        </span>
-                      </div>
-                      <div className="p-3 rounded-md bg-muted/40">
-                        <span className="text-xs text-muted-foreground block">Existencias físicas</span>
-                        <span className="text-lg font-semibold text-primary tabular-nums">
-                          {alm.stockTotalUnidades.toLocaleString('es-PE')} unid.
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="pt-2 flex justify-end">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setKardexAlmacenFiltro(alm.nombre);
-                          setTabActiva('kardex');
-                        }}
-                        className="text-xs h-8"
-                      >
-                        Ver movimientos de esta sede
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-
-          {/* Guía práctica para pequeños negocios */}
-          <div className="rounded-lg border border-border bg-card p-4 space-y-2">
-            <span className="text-xs font-semibold text-foreground block">
-              Consejo KIPU'S para ordenar tu local:
-            </span>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Asigna a cada estante una etiqueta visible (ej. "Estante A-1", "Vitrina Mostrador"). Cuando registras un producto en el{' '}
-              <a href="/productos" className="text-primary underline">
-                Catálogo de Productos
-              </a>
-              , guárdale su ubicación. Así, cualquier trabajador nuevo o tú mismo sabrán en qué anaquel exacto está la mercadería sin tener que buscar por toda la tienda.
-            </p>
-          </div>
-        </TabsContent>
-
-        {/* ========================================================================= */}
-        {/* PESTAÑA 6: ANÁLISIS Y REPORTES (Etapa 6 - Conexión con Finanzas)          */}
-        {/* ========================================================================= */}
-        <TabsContent value="analisis" className="space-y-4">
-          <AnalisisRotacionReporte
-            productos={productosStock}
-            movimientos={movimientos}
-          />
-        </TabsContent>
+            <PhysicalInventoryTable
+              productos={productos}
+              almacenes={almacenes}
+              onAplicarAjustes={handleAplicarAjustesFisicos}
+            />
+          </TabsContent>
+        )}
       </Tabs>
 
-      {/* Diálogos modales */}
-      <RecepcionMercanciaDialog
-        open={openRecepcionModal}
-        onOpenChange={setOpenRecepcionModal}
-        productos={productosStock}
-        onRecepcionar={handleRecepcionMercancia}
+      {/* Modal: Detalle de Producto con Últimas Entradas y Salidas */}
+      <ProductInventoryDetail
+        open={openDetalleModal}
+        onOpenChange={setOpenDetalleModal}
+        producto={productoSeleccionado}
+        movimientosProducto={movimientosDelProductoSeleccionado}
+        onIrAEntradasSalidas={handleIrAEntradasSalidas}
       />
 
-      <AuditoriaConteoDialog
-        open={openAuditoriaModal}
-        onOpenChange={setOpenAuditoriaModal}
-        productos={productosStock}
-        productoInicialId={productoSeleccionadoId}
-        onAjustar={handleAjusteAuditoria}
-      />
-
-      <NuevoMovimientoDialog
-        open={openMovimientoModal}
-        onOpenChange={setOpenMovimientoModal}
-        onMovimientoCreado={handleCrearMovimientoManual}
-        almacenes={almacenes}
+      {/* Modal: Formulario de Nuevo Ajuste con Confirmación de 2 Fases */}
+      <AdjustmentForm
+        open={openAjusteModal}
+        onOpenChange={setOpenAjusteModal}
+        productos={productos}
+        onGuardarAjuste={handleGuardarAjuste}
+        productoInicialId={productoSeleccionado?.id}
       />
     </div>
   );
