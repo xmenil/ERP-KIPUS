@@ -41,28 +41,28 @@ export const AdjustmentTable: React.FC<AdjustmentTableProps> = ({
     <div className="space-y-3">
       {/* Vista Escritorio: Tabla */}
       <div className="hidden md:block overflow-x-auto rounded-md border border-border bg-card">
-        <Table>
+        <Table className="w-full min-w-[760px]">
           <TableHeader>
             <TableRow className="bg-muted/40 border-b border-border hover:bg-transparent">
-              <TableHead className="text-xs font-semibold py-3 px-4 text-foreground w-40">
+              <TableHead className="text-xs font-semibold py-3 px-4 text-foreground w-40 whitespace-nowrap">
                 Fecha
               </TableHead>
-              <TableHead className="text-xs font-semibold py-3 px-4 text-foreground">
+              <TableHead className="text-xs font-semibold py-3 px-4 text-foreground whitespace-nowrap min-w-[180px]">
                 Producto
               </TableHead>
-              <TableHead className="text-xs font-semibold py-3 px-3 text-right text-foreground w-28">
+              <TableHead className="text-xs font-semibold py-3 px-3 text-right text-foreground w-28 whitespace-nowrap">
                 Stock anterior
               </TableHead>
-              <TableHead className="text-xs font-semibold py-3 px-3 text-right text-foreground w-28">
+              <TableHead className="text-xs font-semibold py-3 px-3 text-right text-foreground w-28 whitespace-nowrap">
                 Nuevo stock
               </TableHead>
-              <TableHead className="text-xs font-semibold py-3 px-3 text-right text-foreground w-28">
+              <TableHead className="text-xs font-semibold py-3 px-3 text-right text-foreground w-28 whitespace-nowrap">
                 Diferencia
               </TableHead>
-              <TableHead className="text-xs font-semibold py-3 px-4 text-foreground w-52">
+              <TableHead className="text-xs font-semibold py-3 px-4 text-foreground w-52 whitespace-nowrap">
                 Motivo
               </TableHead>
-              <TableHead className="text-xs font-semibold py-3 px-4 text-foreground w-36">
+              <TableHead className="text-xs font-semibold py-3 px-4 text-foreground w-36 whitespace-nowrap">
                 Usuario
               </TableHead>
             </TableRow>

@@ -14,6 +14,7 @@ import { ItemStockDetalle } from '../types/inventario.types';
 import { EmptyState } from './EmptyState';
 import { Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { pluralizeUnit } from '@/utils/formatters';
 
 interface InventoryTableProps {
   productos: ItemStockDetalle[];
@@ -50,27 +51,27 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
 
   return (
     <div className="space-y-3">
-      {/* Vista de Escritorio: Tabla limpia y densa */}
+      {/* Vista de Escritorio: Tabla limpia y densa con scroll horizontal seguro */}
       <div className="hidden md:block overflow-x-auto rounded-md border border-border bg-card">
-        <Table>
+        <Table className="w-full min-w-[760px]">
           <TableHeader>
             <TableRow className="bg-muted/40 border-b border-border hover:bg-transparent">
-              <TableHead className="text-xs font-semibold py-3 px-4 text-foreground">
+              <TableHead className="text-xs font-semibold py-3 px-4 text-foreground whitespace-nowrap min-w-[200px]">
                 Producto
               </TableHead>
-              <TableHead className="text-xs font-semibold py-3 px-3 text-foreground w-36">
+              <TableHead className="text-xs font-semibold py-3 px-3 text-foreground w-36 whitespace-nowrap">
                 Código
               </TableHead>
-              <TableHead className="text-xs font-semibold py-3 px-4 text-right text-foreground w-32">
+              <TableHead className="text-xs font-semibold py-3 px-4 text-right text-foreground w-36 whitespace-nowrap">
                 Stock actual
               </TableHead>
-              <TableHead className="text-xs font-semibold py-3 px-4 text-right text-foreground w-32">
+              <TableHead className="text-xs font-semibold py-3 px-4 text-right text-foreground w-36 whitespace-nowrap">
                 Stock mínimo
               </TableHead>
-              <TableHead className="text-xs font-semibold py-3 px-4 text-foreground w-36">
+              <TableHead className="text-xs font-semibold py-3 px-4 text-foreground w-36 whitespace-nowrap">
                 Estado
               </TableHead>
-              <TableHead className="text-xs font-semibold py-3 px-4 text-right text-foreground w-28">
+              <TableHead className="text-xs font-semibold py-3 px-4 text-right text-foreground w-28 whitespace-nowrap">
                 Acciones
               </TableHead>
             </TableRow>
@@ -82,7 +83,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                 className="border-b border-border/70 hover:bg-muted/30 transition-colors h-12"
               >
                 {/* Producto */}
-                <TableCell className="py-2.5 px-4">
+                <TableCell className="py-2.5 px-4 min-w-[200px]">
                   <span className="font-medium text-sm text-foreground block leading-tight">
                     {prod.nombre}
                   </span>
@@ -95,7 +96,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                 </TableCell>
 
                 {/* Stock actual */}
-                <TableCell className="py-2.5 px-4 text-right">
+                <TableCell className="py-2.5 px-4 text-right whitespace-nowrap">
                   <span
                     className={cn(
                       'font-semibold font-mono text-sm tabular-nums',
@@ -109,13 +110,13 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                     {(prod.stock ?? 0).toLocaleString('es-PE')}
                   </span>
                   <span className="text-xs text-muted-foreground ml-1 font-sans">
-                    {(prod.unidadMedida || 'unidades').toLowerCase()}
+                    {pluralizeUnit(prod.stock ?? 0, prod.unidadMedida || 'unidad')}
                   </span>
                 </TableCell>
 
                 {/* Stock mínimo */}
-                <TableCell className="py-2.5 px-4 text-right font-mono text-xs text-muted-foreground tabular-nums">
-                  {(prod.stockMinimo ?? 0).toLocaleString('es-PE')} {(prod.unidadMedida || 'unidades').toLowerCase()}
+                <TableCell className="py-2.5 px-4 text-right font-mono text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+                  {(prod.stockMinimo ?? 0).toLocaleString('es-PE')} {pluralizeUnit(prod.stockMinimo ?? 0, prod.unidadMedida || 'unidad')}
                 </TableCell>
 
                 {/* Estado */}
@@ -124,7 +125,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                 </TableCell>
 
                 {/* Acciones */}
-                <TableCell className="py-2.5 px-4 text-right">
+                <TableCell className="py-2.5 px-4 text-right whitespace-nowrap">
                   <Button
                     type="button"
                     variant="outline"
@@ -149,10 +150,10 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
             <CardContent className="p-3.5 space-y-2.5">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
-                  <h4 className="font-medium text-sm text-foreground leading-snug">
+                  <h4 className="font-medium text-sm text-foreground leading-snug truncate">
                     {prod.nombre}
                   </h4>
-                  <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground truncate">
                     <span className="font-mono">{prod.sku}</span>
                     <span>•</span>
                     <span>{prod.categoria}</span>
@@ -166,7 +167,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                   <span className="text-muted-foreground block text-xs">Stock actual</span>
                   <span
                     className={cn(
-                      'font-semibold font-mono text-sm tabular-nums',
+                      'font-semibold font-mono text-sm tabular-nums block',
                       (prod.stock ?? 0) <= 0
                         ? 'text-danger-text'
                         : (prod.stock ?? 0) <= (prod.stockMinimo ?? 0)
@@ -174,13 +175,13 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                         : 'text-foreground'
                     )}
                   >
-                    {(prod.stock ?? 0).toLocaleString('es-PE')} {(prod.unidadMedida || 'unidades').toLowerCase()}
+                    {(prod.stock ?? 0).toLocaleString('es-PE')} {pluralizeUnit(prod.stock ?? 0, prod.unidadMedida || 'unidad')}
                   </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground block text-xs">Stock mínimo</span>
-                  <span className="font-medium font-mono text-sm text-muted-foreground tabular-nums">
-                    {(prod.stockMinimo ?? 0).toLocaleString('es-PE')} {(prod.unidadMedida || 'unidades').toLowerCase()}
+                  <span className="font-medium font-mono text-sm text-muted-foreground tabular-nums block">
+                    {(prod.stockMinimo ?? 0).toLocaleString('es-PE')} {pluralizeUnit(prod.stockMinimo ?? 0, prod.unidadMedida || 'unidad')}
                   </span>
                 </div>
               </div>
@@ -191,7 +192,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                   variant="outline"
                   size="sm"
                   onClick={() => onVerDetalle(prod)}
-                  className="w-full text-xs h-8 font-medium gap-1.5"
+                  className="w-full text-xs h-9 font-medium gap-1.5"
                 >
                   <Eye className="h-3.5 w-3.5 text-muted-foreground" />
                   <span>Ver detalle</span>

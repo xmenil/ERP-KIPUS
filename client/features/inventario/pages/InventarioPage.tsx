@@ -269,29 +269,29 @@ export const InventarioPage: React.FC = () => {
 
       {/* Pestañas de Navegación del Módulo: Únicamente las 4 requeridas */}
       <Tabs value={seccionActiva} onValueChange={handleTabChange} className="w-full space-y-4">
-        <div className="border-b border-border">
-          <TabsList className="bg-transparent p-0 h-auto flex flex-wrap gap-2 justify-start border-none">
+        <div className="border-b border-border overflow-x-auto pb-px scrollbar-none">
+          <TabsList className="bg-transparent p-0 h-auto flex flex-nowrap gap-1 sm:gap-2 justify-start border-none">
             <TabsTrigger
               value="existencias"
-              className="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:font-semibold text-muted-foreground hover:text-foreground transition-all"
+              className="rounded-none border-b-2 border-transparent px-3.5 py-2.5 min-h-[40px] text-xs sm:text-sm font-medium whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:font-semibold text-muted-foreground hover:text-foreground transition-all shrink-0"
             >
               Existencias
             </TabsTrigger>
             <TabsTrigger
               value="entradas-salidas"
-              className="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:font-semibold text-muted-foreground hover:text-foreground transition-all"
+              className="rounded-none border-b-2 border-transparent px-3.5 py-2.5 min-h-[40px] text-xs sm:text-sm font-medium whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:font-semibold text-muted-foreground hover:text-foreground transition-all shrink-0"
             >
               Entradas y salidas
             </TabsTrigger>
             <TabsTrigger
               value="ajustes"
-              className="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:font-semibold text-muted-foreground hover:text-foreground transition-all"
+              className="rounded-none border-b-2 border-transparent px-3.5 py-2.5 min-h-[40px] text-xs sm:text-sm font-medium whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:font-semibold text-muted-foreground hover:text-foreground transition-all shrink-0"
             >
               Ajustes
             </TabsTrigger>
             <TabsTrigger
               value="inventario-fisico"
-              className="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:font-semibold text-muted-foreground hover:text-foreground transition-all"
+              className="rounded-none border-b-2 border-transparent px-3.5 py-2.5 min-h-[40px] text-xs sm:text-sm font-medium whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:font-semibold text-muted-foreground hover:text-foreground transition-all shrink-0"
             >
               Inventario físico
             </TabsTrigger>

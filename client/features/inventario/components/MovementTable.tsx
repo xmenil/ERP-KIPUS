@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { SearchBar } from './SearchBar';
 import { EmptyState } from './EmptyState';
 import { MovimientoStock } from '../types/inventario.types';
-import { formatDateTime } from '@/utils/formatters';
+import { formatDateTime, pluralizeUnit } from '@/utils/formatters';
 import { ArrowDownRight, ArrowUpRight, ArrowLeftRight, Info, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -200,25 +200,25 @@ export const MovementTable: React.FC<MovementTableProps> = ({
         <div className="space-y-3">
           {/* Vista Escritorio: Tabla */}
           <div className="hidden md:block overflow-x-auto rounded-md border border-border bg-card">
-            <Table>
+            <Table className="w-full min-w-[780px]">
               <TableHeader>
                 <TableRow className="bg-muted/40 border-b border-border hover:bg-transparent">
-                  <TableHead className="text-xs font-semibold py-3 px-4 text-foreground w-40">
+                  <TableHead className="text-xs font-semibold py-3 px-4 text-foreground w-40 whitespace-nowrap">
                     Fecha
                   </TableHead>
-                  <TableHead className="text-xs font-semibold py-3 px-4 text-foreground">
+                  <TableHead className="text-xs font-semibold py-3 px-4 text-foreground whitespace-nowrap min-w-[180px]">
                     Producto
                   </TableHead>
-                  <TableHead className="text-xs font-semibold py-3 px-3 text-foreground w-28">
+                  <TableHead className="text-xs font-semibold py-3 px-3 text-foreground w-28 whitespace-nowrap">
                     Tipo
                   </TableHead>
-                  <TableHead className="text-xs font-semibold py-3 px-4 text-right text-foreground w-32">
+                  <TableHead className="text-xs font-semibold py-3 px-4 text-right text-foreground w-36 whitespace-nowrap">
                     Cantidad
                   </TableHead>
-                  <TableHead className="text-xs font-semibold py-3 px-4 text-foreground w-56">
+                  <TableHead className="text-xs font-semibold py-3 px-4 text-foreground w-56 whitespace-nowrap">
                     Origen / Referencia
                   </TableHead>
-                  <TableHead className="text-xs font-semibold py-3 px-4 text-foreground w-36">
+                  <TableHead className="text-xs font-semibold py-3 px-4 text-foreground w-36 whitespace-nowrap">
                     Usuario
                   </TableHead>
                 </TableRow>
@@ -239,7 +239,7 @@ export const MovementTable: React.FC<MovementTableProps> = ({
                       </TableCell>
 
                       {/* Producto */}
-                      <TableCell className="py-2.5 px-4">
+                      <TableCell className="py-2.5 px-4 min-w-[180px]">
                         <span className="font-medium text-sm text-foreground block leading-tight">
                           {mov.productoNombre}
                         </span>
@@ -270,7 +270,7 @@ export const MovementTable: React.FC<MovementTableProps> = ({
                       </TableCell>
 
                       {/* Cantidad */}
-                      <TableCell className="py-2.5 px-4 text-right">
+                      <TableCell className="py-2.5 px-4 text-right whitespace-nowrap">
                         <span
                           className={cn(
                             'font-semibold font-mono text-sm tabular-nums',
@@ -281,7 +281,9 @@ export const MovementTable: React.FC<MovementTableProps> = ({
                         >
                           {isEntrada ? `+${mov.cantidad}` : isSalida ? `-${mov.cantidad}` : mov.cantidad}
                         </span>
-                        <span className="text-xs text-muted-foreground ml-1">unidades</span>
+                        <span className="text-xs text-muted-foreground ml-1">
+                          {pluralizeUnit(mov.cantidad, 'unidad')}
+                        </span>
                       </TableCell>
 
                       {/* Origen */}
@@ -339,19 +341,19 @@ export const MovementTable: React.FC<MovementTableProps> = ({
                         <span className="text-muted-foreground block text-xs">Cantidad</span>
                         <span
                           className={cn(
-                            'font-semibold font-mono text-sm tabular-nums',
+                            'font-semibold font-mono text-sm tabular-nums block',
                             isEntrada && 'text-success-text',
                             isSalida && 'text-danger-text',
                             !isEntrada && !isSalida && 'text-warning-text'
                           )}
                         >
-                          {isEntrada ? `+${mov.cantidad}` : isSalida ? `-${mov.cantidad}` : mov.cantidad} unidades
+                          {isEntrada ? `+${mov.cantidad}` : isSalida ? `-${mov.cantidad}` : mov.cantidad} {pluralizeUnit(mov.cantidad, 'unidad')}
                         </span>
                       </div>
                       <div>
                         <span className="text-muted-foreground block text-xs">Saldo posterior</span>
-                        <span className="font-mono text-sm font-medium text-foreground tabular-nums">
-                          {mov.stockResultante} unidades
+                        <span className="font-mono text-sm font-medium text-foreground tabular-nums block">
+                          {mov.stockResultante} {pluralizeUnit(mov.stockResultante, 'unidad')}
                         </span>
                       </div>
                     </div>

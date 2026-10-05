@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select';
 import { ConfirmationDialog } from './ConfirmationDialog';
 import { ItemStockDetalle, NuevoAjustePayload } from '../types/inventario.types';
+import { pluralizeUnit } from '@/utils/formatters';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -130,8 +131,8 @@ export const AdjustmentForm: React.FC<AdjustmentFormProps> = ({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md p-5 gap-4 rounded-lg">
-          <DialogHeader className="space-y-1 text-left">
+        <DialogContent className="w-[95vw] sm:max-w-md max-h-[92vh] flex flex-col p-4 sm:p-5 gap-4 overflow-hidden rounded-lg">
+          <DialogHeader className="space-y-1 text-left shrink-0">
             <DialogTitle className="text-base font-semibold text-foreground">
               Nuevo ajuste de inventario
             </DialogTitle>
@@ -140,7 +141,7 @@ export const AdjustmentForm: React.FC<AdjustmentFormProps> = ({
             </p>
           </DialogHeader>
 
-          <div className="space-y-3.5 py-1">
+          <div className="space-y-3.5 py-1 overflow-y-auto flex-1 pr-0.5">
             {/* 1. Selector de Producto */}
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-foreground">Producto</Label>
@@ -155,7 +156,7 @@ export const AdjustmentForm: React.FC<AdjustmentFormProps> = ({
                 <SelectContent className="max-h-60">
                   {productos.map((prod) => (
                     <SelectItem key={prod.id} value={prod.id} className="text-xs">
-                      {prod.nombre} ({prod.sku}) — Stock: {prod.stock} {(prod.unidadMedida || 'unidades').toLowerCase()}
+                      {prod.nombre} ({prod.sku}) — Stock: {prod.stock} {pluralizeUnit(prod.stock, prod.unidadMedida || 'unidad')}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -167,7 +168,7 @@ export const AdjustmentForm: React.FC<AdjustmentFormProps> = ({
               <div>
                 <span className="text-xs text-muted-foreground block">Stock registrado actual</span>
                 <span className="text-base font-semibold font-mono text-foreground tabular-nums block mt-0.5">
-                  {stockActual} {(productoSeleccionado?.unidadMedida || 'unidades').toLowerCase()}
+                  {stockActual} {pluralizeUnit(stockActual, productoSeleccionado?.unidadMedida || 'unidad')}
                 </span>
                 <span className="text-[11px] text-muted-foreground block">Automático del sistema</span>
               </div>
@@ -204,7 +205,8 @@ export const AdjustmentForm: React.FC<AdjustmentFormProps> = ({
               >
                 <span className="font-medium">Diferencia resultante:</span>
                 <span className="font-mono font-semibold tabular-nums text-sm">
-                  {diferencia > 0 ? `+${diferencia}` : diferencia} unidades
+                  {diferencia > 0 ? `+${diferencia}` : diferencia}{' '}
+                  {pluralizeUnit(diferencia, productoSeleccionado?.unidadMedida || 'unidad')}
                 </span>
               </div>
             )}
@@ -304,7 +306,8 @@ export const AdjustmentForm: React.FC<AdjustmentFormProps> = ({
                 diferencia < 0 ? 'text-danger-text' : 'text-success-text'
               )}
             >
-              {diferencia > 0 ? `+${diferencia}` : diferencia} unidades
+              {diferencia > 0 ? `+${diferencia}` : diferencia}{' '}
+              {pluralizeUnit(diferencia, productoSeleccionado?.unidadMedida || 'unidad')}
             </span>
           </div>
           <div className="pt-1 text-[11px] text-muted-foreground">

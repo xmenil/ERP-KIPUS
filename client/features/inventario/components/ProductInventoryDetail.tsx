@@ -9,7 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { StockStatus } from './StockStatus';
 import { ItemStockDetalle, MovimientoStock } from '../types/inventario.types';
-import { formatCurrency, formatDateTime } from '@/utils/formatters';
+import { formatCurrency, formatDateTime, pluralizeUnit } from '@/utils/formatters';
 import { Package, ArrowRight, ArrowDownRight, ArrowUpRight, ArrowLeftRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -38,9 +38,9 @@ export const ProductInventoryDetail: React.FC<ProductInventoryDetailProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl p-0 gap-0 overflow-hidden rounded-lg">
+      <DialogContent className="w-[95vw] sm:max-w-xl max-h-[92vh] flex flex-col p-0 gap-0 overflow-hidden rounded-lg">
         {/* Cabecera del Producto */}
-        <DialogHeader className="p-5 border-b border-border bg-muted/20 space-y-3">
+        <DialogHeader className="p-4 sm:p-5 border-b border-border bg-muted/20 space-y-3 shrink-0">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
               {/* Imagen o Contenedor representativo sobrio */}
@@ -73,7 +73,7 @@ export const ProductInventoryDetail: React.FC<ProductInventoryDetailProps> = ({
         </DialogHeader>
 
         {/* Datos Principales de Stock y Precios */}
-        <div className="p-5 space-y-5">
+        <div className="p-4 sm:p-5 space-y-5 overflow-y-auto flex-1">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="p-3 rounded-md bg-muted/30 border border-border">
               <span className="text-xs text-muted-foreground block">Stock actual</span>
@@ -90,7 +90,7 @@ export const ProductInventoryDetail: React.FC<ProductInventoryDetailProps> = ({
                 {(producto.stock ?? 0).toLocaleString('es-PE')}
               </span>
               <span className="text-xs text-muted-foreground">
-                {(producto.unidadMedida || 'unidades').toLowerCase()}
+                {pluralizeUnit(producto.stock ?? 0, producto.unidadMedida || 'unidad')}
               </span>
             </div>
 
@@ -100,7 +100,7 @@ export const ProductInventoryDetail: React.FC<ProductInventoryDetailProps> = ({
                 {(producto.stockMinimo ?? 0).toLocaleString('es-PE')}
               </span>
               <span className="text-xs text-muted-foreground">
-                {(producto.unidadMedida || 'unidades').toLowerCase()}
+                {pluralizeUnit(producto.stockMinimo ?? 0, producto.unidadMedida || 'unidad')}
               </span>
             </div>
 
@@ -179,10 +179,12 @@ export const ProductInventoryDetail: React.FC<ProductInventoryDetailProps> = ({
                                 : 'text-warning-text'
                             )}
                           >
-                            {isEntrada ? `+${mov.cantidad}` : isSalida ? `-${mov.cantidad}` : mov.cantidad} unidades
+                            {isEntrada ? `+${mov.cantidad}` : isSalida ? `-${mov.cantidad}` : mov.cantidad}{' '}
+                            {pluralizeUnit(mov.cantidad, producto.unidadMedida || 'unidad')}
                           </span>
                           <span className="text-[11px] text-muted-foreground tabular-nums">
-                            Saldo: {mov.stockResultante} unidades
+                            Saldo: {mov.stockResultante}{' '}
+                            {pluralizeUnit(mov.stockResultante, producto.unidadMedida || 'unidad')}
                           </span>
                         </div>
                       </div>

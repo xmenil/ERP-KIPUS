@@ -24,6 +24,7 @@ import { ItemStockDetalle, AlmacenResumen } from '../types/inventario.types';
 import { Check, CheckCircle2, AlertTriangle, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { pluralizeUnit } from '@/utils/formatters';
 
 interface PhysicalInventoryTableProps {
   productos: ItemStockDetalle[];
@@ -230,20 +231,21 @@ export const PhysicalInventoryTable: React.FC<PhysicalInventoryTableProps> = ({
         />
       ) : (
         <div className="space-y-4">
-          <div className="overflow-x-auto rounded-md border border-border bg-card">
-            <Table>
+          {/* Vista Escritorio (>= md): Tabla completa con scroll seguro */}
+          <div className="hidden md:block overflow-x-auto rounded-md border border-border bg-card">
+            <Table className="w-full min-w-[720px]">
               <TableHeader>
                 <TableRow className="bg-muted/40 border-b border-border hover:bg-transparent">
-                  <TableHead className="text-xs font-semibold py-3 px-4 text-foreground">
+                  <TableHead className="text-xs font-semibold py-3 px-4 text-foreground whitespace-nowrap min-w-[180px]">
                     Producto
                   </TableHead>
-                  <TableHead className="text-xs font-semibold py-3 px-4 text-right text-foreground w-40">
+                  <TableHead className="text-xs font-semibold py-3 px-4 text-right text-foreground w-40 whitespace-nowrap">
                     Stock del sistema
                   </TableHead>
-                  <TableHead className="text-xs font-semibold py-3 px-4 text-center text-foreground w-44">
+                  <TableHead className="text-xs font-semibold py-3 px-4 text-center text-foreground w-44 whitespace-nowrap">
                     Stock físico (real)
                   </TableHead>
-                  <TableHead className="text-xs font-semibold py-3 px-4 text-right text-foreground w-36">
+                  <TableHead className="text-xs font-semibold py-3 px-4 text-right text-foreground w-36 whitespace-nowrap">
                     Diferencia
                   </TableHead>
                 </TableRow>
@@ -265,7 +267,7 @@ export const PhysicalInventoryTable: React.FC<PhysicalInventoryTableProps> = ({
                       )}
                     >
                       {/* Producto */}
-                      <TableCell className="py-2.5 px-4">
+                      <TableCell className="py-2.5 px-4 min-w-[180px]">
                         <span className="font-medium text-sm text-foreground block leading-tight">
                           {prod.nombre}
                         </span>
@@ -277,10 +279,10 @@ export const PhysicalInventoryTable: React.FC<PhysicalInventoryTableProps> = ({
                       </TableCell>
 
                       {/* Stock del sistema */}
-                      <TableCell className="py-2.5 px-4 text-right font-mono font-semibold text-sm text-foreground tabular-nums">
+                      <TableCell className="py-2.5 px-4 text-right font-mono font-semibold text-sm text-foreground tabular-nums whitespace-nowrap">
                         {(prod.stock ?? 0).toLocaleString('es-PE')}{' '}
                         <span className="text-xs font-sans font-normal text-muted-foreground">
-                          {(prod.unidadMedida || 'unidades').toLowerCase()}
+                          {pluralizeUnit(prod.stock ?? 0, prod.unidadMedida || 'unidad')}
                         </span>
                       </TableCell>
 
@@ -302,7 +304,7 @@ export const PhysicalInventoryTable: React.FC<PhysicalInventoryTableProps> = ({
                       </TableCell>
 
                       {/* Diferencia calculada automáticamente */}
-                      <TableCell className="py-2.5 px-4 text-right">
+                      <TableCell className="py-2.5 px-4 text-right whitespace-nowrap">
                         {diferencia === null ? (
                           <span className="text-xs text-muted-foreground">—</span>
                         ) : diferencia === 0 ? (
@@ -319,7 +321,7 @@ export const PhysicalInventoryTable: React.FC<PhysicalInventoryTableProps> = ({
                                 : 'text-success-text bg-success-soft border border-success/20'
                             )}
                           >
-                            {diferencia > 0 ? `+${diferencia}` : diferencia} unid.
+                            {diferencia > 0 ? `+${diferencia}` : diferencia} {pluralizeUnit(diferencia, prod.unidadMedida || 'unidad')}
                           </span>
                         )}
                       </TableCell>
@@ -328,6 +330,86 @@ export const PhysicalInventoryTable: React.FC<PhysicalInventoryTableProps> = ({
                 })}
               </TableBody>
             </Table>
+          </div>
+
+          {/* Vista Móvil (< md): Tarjetas ergonómicas con teclado numérico directo */}
+          <div className="block md:hidden space-y-3">
+            {productosFiltrados.map((prod) => {
+              const valorStr = valoresFisicos[prod.id];
+              const hasInput = valorStr !== undefined && valorStr !== '';
+              const fisicoNum = hasInput ? Number(valorStr) : null;
+              const diferencia =
+                fisicoNum !== null && !isNaN(fisicoNum) ? fisicoNum - prod.stock : null;
+
+              return (
+                <Card
+                  key={`m-phys-${prod.id}`}
+                  className={cn(
+                    'border-border bg-card shadow-2xs transition-colors',
+                    hasInput && diferencia !== 0 && 'border-warning/50 bg-warning-soft/10'
+                  )}
+                >
+                  <CardContent className="p-3.5 space-y-3">
+                    <div className="min-w-0">
+                      <h4 className="font-medium text-sm text-foreground leading-snug truncate">
+                        {prod.nombre}
+                      </h4>
+                      <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+                        <span className="font-mono">{prod.sku}</span>
+                        <span>•</span>
+                        <span>{prod.categoria}</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 items-center p-2.5 rounded-md bg-muted/30 border border-border/50">
+                      <div>
+                        <span className="text-[11px] text-muted-foreground block">Stock en sistema</span>
+                        <span className="font-mono text-sm font-semibold text-foreground tabular-nums">
+                          {(prod.stock ?? 0).toLocaleString('es-PE')} {pluralizeUnit(prod.stock ?? 0, prod.unidadMedida || 'unidad')}
+                        </span>
+                      </div>
+
+                      <div className="space-y-1">
+                        <span className="text-[11px] text-muted-foreground block">Conteo físico</span>
+                        <Input
+                          type="number"
+                          inputMode="numeric"
+                          min="0"
+                          placeholder="Real..."
+                          value={valorStr ?? ''}
+                          onChange={(e) => handleStockFisicoChange(prod.id, e.target.value)}
+                          className="h-10 text-center font-mono font-semibold text-base border-border bg-card focus-visible:ring-1 focus-visible:ring-primary"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Estado de discrepancia en móvil */}
+                    <div className="flex items-center justify-between text-xs pt-1 border-t border-border/40">
+                      <span className="text-muted-foreground">Discrepancia:</span>
+                      {diferencia === null ? (
+                        <span className="text-xs text-muted-foreground">Sin registrar</span>
+                      ) : diferencia === 0 ? (
+                        <span className="inline-flex items-center gap-1 font-mono text-xs font-medium text-success-text px-2 py-0.5 rounded bg-success-soft border border-success/20">
+                          <Check className="h-3 w-3" />
+                          Coincide (0 dif.)
+                        </span>
+                      ) : (
+                        <span
+                          className={cn(
+                            'font-mono text-xs font-semibold px-2 py-0.5 rounded tabular-nums inline-block',
+                            diferencia < 0
+                              ? 'text-danger-text bg-danger-soft border border-destructive/20'
+                              : 'text-success-text bg-success-soft border border-success/20'
+                          )}
+                        >
+                          {diferencia > 0 ? `+${diferencia}` : diferencia} {pluralizeUnit(diferencia, prod.unidadMedida || 'unidad')}
+                        </span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
 
           {/* Barra Resumen Persistente al Pie */}

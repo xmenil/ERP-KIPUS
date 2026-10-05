@@ -10,6 +10,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ItemStockDetalle, EstadoNivelStock } from '../types/inventario.types';
+import { formatCurrency } from '@/utils/formatters';
 import {
   Search,
   AlertTriangle,
@@ -128,21 +129,21 @@ export const TablaControlStock: React.FC<TablaControlStockProps> = ({
 
       {/* Tabla de existencias y niveles de stock */}
       <div className="overflow-x-auto rounded border border-border bg-card shadow-2xs">
-        <Table>
+        <Table className="w-full min-w-[760px]">
           <TableHeader>
             <TableRow className="bg-muted/50 border-b border-border hover:bg-transparent">
-              <TableHead className="text-xs font-semibold py-2.5 w-24">Código SKU</TableHead>
-              <TableHead className="text-xs font-semibold py-2.5">Producto & Categoría</TableHead>
-              <TableHead className="text-xs font-semibold py-2.5">Ubicación física</TableHead>
-              <TableHead className="text-xs font-semibold py-2.5 text-center">Nivel de Stock</TableHead>
-              <TableHead className="text-xs font-semibold py-2.5">Estado</TableHead>
-              <TableHead className="text-xs font-semibold py-2.5 text-right">
+              <TableHead className="text-xs font-semibold py-2.5 w-24 whitespace-nowrap">Código SKU</TableHead>
+              <TableHead className="text-xs font-semibold py-2.5 whitespace-nowrap">Producto & Categoría</TableHead>
+              <TableHead className="text-xs font-semibold py-2.5 whitespace-nowrap">Ubicación física</TableHead>
+              <TableHead className="text-xs font-semibold py-2.5 text-center whitespace-nowrap">Nivel de Stock</TableHead>
+              <TableHead className="text-xs font-semibold py-2.5 whitespace-nowrap">Estado</TableHead>
+              <TableHead className="text-xs font-semibold py-2.5 text-right whitespace-nowrap">
                 {puedeVerCostos ? 'Costo / Venta' : 'PVP Venta'}
               </TableHead>
               {puedeVerCostos && (
-                <TableHead className="text-xs font-semibold py-2.5 text-right">Inversión Stock</TableHead>
+                <TableHead className="text-xs font-semibold py-2.5 text-right whitespace-nowrap">Inversión Stock</TableHead>
               )}
-              <TableHead className="text-xs font-semibold py-2.5 text-right w-40">Acción Rápida</TableHead>
+              <TableHead className="text-xs font-semibold py-2.5 text-right w-40 whitespace-nowrap">Acción Rápida</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -232,21 +233,21 @@ export const TablaControlStock: React.FC<TablaControlStockProps> = ({
                     </TableCell>
 
                     {/* Costo / Venta */}
-                    <TableCell className="py-2.5 text-right font-mono tabular-nums">
+                    <TableCell className="py-2.5 text-right font-mono tabular-nums whitespace-nowrap">
                       {puedeVerCostos && (
                         <span className="text-muted-foreground block text-[11px]">
-                          C: S/ {prod.precioCompra.toFixed(2)}
+                          C: {formatCurrency(prod.precioCompra)}
                         </span>
                       )}
                       <span className="text-foreground font-medium">
-                        {puedeVerCostos ? 'V: ' : ''}S/ {prod.precioVenta.toFixed(2)}
+                        {puedeVerCostos ? 'V: ' : ''}{formatCurrency(prod.precioVenta)}
                       </span>
                     </TableCell>
 
                     {/* Inversión total en stock */}
                     {puedeVerCostos && (
-                      <TableCell className="py-2.5 text-right font-mono font-semibold tabular-nums text-foreground">
-                        S/ {prod.valorizadoCosto.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                      <TableCell className="py-2.5 text-right font-mono font-semibold tabular-nums text-foreground whitespace-nowrap">
+                        {formatCurrency(prod.valorizadoCosto)}
                       </TableCell>
                     )}
 
