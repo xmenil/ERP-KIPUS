@@ -53,14 +53,14 @@ export const CierreResultadoModal: React.FC<CierreResultadoModalProps> = ({
       <DialogContent className="max-w-md p-0 overflow-hidden">
         {/* Cabecera */}
         <DialogHeader className="p-6 pb-4 border-b border-border/60 bg-muted/20 text-center">
-          <div className="mx-auto w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 mb-2 shadow-sm">
-            <Receipt className="h-7 w-7 stroke-[2]" />
+          <div className="mx-auto w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 mb-2 shadow-xs">
+            <Receipt className="h-6 w-6 stroke-[2]" />
           </div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold mx-auto">
+          <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-medium mx-auto">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
-            CAJA CERRADA
+            Caja cerrada
           </div>
-          <DialogTitle className="text-xl font-bold pt-1 text-center">
+          <DialogTitle className="text-lg font-semibold pt-1 text-center">
             Comprobante de Cierre de Turno
           </DialogTitle>
           <DialogDescription className="text-xs text-center">
@@ -106,40 +106,40 @@ export const CierreResultadoModal: React.FC<CierreResultadoModalProps> = ({
             </div>
             <div className="flex justify-between items-center py-0.5 text-emerald-700">
               <span className="font-medium">+ Ventas en efectivo:</span>
-              <span className="font-bold tabular-nums">
+              <span className="font-semibold tabular-nums">
                 + {formatCurrency(cierre.ventasEfectivo)}
               </span>
             </div>
             <div className="flex justify-between items-center py-0.5 text-emerald-700">
               <span className="font-medium">+ Otros ingresos:</span>
-              <span className="font-bold tabular-nums">
+              <span className="font-semibold tabular-nums">
                 + {formatCurrency(cierre.otrosIngresos)}
               </span>
             </div>
             <div className="flex justify-between items-center py-0.5 text-rose-600 border-b border-border pb-2">
               <span className="font-medium">- Egresos y retiros:</span>
-              <span className="font-bold tabular-nums">
+              <span className="font-semibold tabular-nums">
                 - {formatCurrency(cierre.egresos)}
               </span>
             </div>
 
-            <div className="flex justify-between items-center pt-1 font-semibold text-foreground">
+            <div className="flex justify-between items-center pt-1 font-medium text-foreground">
               <span>Saldo esperado en sistema:</span>
-              <span className="tabular-nums">{formatCurrency(cierre.saldoEsperado)}</span>
+              <span className="tabular-nums font-semibold">{formatCurrency(cierre.saldoEsperado)}</span>
             </div>
 
-            <div className="flex justify-between items-center font-bold text-sm bg-muted/40 p-2 rounded-lg">
+            <div className="flex justify-between items-center font-medium text-xs bg-muted/40 p-2.5 rounded-lg">
               <span className="text-foreground">Efectivo final entregado:</span>
-              <span className="text-primary tabular-nums">
+              <span className="text-primary tabular-nums font-semibold text-sm">
                 {formatCurrency(cierre.saldoContado)}
               </span>
             </div>
 
             {/* Diferencia */}
-            <div className="flex justify-between items-center pt-1 text-xs font-semibold">
+            <div className="flex justify-between items-center pt-1 text-xs font-medium">
               <span className="text-muted-foreground">Diferencia registrada:</span>
               <span
-                className={`tabular-nums ${
+                className={`tabular-nums font-semibold ${
                   estaCuadrada ? 'text-emerald-700' : 'text-amber-700'
                 }`}
               >
@@ -149,7 +149,7 @@ export const CierreResultadoModal: React.FC<CierreResultadoModalProps> = ({
 
             {cierre.motivoDiferencia && (
               <div className="mt-2 p-2 bg-amber-50 rounded border border-amber-200 text-[11px] text-amber-900">
-                <strong>Motivo diferencia:</strong> {cierre.motivoDiferencia}
+                <span className="font-medium">Motivo diferencia:</span> {cierre.motivoDiferencia}
               </div>
             )}
           </div>
@@ -162,7 +162,7 @@ export const CierreResultadoModal: React.FC<CierreResultadoModalProps> = ({
             variant="outline"
             size="sm"
             onClick={handleImprimir}
-            className="w-full sm:w-auto text-xs gap-1.5"
+            className="w-full sm:w-auto text-xs font-medium h-9 gap-1.5"
           >
             <Printer className="h-3.5 w-3.5" />
             Imprimir ticket
@@ -174,7 +174,7 @@ export const CierreResultadoModal: React.FC<CierreResultadoModalProps> = ({
               variant="outline"
               size="sm"
               onClick={() => onOpenChange(false)}
-              className="w-full sm:w-auto text-xs"
+              className="w-full sm:w-auto text-xs font-medium h-9"
             >
               Volver
             </Button>
@@ -182,7 +182,7 @@ export const CierreResultadoModal: React.FC<CierreResultadoModalProps> = ({
               type="button"
               size="sm"
               onClick={handleNuevaApertura}
-              className="w-full sm:w-auto text-xs font-semibold gap-1.5"
+              className="w-full sm:w-auto text-xs font-medium h-9 gap-1.5"
             >
               <Sparkles className="h-3.5 w-3.5" />
               Nueva apertura

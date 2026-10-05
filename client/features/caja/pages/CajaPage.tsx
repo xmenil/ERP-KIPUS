@@ -222,12 +222,12 @@ export const CajaPage: React.FC = () => {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border/80 pb-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-black tracking-tight text-foreground">
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
               Módulo de Caja
             </h1>
             {/* Estado Semántico (Regla 6) */}
             <span
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
                 cajaEstaAbierta
                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                   : 'bg-rose-50 text-rose-700 border border-rose-200'
@@ -238,7 +238,7 @@ export const CajaPage: React.FC = () => {
                   cajaEstaAbierta ? 'bg-emerald-600 animate-pulse' : 'bg-rose-600'
                 }`}
               />
-              {cajaEstaAbierta ? '🟢 Caja abierta' : '🔴 Caja cerrada'}
+              {cajaEstaAbierta ? 'Caja abierta' : 'Caja cerrada'}
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -250,7 +250,7 @@ export const CajaPage: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2">
           {/* Selector de Complejidad Progresiva (Regla 35) */}
           <div className="flex items-center gap-1 p-1 bg-muted/60 rounded-lg border border-border/60">
-            <span className="text-[11px] font-bold text-muted-foreground px-2 hidden sm:inline">
+            <span className="text-[11px] font-medium text-muted-foreground px-2 hidden sm:inline">
               Modo:
             </span>
             {(
@@ -269,10 +269,10 @@ export const CajaPage: React.FC = () => {
                     setActiveTab('MI_CAJA');
                   }
                 }}
-                className={`px-2.5 py-1 rounded text-xs font-semibold transition-all ${
+                className={`px-2.5 py-1 rounded text-xs transition-all ${
                   nivel === mod.id
-                    ? 'bg-card text-foreground shadow-xs border border-border font-bold'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-card text-foreground shadow-xs border border-border font-medium'
+                    : 'text-muted-foreground hover:text-foreground font-normal'
                 }`}
               >
                 {mod.label}
@@ -317,16 +317,16 @@ export const CajaPage: React.FC = () => {
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id as TabCaja)}
-              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold transition-all border-b-2 whitespace-nowrap ${
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium transition-all border-b-2 whitespace-nowrap ${
                 esActivo
-                  ? 'border-primary text-primary font-bold bg-primary/5 rounded-t-lg'
+                  ? 'border-primary text-primary font-semibold bg-primary/5 rounded-t-lg'
                   : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-t-lg'
               }`}
             >
               <Icon className="h-4 w-4" />
               <span>{tab.label}</span>
               {tab.id === 'MOVIMIENTOS' && (
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-muted font-bold">
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-muted font-medium">
                   {movimientos.length}
                 </span>
               )}
@@ -376,7 +376,7 @@ export const CajaPage: React.FC = () => {
               <Calculator className="h-7 w-7" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-lg font-bold text-foreground">
+              <h3 className="text-base font-semibold text-foreground">
                 Conteo y Arqueo de Caja
               </h3>
               <p className="text-xs text-muted-foreground">
@@ -386,7 +386,7 @@ export const CajaPage: React.FC = () => {
             <div className="pt-2">
               <Button
                 onClick={() => setModalArqueoOpen(true)}
-                className="font-semibold text-xs h-10 px-6 gap-2"
+                className="font-medium text-xs h-9 px-5 gap-2"
                 disabled={!cajaEstaAbierta}
               >
                 <Calculator className="h-4 w-4" />

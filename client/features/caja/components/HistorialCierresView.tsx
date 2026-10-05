@@ -39,7 +39,7 @@ export const HistorialCierresView: React.FC<HistorialCierresViewProps> = ({
       <Card className="border border-border/80 shadow-sm bg-card overflow-hidden">
         <CardHeader className="p-4 border-b border-border/60 bg-muted/20 flex flex-row items-center justify-between">
           <div className="space-y-0.5">
-            <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+            <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
               <History className="h-4 w-4 text-primary" />
               Historial de cierres de turno
             </CardTitle>
@@ -47,7 +47,7 @@ export const HistorialCierresView: React.FC<HistorialCierresViewProps> = ({
               Registro histórico de liquidaciones de caja y balance de entrega de fondos.
             </p>
           </div>
-          <span className="text-xs font-semibold text-muted-foreground">
+          <span className="text-xs font-medium text-muted-foreground">
             {cierres.length} cierres registrados
           </span>
         </CardHeader>
@@ -100,7 +100,7 @@ export const HistorialCierresView: React.FC<HistorialCierresViewProps> = ({
 
                         {/* Caja */}
                         <TableCell>
-                          <div className="font-semibold text-foreground">
+                          <div className="font-medium text-foreground">
                             {cie.cajaNombre}
                           </div>
                           <span className="text-[10px] text-muted-foreground block">
@@ -119,14 +119,14 @@ export const HistorialCierresView: React.FC<HistorialCierresViewProps> = ({
                         </TableCell>
 
                         {/* Saldo Final */}
-                        <TableCell className="text-right font-bold tabular-nums text-foreground">
+                        <TableCell className="text-right font-semibold tabular-nums text-foreground">
                           {formatCurrency(cie.saldoContado)}
                         </TableCell>
 
                         {/* Diferencia */}
                         <TableCell className="text-right">
                           <span
-                            className={`font-bold tabular-nums ${
+                            className={`font-semibold tabular-nums ${
                               estaCuadrada
                                 ? 'text-emerald-700'
                                 : 'text-amber-700'
@@ -139,7 +139,7 @@ export const HistorialCierresView: React.FC<HistorialCierresViewProps> = ({
                         {/* Estado con Texto e Icono (Regla 6 y 21) */}
                         <TableCell className="text-center">
                           <span
-                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium ${
                               estaCuadrada
                                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                 : 'bg-amber-50 text-amber-800 border border-amber-200'
@@ -150,7 +150,7 @@ export const HistorialCierresView: React.FC<HistorialCierresViewProps> = ({
                             ) : (
                               <AlertTriangle className="h-3 w-3 text-amber-600" />
                             )}
-                            {estaCuadrada ? '🟢 Cuadrada' : '⚠ Diferencia'}
+                            {estaCuadrada ? 'Cuadrada' : 'Diferencia'}
                           </span>
                         </TableCell>
 
@@ -160,7 +160,7 @@ export const HistorialCierresView: React.FC<HistorialCierresViewProps> = ({
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="h-7 px-2 text-xs font-semibold gap-1 text-primary hover:text-primary"
+                            className="h-7 px-2 text-xs font-medium gap-1 text-primary hover:text-primary"
                             onClick={() => setCierreSeleccionado(cie)}
                           >
                             <Eye className="h-3.5 w-3.5" />

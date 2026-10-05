@@ -98,11 +98,11 @@ export const CierreCajaDialog: React.FC<CierreCajaDialogProps> = ({
       <DialogContent className="max-w-md p-0 overflow-hidden">
         {/* Cabecera */}
         <DialogHeader className="p-6 pb-4 border-b border-border/60 bg-muted/20">
-          <div className="flex items-center gap-2 text-xs font-semibold text-rose-700">
-            <LockKeyhole className="h-4 w-4" />
+          <div className="flex items-center gap-2 text-xs font-medium text-rose-700">
+            <LockKeyhole className="h-3.5 w-3.5" />
             <span>Finalización de turno operativo</span>
           </div>
-          <DialogTitle className="text-xl font-bold pt-1">
+          <DialogTitle className="text-lg font-semibold pt-1">
             Cierre de turno de caja
           </DialogTitle>
           <DialogDescription className="text-xs">
@@ -117,32 +117,32 @@ export const CierreCajaDialog: React.FC<CierreCajaDialogProps> = ({
             <div className="p-4 rounded-xl bg-muted/40 border border-border space-y-2 text-xs">
               <div className="flex justify-between items-center py-1">
                 <span className="text-muted-foreground">Saldo inicial (Sencillo):</span>
-                <span className="font-semibold text-foreground tabular-nums">
+                <span className="font-medium text-foreground tabular-nums">
                   {formatCurrency(estadoCaja.saldoInicial)}
                 </span>
               </div>
               <div className="flex justify-between items-center py-1">
                 <span className="text-emerald-700 font-medium">+ Ventas en efectivo:</span>
-                <span className="font-bold text-emerald-700 tabular-nums">
+                <span className="font-semibold text-emerald-700 tabular-nums">
                   + {formatCurrency(estadoCaja.ventasEfectivo)}
                 </span>
               </div>
               <div className="flex justify-between items-center py-1">
                 <span className="text-emerald-700 font-medium">+ Otros ingresos de efectivo:</span>
-                <span className="font-bold text-emerald-700 tabular-nums">
+                <span className="font-semibold text-emerald-700 tabular-nums">
                   + {formatCurrency(estadoCaja.otrosIngresosEfectivo)}
                 </span>
               </div>
               <div className="flex justify-between items-center py-1 border-b border-border pb-2">
                 <span className="text-rose-600 font-medium">- Egresos y retiros:</span>
-                <span className="font-bold text-rose-600 tabular-nums">
+                <span className="font-semibold text-rose-600 tabular-nums">
                   - {formatCurrency(estadoCaja.egresosEfectivo)}
                 </span>
               </div>
 
               {/* Saldo Esperado */}
-              <div className="flex justify-between items-center pt-1 font-bold text-sm">
-                <span className="text-foreground">SALDO ESPERADO:</span>
+              <div className="flex justify-between items-center pt-1 font-semibold text-xs">
+                <span className="text-foreground">Saldo esperado:</span>
                 <span className="text-foreground tabular-nums">
                   {formatCurrency(saldoEsperado)}
                 </span>
@@ -151,14 +151,14 @@ export const CierreCajaDialog: React.FC<CierreCajaDialogProps> = ({
 
             {/* Saldo Contado Input */}
             <div className="space-y-1.5 p-3.5 rounded-xl bg-card border border-border">
-              <Label className="text-xs font-bold text-foreground flex items-center justify-between">
+              <Label className="text-xs font-medium text-foreground flex items-center justify-between">
                 <span>Efectivo contado final en gaveta</span>
                 <span className="text-[11px] font-normal text-muted-foreground">
                   (Billetes + monedas)
                 </span>
               </Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground">
                   S/
                 </span>
                 <Input
@@ -166,7 +166,7 @@ export const CierreCajaDialog: React.FC<CierreCajaDialogProps> = ({
                   step="0.1"
                   value={saldoContado}
                   onChange={(e) => setSaldoContado(Number(e.target.value))}
-                  className="h-10 pl-9 text-lg font-bold tabular-nums"
+                  className="h-9 pl-8 text-base font-semibold tabular-nums"
                   required
                 />
               </div>
@@ -175,9 +175,9 @@ export const CierreCajaDialog: React.FC<CierreCajaDialogProps> = ({
             {/* Estado de Cuadre / Diferencia */}
             {estaCuadrada ? (
               <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-3 text-emerald-900 text-xs">
-                <CheckCircle2 className="h-6 w-6 text-emerald-600 shrink-0" />
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
                 <div>
-                  <span className="font-bold block">🟢 Caja cuadrada</span>
+                  <span className="font-medium block">Caja cuadrada</span>
                   <span className="text-[11px] text-emerald-700">
                     El efectivo físico coincide exactamente con el saldo esperado (Diferencia S/ 0.00).
                   </span>
@@ -186,9 +186,9 @@ export const CierreCajaDialog: React.FC<CierreCajaDialogProps> = ({
             ) : (
               <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 space-y-2.5 text-xs text-amber-950">
                 <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
-                  <span className="font-bold">
-                    ⚠ Diferencia detectada: {formatCurrency(diferencia)}
+                  <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                  <span className="font-medium">
+                    Diferencia detectada: {formatCurrency(diferencia)}
                   </span>
                 </div>
                 <p className="text-[11px] text-amber-800">
@@ -269,6 +269,7 @@ export const CierreCajaDialog: React.FC<CierreCajaDialogProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => onOpenChange(false)}
+                className="h-9 text-xs font-medium"
               >
                 Volver
               </Button>
@@ -276,7 +277,7 @@ export const CierreCajaDialog: React.FC<CierreCajaDialogProps> = ({
                 type="button"
                 size="sm"
                 onClick={handleProcederPaso}
-                className={`font-semibold ${
+                className={`h-9 text-xs font-medium ${
                   estaCuadrada
                     ? 'bg-primary hover:bg-primary/90'
                     : 'bg-amber-600 hover:bg-amber-700 text-white'
@@ -293,6 +294,7 @@ export const CierreCajaDialog: React.FC<CierreCajaDialogProps> = ({
                 size="sm"
                 onClick={() => setPasoConfirmacion(false)}
                 disabled={isSubmitting}
+                className="h-9 text-xs font-medium"
               >
                 Cancelar
               </Button>
@@ -301,7 +303,7 @@ export const CierreCajaDialog: React.FC<CierreCajaDialogProps> = ({
                 size="sm"
                 onClick={handleEjecutarCierre}
                 disabled={isSubmitting}
-                className="bg-rose-600 hover:bg-rose-700 text-white font-semibold"
+                className="bg-rose-600 hover:bg-rose-700 text-white h-9 text-xs font-medium"
               >
                 {isSubmitting ? 'Cerrando turno...' : 'Confirmar cierre definitivo'}
               </Button>

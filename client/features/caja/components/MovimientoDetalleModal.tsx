@@ -53,7 +53,7 @@ export const MovimientoDetalleModal: React.FC<MovimientoDetalleModalProps> = ({
         <DialogHeader className="p-6 pb-4 border-b border-border/60 bg-muted/20">
           <div className="flex items-center justify-between">
             <span
-              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
                 esIngreso
                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                   : 'bg-rose-50 text-rose-700 border border-rose-200'
@@ -71,7 +71,7 @@ export const MovimientoDetalleModal: React.FC<MovimientoDetalleModalProps> = ({
             </span>
           </div>
 
-          <DialogTitle className="text-xl font-bold pt-2">
+          <DialogTitle className="text-lg font-semibold pt-1">
             Detalle de Movimiento
           </DialogTitle>
           <DialogDescription className="text-xs">
@@ -82,11 +82,11 @@ export const MovimientoDetalleModal: React.FC<MovimientoDetalleModalProps> = ({
         {/* Monto Destacado */}
         <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
           <div className="p-4 rounded-xl bg-card border border-border text-center space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="text-xs font-medium text-muted-foreground">
               Monto del movimiento
             </span>
             <div
-              className={`text-3xl font-extrabold tabular-nums ${
+              className={`text-2xl font-semibold tabular-nums ${
                 esIngreso ? 'text-emerald-700' : 'text-rose-600'
               }`}
             >
@@ -104,7 +104,7 @@ export const MovimientoDetalleModal: React.FC<MovimientoDetalleModalProps> = ({
               <span className="text-muted-foreground flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5" /> Fecha y Hora:
               </span>
-              <span className="font-semibold text-foreground">
+              <span className="font-medium text-foreground">
                 {movimiento.fecha} a las {movimiento.hora}
               </span>
             </div>
@@ -113,14 +113,14 @@ export const MovimientoDetalleModal: React.FC<MovimientoDetalleModalProps> = ({
               <span className="text-muted-foreground flex items-center gap-1.5">
                 <User className="h-3.5 w-3.5" /> Registrado por:
               </span>
-              <span className="font-semibold text-foreground">{movimiento.usuario}</span>
+              <span className="font-medium text-foreground">{movimiento.usuario}</span>
             </div>
 
             <div className="flex justify-between items-center py-1 border-b border-border/50">
               <span className="text-muted-foreground flex items-center gap-1.5">
                 <Store className="h-3.5 w-3.5" /> Sucursal:
               </span>
-              <span className="font-semibold text-foreground">
+              <span className="font-medium text-foreground">
                 {movimiento.sucursal || 'Sede Central'}
               </span>
             </div>
@@ -129,7 +129,7 @@ export const MovimientoDetalleModal: React.FC<MovimientoDetalleModalProps> = ({
               <span className="text-muted-foreground flex items-center gap-1.5">
                 <Tag className="h-3.5 w-3.5" /> Origen:
               </span>
-              <span className="font-semibold text-foreground">
+              <span className="font-medium text-foreground">
                 {movimiento.origenTipo || 'OPERACIÓN MANUAL'}
               </span>
             </div>
@@ -137,7 +137,7 @@ export const MovimientoDetalleModal: React.FC<MovimientoDetalleModalProps> = ({
             {movimiento.categoria && (
               <div className="flex justify-between items-center py-1 border-b border-border/50">
                 <span className="text-muted-foreground">Categoría:</span>
-                <span className="font-semibold text-foreground">
+                <span className="font-medium text-foreground">
                   {movimiento.categoria}
                 </span>
               </div>
@@ -145,7 +145,7 @@ export const MovimientoDetalleModal: React.FC<MovimientoDetalleModalProps> = ({
 
             {movimiento.observaciones && (
               <div className="pt-1 text-[11px] text-muted-foreground">
-                <span className="font-semibold text-foreground block">Observación:</span>
+                <span className="font-medium text-foreground block">Observación:</span>
                 <p className="mt-0.5 italic">{movimiento.observaciones}</p>
               </div>
             )}
@@ -155,7 +155,7 @@ export const MovimientoDetalleModal: React.FC<MovimientoDetalleModalProps> = ({
           {movimiento.origenTipo === 'VENTA' && (
             <div className="p-3.5 rounded-xl bg-primary/5 border border-primary/20 flex items-center justify-between">
               <div className="space-y-0.5">
-                <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                   <FileCheck className="h-4 w-4 text-primary" />
                   Venta asociada: {movimiento.comprobanteRef || 'Comprobante'}
                 </span>
@@ -167,10 +167,10 @@ export const MovimientoDetalleModal: React.FC<MovimientoDetalleModalProps> = ({
                 type="button"
                 size="sm"
                 variant="outline"
-                className="h-8 text-xs font-semibold gap-1 text-primary hover:text-primary shrink-0"
+                className="h-8 text-xs font-medium gap-1 text-primary hover:text-primary shrink-0"
                 onClick={handleIrAVenta}
               >
-                <span>VER VENTA</span>
+                <span>Ver venta</span>
                 <ExternalLink className="h-3 w-3" />
               </Button>
             </div>

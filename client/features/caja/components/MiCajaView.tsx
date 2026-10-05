@@ -47,13 +47,13 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-card border border-border/80 shadow-xs">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="text-base font-bold text-foreground">
+            <span className="text-base font-semibold text-foreground">
               {estado.nombre}
             </span>
             {/* Estado Semántico con Icono y Texto (Regla 6) */}
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              <span className="h-2 w-2 rounded-full bg-emerald-600 animate-pulse" />
-              🟢 Caja abierta
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
+              Caja abierta
             </span>
           </div>
 
@@ -78,24 +78,24 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
           variant="outline"
           size="sm"
           onClick={onOpenCierre}
-          className="text-xs font-semibold border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800 gap-1.5 shrink-0"
+          className="h-8 text-xs font-medium border-border text-muted-foreground hover:text-foreground hover:bg-muted gap-1.5 shrink-0"
         >
           <LockKeyhole className="h-3.5 w-3.5" />
-          Cerrar turno de caja
+          <span>Cerrar turno de caja</span>
         </Button>
       </div>
 
-      {/* 2. TARJETA HERO: SALDO ACTUAL CON LA MÁXIMA JERARQUÍA VISUAL (Regla 5) */}
-      <Card className="border border-border shadow-sm bg-gradient-to-b from-card to-muted/20 overflow-hidden">
-        <CardContent className="p-6 sm:p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            {/* Saldo Gigante */}
+      {/* 2. TARJETA HERO: SALDO ACTUAL CON JERARQUÍA EQUILIBRADA Y ELEGANTE */}
+      <Card className="border border-border/80 shadow-xs bg-card overflow-hidden">
+        <CardContent className="p-5 sm:p-6">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+            {/* Saldo más delgado y proporcionado */}
             <div className="space-y-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <Coins className="h-4 w-4 text-primary" />
+              <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                <Coins className="h-3.5 w-3.5 text-primary" />
                 Saldo disponible en gaveta (Efectivo)
               </span>
-              <div className="text-4xl sm:text-5xl font-black text-foreground tracking-tight tabular-nums">
+              <div className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight tabular-nums">
                 {formatCurrency(estado.saldoEfectivoEsperado)}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -103,64 +103,69 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
               </p>
             </div>
 
-            {/* BOTONES DE ACCIÓN PRINCIPALES (Reglas 5 y 31) */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 w-full lg:w-auto">
-              {/* + INGRESO */}
+            {/* BOTONES DE ACCIÓN DISCRETOS Y ERGONÓMICOS */}
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full lg:w-auto">
+              {/* Ingreso */}
               <Button
                 type="button"
+                size="sm"
                 onClick={onOpenIngreso}
-                className="h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 shadow-xs"
+                className="h-9 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs gap-1.5 shadow-xs rounded-md"
               >
-                <ArrowDownCircle className="h-4 w-4 stroke-[2.5]" />
-                + INGRESO
+                <ArrowDownCircle className="h-3.5 w-3.5" />
+                <span>Ingreso</span>
               </Button>
 
-              {/* + EGRESO */}
+              {/* Egreso */}
               <Button
                 type="button"
+                size="sm"
                 onClick={onOpenEgreso}
                 variant="outline"
-                className="h-12 border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800 font-bold text-xs gap-1.5 shadow-xs"
+                className="h-9 px-3.5 border-border hover:bg-muted text-foreground font-medium text-xs gap-1.5 rounded-md"
               >
-                <ArrowUpCircle className="h-4 w-4 stroke-[2.5]" />
-                + EGRESO
+                <ArrowUpCircle className="h-3.5 w-3.5 text-rose-600" />
+                <span>Egreso</span>
               </Button>
 
-              {/* CONTAR DINERO / ARQUEAR */}
+              {/* Contar dinero / Arquear */}
               <Button
                 type="button"
+                size="sm"
                 onClick={onOpenArqueo}
-                variant="secondary"
-                className="h-12 font-bold text-xs gap-1.5 shadow-xs"
+                variant="outline"
+                className="h-9 px-3.5 border-border hover:bg-muted text-foreground font-medium text-xs gap-1.5 rounded-md"
               >
-                <Calculator className="h-4 w-4 stroke-[2]" />
-                CONTAR DINERO
+                <Calculator className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>Contar dinero</span>
               </Button>
 
-              {/* CERRAR CAJA */}
+              {/* Cerrar caja */}
               <Button
                 type="button"
+                size="sm"
                 onClick={onOpenCierre}
-                className="h-12 bg-foreground hover:bg-foreground/90 text-background font-bold text-xs gap-1.5 shadow-xs"
+                variant="outline"
+                className="h-9 px-3.5 border-border hover:border-destructive/30 hover:bg-danger-soft hover:text-danger-text text-muted-foreground font-medium text-xs gap-1.5 rounded-md"
               >
-                <LockKeyhole className="h-4 w-4 stroke-[2]" />
-                CERRAR CAJA
+                <LockKeyhole className="h-3.5 w-3.5" />
+                <span>Cerrar caja</span>
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* 3. Métricas Operativas de Flujo (Regla 5) */}
+      {/* 3. Métricas Operativas de Flujo */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Ventas en Efectivo */}
         <Card className="border border-border/80 shadow-xs bg-card">
           <CardContent className="p-4 space-y-1">
-            <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+            <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
               <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
               Ventas en efectivo
             </span>
-            <div className="text-2xl font-bold text-emerald-700 tabular-nums">
+            <div className="text-xl font-semibold text-emerald-700 tabular-nums">
               + {formatCurrency(estado.ventasEfectivo)}
             </div>
             <span className="text-[11px] text-muted-foreground">
@@ -172,11 +177,11 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
         {/* Otros Ingresos */}
         <Card className="border border-border/80 shadow-xs bg-card">
           <CardContent className="p-4 space-y-1">
-            <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+            <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
               <ArrowDownCircle className="h-3.5 w-3.5 text-primary" />
               Otros ingresos
             </span>
-            <div className="text-2xl font-bold text-foreground tabular-nums">
+            <div className="text-xl font-semibold text-foreground tabular-nums">
               + {formatCurrency(estado.otrosIngresosEfectivo)}
             </div>
             <span className="text-[11px] text-muted-foreground">
@@ -188,11 +193,11 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
         {/* Egresos */}
         <Card className="border border-border/80 shadow-xs bg-card">
           <CardContent className="p-4 space-y-1">
-            <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+            <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
               <ArrowUpCircle className="h-3.5 w-3.5 text-rose-600" />
               Egresos / Gastos
             </span>
-            <div className="text-2xl font-bold text-rose-600 tabular-nums">
+            <div className="text-xl font-semibold text-rose-600 tabular-nums">
               - {formatCurrency(estado.egresosEfectivo)}
             </div>
             <span className="text-[11px] text-muted-foreground">
@@ -202,12 +207,12 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
         </Card>
       </div>
 
-      {/* 4. Distribución por Métodos de Pago (Regla 5 y 14) */}
+      {/* 4. Distribución por Métodos de Pago */}
       <Card className="border border-border/80 shadow-xs bg-card">
         <CardContent className="p-5 space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <h3 className="text-sm font-bold text-foreground">
+              <h3 className="text-sm font-semibold text-foreground">
                 Cobros por métodos de pago hoy
               </h3>
               <p className="text-xs text-muted-foreground">
@@ -216,7 +221,7 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
             </div>
             <div className="text-right">
               <span className="text-[11px] text-muted-foreground block">Total General Ventas:</span>
-              <span className="text-sm font-bold text-primary tabular-nums">
+              <span className="text-sm font-semibold text-primary tabular-nums">
                 {formatCurrency(estado.totalVentasGeneral)}
               </span>
             </div>
@@ -224,51 +229,51 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
             {/* Efectivo */}
-            <div className="p-3 rounded-xl bg-amber-50/50 border border-amber-200/60 space-y-1">
-              <span className="text-[11px] font-semibold text-amber-900 flex items-center gap-1.5">
-                <Coins className="h-3.5 w-3.5 text-amber-700" />
+            <div className="p-3 rounded-md bg-muted/30 border border-border space-y-1">
+              <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                <Coins className="h-3.5 w-3.5 text-muted-foreground" />
                 Efectivo
               </span>
-              <div className="text-lg font-bold text-amber-950 tabular-nums">
+              <div className="text-base font-semibold text-foreground tabular-nums">
                 {formatCurrency(estado.ventasEfectivo)}
               </div>
-              <span className="text-[10px] text-amber-800/80">En gaveta</span>
+              <span className="text-[11px] text-muted-foreground">En gaveta</span>
             </div>
 
             {/* Yape */}
-            <div className="p-3 rounded-xl bg-purple-50/50 border border-purple-200/60 space-y-1">
-              <span className="text-[11px] font-semibold text-purple-900 flex items-center gap-1.5">
-                <Smartphone className="h-3.5 w-3.5 text-purple-700" />
+            <div className="p-3 rounded-md bg-muted/30 border border-border space-y-1">
+              <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                <Smartphone className="h-3.5 w-3.5 text-muted-foreground" />
                 Yape
               </span>
-              <div className="text-lg font-bold text-purple-950 tabular-nums">
+              <div className="text-base font-semibold text-foreground tabular-nums">
                 {formatCurrency(estado.ventasDigitales.yape)}
               </div>
-              <span className="text-[10px] text-purple-800/80">Billetera BCP</span>
+              <span className="text-[11px] text-muted-foreground">Billetera BCP</span>
             </div>
 
             {/* Plin */}
-            <div className="p-3 rounded-xl bg-sky-50/50 border border-sky-200/60 space-y-1">
-              <span className="text-[11px] font-semibold text-sky-900 flex items-center gap-1.5">
-                <Smartphone className="h-3.5 w-3.5 text-sky-700" />
+            <div className="p-3 rounded-md bg-muted/30 border border-border space-y-1">
+              <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                <Smartphone className="h-3.5 w-3.5 text-muted-foreground" />
                 Plin
               </span>
-              <div className="text-lg font-bold text-sky-950 tabular-nums">
+              <div className="text-base font-semibold text-foreground tabular-nums">
                 {formatCurrency(estado.ventasDigitales.plin)}
               </div>
-              <span className="text-[10px] text-sky-800/80">Interbank / BBVA</span>
+              <span className="text-[11px] text-muted-foreground">Interbank / BBVA</span>
             </div>
 
             {/* Tarjeta POS */}
-            <div className="p-3 rounded-xl bg-blue-50/50 border border-blue-200/60 space-y-1">
-              <span className="text-[11px] font-semibold text-blue-900 flex items-center gap-1.5">
-                <CreditCard className="h-3.5 w-3.5 text-blue-700" />
+            <div className="p-3 rounded-md bg-muted/30 border border-border space-y-1">
+              <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
                 Tarjeta POS
               </span>
-              <div className="text-lg font-bold text-blue-950 tabular-nums">
+              <div className="text-base font-semibold text-foreground tabular-nums">
                 {formatCurrency(estado.ventasDigitales.tarjeta)}
               </div>
-              <span className="text-[10px] text-blue-800/80">Izipay / Niubiz</span>
+              <span className="text-[11px] text-muted-foreground">Izipay / Niubiz</span>
             </div>
           </div>
         </CardContent>
@@ -279,7 +284,7 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
         <CardContent className="p-5 space-y-3">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <h3 className="text-sm font-bold text-foreground">
+              <h3 className="text-sm font-semibold text-foreground">
                 Últimos movimientos del turno
               </h3>
               <p className="text-xs text-muted-foreground">
@@ -291,7 +296,7 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
               variant="ghost"
               size="sm"
               onClick={onVerTodosMovimientos}
-              className="text-xs font-semibold text-primary hover:text-primary gap-1"
+              className="text-xs font-medium text-primary hover:text-primary gap-1"
             >
               <span>Ver todos los movimientos</span>
               <ArrowRight className="h-3.5 w-3.5" />
@@ -321,7 +326,7 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
                       )}
                     </span>
                     <div>
-                      <div className="font-semibold text-foreground line-clamp-1">
+                      <div className="font-medium text-foreground line-clamp-1">
                         {mov.concepto}
                       </div>
                       <div className="text-[10px] text-muted-foreground flex items-center gap-2">
@@ -342,7 +347,7 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
 
                   <div className="text-right">
                     <span
-                      className={`font-bold tabular-nums text-xs ${
+                      className={`font-semibold tabular-nums text-xs ${
                         esIngreso ? 'text-emerald-700' : 'text-rose-600'
                       }`}
                     >

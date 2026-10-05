@@ -86,10 +86,10 @@ export const MovimientosCajaView: React.FC<MovimientosCajaViewProps> = ({
                   key={tipo}
                   type="button"
                   onClick={() => setFiltroTipo(tipo)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap ${
+                  className={`px-3 py-1.5 rounded-md text-xs transition-all whitespace-nowrap ${
                     filtroTipo === tipo
-                      ? 'bg-card text-foreground shadow-xs border border-border'
-                      : 'text-muted-foreground hover:text-foreground'
+                      ? 'bg-card text-foreground shadow-xs border border-border font-medium'
+                      : 'text-muted-foreground hover:text-foreground font-normal'
                   }`}
                 >
                   {tipo === 'TODOS'
@@ -121,7 +121,7 @@ export const MovimientosCajaView: React.FC<MovimientosCajaViewProps> = ({
       <Card className="border border-border/80 shadow-sm bg-card overflow-hidden">
         <CardHeader className="p-4 border-b border-border/60 bg-muted/20 flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-sm font-bold text-foreground">
+            <CardTitle className="text-sm font-semibold text-foreground">
               Movimientos del turno • {cajaNombre}
             </CardTitle>
             <span className="text-[11px] text-muted-foreground">
@@ -171,7 +171,7 @@ export const MovimientosCajaView: React.FC<MovimientosCajaViewProps> = ({
 
                         {/* Concepto */}
                         <TableCell>
-                          <div className="font-semibold text-foreground line-clamp-1">
+                          <div className="font-medium text-foreground line-clamp-1">
                             {mov.concepto}
                           </div>
                           {mov.comprobanteRef && (
@@ -184,7 +184,7 @@ export const MovimientosCajaView: React.FC<MovimientosCajaViewProps> = ({
                         {/* Tipo */}
                         <TableCell>
                           <span
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${
                               esIngreso
                                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                 : 'bg-rose-50 text-rose-700 border border-rose-200'
@@ -210,7 +210,7 @@ export const MovimientosCajaView: React.FC<MovimientosCajaViewProps> = ({
                         {/* Monto (+ S/ en verde, - S/ en rojo con tabular-nums) */}
                         <TableCell className="text-right">
                           <span
-                            className={`font-bold tabular-nums text-xs ${
+                            className={`font-semibold tabular-nums text-xs ${
                               esIngreso ? 'text-emerald-700' : 'text-rose-600'
                             }`}
                           >

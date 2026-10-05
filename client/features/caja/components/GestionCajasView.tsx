@@ -52,7 +52,7 @@ export const GestionCajasView: React.FC<GestionCajasViewProps> = ({
         <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Building className="h-4 w-4 text-primary" />
-            <span className="text-xs font-bold text-foreground">
+            <span className="text-xs font-medium text-foreground">
               Filtrar cajas por sucursal:
             </span>
           </div>
@@ -61,10 +61,10 @@ export const GestionCajasView: React.FC<GestionCajasViewProps> = ({
             <button
               type="button"
               onClick={() => setSucursalFiltro('TODAS')}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-md text-xs transition-all whitespace-nowrap ${
                 sucursalFiltro === 'TODAS'
-                  ? 'bg-card text-foreground shadow-xs border border-border'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-card text-foreground shadow-xs border border-border font-medium'
+                  : 'text-muted-foreground hover:text-foreground font-normal'
               }`}
             >
               Todas las sedes ({cajas.length})
@@ -74,10 +74,10 @@ export const GestionCajasView: React.FC<GestionCajasViewProps> = ({
                 key={suc}
                 type="button"
                 onClick={() => setSucursalFiltro(suc)}
-                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-md text-xs transition-all whitespace-nowrap ${
                   sucursalFiltro === suc
-                    ? 'bg-card text-foreground shadow-xs border border-border'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-card text-foreground shadow-xs border border-border font-medium'
+                    : 'text-muted-foreground hover:text-foreground font-normal'
                 }`}
               >
                 {suc}
@@ -91,10 +91,10 @@ export const GestionCajasView: React.FC<GestionCajasViewProps> = ({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Card className="border border-border/80 shadow-xs bg-card">
           <CardContent className="p-4 space-y-1">
-            <span className="text-[11px] font-semibold text-muted-foreground block">
+            <span className="text-xs font-medium text-muted-foreground block">
               Cajas abiertas
             </span>
-            <div className="text-2xl font-bold text-emerald-700 tabular-nums">
+            <div className="text-xl font-semibold text-emerald-700 tabular-nums">
               {abiertas} <span className="text-xs font-normal text-muted-foreground">de {totalCajas}</span>
             </div>
             <span className="text-[10px] text-muted-foreground block">
@@ -105,10 +105,10 @@ export const GestionCajasView: React.FC<GestionCajasViewProps> = ({
 
         <Card className="border border-border/80 shadow-xs bg-card">
           <CardContent className="p-4 space-y-1">
-            <span className="text-[11px] font-semibold text-muted-foreground block">
+            <span className="text-xs font-medium text-muted-foreground block">
               Efectivo en red
             </span>
-            <div className="text-2xl font-bold text-foreground tabular-nums">
+            <div className="text-xl font-semibold text-foreground tabular-nums">
               {formatCurrency(saldoTotalEfectivo)}
             </div>
             <span className="text-[10px] text-muted-foreground block">
@@ -119,10 +119,10 @@ export const GestionCajasView: React.FC<GestionCajasViewProps> = ({
 
         <Card className="border border-border/80 shadow-xs bg-card">
           <CardContent className="p-4 space-y-1">
-            <span className="text-[11px] font-semibold text-muted-foreground block">
+            <span className="text-xs font-medium text-muted-foreground block">
               Ventas del día (Red)
             </span>
-            <div className="text-2xl font-bold text-primary tabular-nums">
+            <div className="text-xl font-semibold text-primary tabular-nums">
               {formatCurrency(ventasTotalesDia)}
             </div>
             <span className="text-[10px] text-muted-foreground block">
@@ -133,10 +133,10 @@ export const GestionCajasView: React.FC<GestionCajasViewProps> = ({
 
         <Card className="border border-border/80 shadow-xs bg-card">
           <CardContent className="p-4 space-y-1">
-            <span className="text-[11px] font-semibold text-muted-foreground block">
+            <span className="text-xs font-medium text-muted-foreground block">
               Auditoría y control
             </span>
-            <div className="text-sm font-bold text-foreground pt-1 flex items-center gap-1.5 text-emerald-700">
+            <div className="text-xs font-medium text-foreground pt-1 flex items-center gap-1.5 text-emerald-700">
               <CheckCircle2 className="h-4 w-4" />
               Cajas sincronizadas
             </div>
@@ -163,7 +163,7 @@ export const GestionCajasView: React.FC<GestionCajasViewProps> = ({
                 {/* Cabecera de la tarjeta */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-0.5">
-                    <h4 className="text-sm font-bold text-foreground line-clamp-1">
+                    <h4 className="text-sm font-semibold text-foreground line-clamp-1">
                       {caja.nombre}
                     </h4>
                     <span className="text-[11px] text-muted-foreground flex items-center gap-1">
@@ -174,7 +174,7 @@ export const GestionCajasView: React.FC<GestionCajasViewProps> = ({
 
                   {/* Estado con Texto y Color (Regla 6) */}
                   <span
-                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold shrink-0 ${
+                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0 ${
                       caja.abierta
                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                         : 'bg-rose-50 text-rose-700 border border-rose-200'
@@ -185,7 +185,7 @@ export const GestionCajasView: React.FC<GestionCajasViewProps> = ({
                         caja.abierta ? 'bg-emerald-600' : 'bg-rose-600'
                       }`}
                     />
-                    {caja.abierta ? '🟢 Abierta' : '🔴 Cerrada'}
+                    {caja.abierta ? 'Abierta' : 'Cerrada'}
                   </span>
                 </div>
 
@@ -195,7 +195,7 @@ export const GestionCajasView: React.FC<GestionCajasViewProps> = ({
                     <span className="text-muted-foreground flex items-center gap-1">
                       <User className="h-3 w-3" /> Cajero:
                     </span>
-                    <span className="font-semibold text-foreground">
+                    <span className="font-medium text-foreground">
                       {caja.responsableActual}
                     </span>
                   </div>
@@ -204,7 +204,7 @@ export const GestionCajasView: React.FC<GestionCajasViewProps> = ({
                     <span className="text-muted-foreground flex items-center gap-1">
                       <Coins className="h-3 w-3" /> Saldo en gaveta:
                     </span>
-                    <span className="font-bold text-foreground tabular-nums">
+                    <span className="font-semibold text-foreground tabular-nums">
                       {formatCurrency(caja.saldoActualEfectivo)}
                     </span>
                   </div>
@@ -213,7 +213,7 @@ export const GestionCajasView: React.FC<GestionCajasViewProps> = ({
                     <span className="text-muted-foreground flex items-center gap-1">
                       <TrendingUp className="h-3 w-3" /> Ventas del turno:
                     </span>
-                    <span className="font-semibold text-primary tabular-nums">
+                    <span className="font-medium text-primary tabular-nums">
                       {formatCurrency(caja.ventasDia)}
                     </span>
                   </div>
@@ -232,7 +232,7 @@ export const GestionCajasView: React.FC<GestionCajasViewProps> = ({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="w-full text-xs font-semibold gap-1.5"
+                    className="w-full text-xs font-medium h-9 gap-1.5"
                     onClick={() => onSeleccionarCaja && onSeleccionarCaja(caja)}
                   >
                     <Eye className="h-3.5 w-3.5" />

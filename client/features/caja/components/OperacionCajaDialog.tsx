@@ -122,7 +122,7 @@ export const OperacionCajaDialog: React.FC<OperacionCajaDialogProps> = ({
               </span>
             )}
           </div>
-          <DialogTitle className="text-xl font-bold pt-1">
+          <DialogTitle className="text-lg font-semibold pt-1">
             {tipo === 'INGRESO' ? 'Registrar nuevo ingreso' : 'Registrar nuevo egreso'}
           </DialogTitle>
           <DialogDescription className="text-xs">
@@ -136,7 +136,7 @@ export const OperacionCajaDialog: React.FC<OperacionCajaDialogProps> = ({
           {/* Tipo y Método */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground">Tipo de operación</Label>
+              <Label className="text-xs font-medium text-foreground">Tipo de operación</Label>
               <Select value={tipo} onValueChange={(val: TipoOperacionCaja) => handleCambioTipo(val)}>
                 <SelectTrigger className="h-9 text-xs">
                   <SelectValue />
@@ -149,7 +149,7 @@ export const OperacionCajaDialog: React.FC<OperacionCajaDialogProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground">Método de pago</Label>
+              <Label className="text-xs font-medium text-foreground">Método de pago</Label>
               <Select value={metodo} onValueChange={(val: MetodoCaja) => setMetodo(val)}>
                 <SelectTrigger className="h-9 text-xs">
                   <SelectValue />
@@ -167,7 +167,7 @@ export const OperacionCajaDialog: React.FC<OperacionCajaDialogProps> = ({
 
           {/* Categoría Operativa */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-foreground">Categoría</Label>
+            <Label className="text-xs font-medium text-foreground">Categoría</Label>
             <Select value={categoria} onValueChange={setCategoria}>
               <SelectTrigger className="h-9 text-xs">
                 <SelectValue />
@@ -184,7 +184,7 @@ export const OperacionCajaDialog: React.FC<OperacionCajaDialogProps> = ({
 
           {/* Concepto / Motivo */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-foreground">
+            <Label className="text-xs font-medium text-foreground">
               Concepto / Motivo <span className="text-rose-500">*</span>
             </Label>
             <Input
@@ -203,14 +203,14 @@ export const OperacionCajaDialog: React.FC<OperacionCajaDialogProps> = ({
           {/* Monto con previsualización del saldo */}
           <div className="space-y-2 p-3.5 rounded-xl bg-muted/40 border border-border">
             <div className="flex justify-between items-center">
-              <Label className="text-xs font-bold text-foreground">Monto (S/)</Label>
+              <Label className="text-xs font-medium text-foreground">Monto (S/)</Label>
               <span className="text-[11px] text-muted-foreground">
-                Saldo actual: <strong className="tabular-nums">{formatCurrency(saldoActual)}</strong>
+                Saldo actual: <span className="tabular-nums font-medium text-foreground">{formatCurrency(saldoActual)}</span>
               </span>
             </div>
 
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground">
                 S/
               </span>
               <Input
@@ -220,14 +220,14 @@ export const OperacionCajaDialog: React.FC<OperacionCajaDialogProps> = ({
                 value={monto}
                 onChange={(e) => setMonto(Number(e.target.value))}
                 required
-                className="h-10 pl-9 text-lg font-bold text-foreground tabular-nums"
+                className="h-9 pl-8 text-base font-semibold text-foreground tabular-nums"
               />
             </div>
 
             <div className="flex justify-between items-center text-[11px] pt-1">
               <span className="text-muted-foreground">Nuevo saldo proyectado:</span>
               <span
-                className={`font-bold tabular-nums ${
+                className={`font-medium tabular-nums ${
                   tipo === 'INGRESO' ? 'text-emerald-700' : 'text-foreground'
                 }`}
               >
@@ -241,7 +241,7 @@ export const OperacionCajaDialog: React.FC<OperacionCajaDialogProps> = ({
             <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs">
               <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
               <div>
-                <span className="font-semibold block">Este egreso requiere autorización.</span>
+                <span className="font-medium block">Este egreso requiere autorización.</span>
                 <span className="text-[11px] text-amber-800">
                   El monto supera el límite operativo diario (S/ 250.00). El movimiento quedará registrado con alerta para auditoría de supervisión.
                 </span>
@@ -267,6 +267,7 @@ export const OperacionCajaDialog: React.FC<OperacionCajaDialogProps> = ({
               size="sm"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
+              className="h-9 text-xs font-medium"
             >
               Cancelar
             </Button>
@@ -274,7 +275,7 @@ export const OperacionCajaDialog: React.FC<OperacionCajaDialogProps> = ({
               type="submit"
               size="sm"
               disabled={isSubmitting || !concepto.trim() || monto <= 0}
-              className={`font-semibold ${
+              className={`h-9 text-xs font-medium ${
                 tipo === 'EGRESO'
                   ? 'bg-rose-600 hover:bg-rose-700 text-white'
                   : 'bg-emerald-600 hover:bg-emerald-700 text-white'

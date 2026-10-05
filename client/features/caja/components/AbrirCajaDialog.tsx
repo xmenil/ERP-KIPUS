@@ -117,7 +117,7 @@ export const AbrirCajaDialog: React.FC<AbrirCajaDialogProps> = ({
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
                 CAJA ABIERTA
               </div>
-              <h3 className="text-xl font-bold text-foreground">
+              <h3 className="text-lg font-semibold text-foreground">
                 ¡Tu caja está lista para operar!
               </h3>
               <p className="text-xs text-muted-foreground">
@@ -128,19 +128,19 @@ export const AbrirCajaDialog: React.FC<AbrirCajaDialogProps> = ({
             <div className="bg-muted/40 border border-border/70 rounded-xl p-4 text-xs space-y-2.5 text-left">
               <div className="flex justify-between items-center py-1 border-b border-border/50">
                 <span className="text-muted-foreground">Hora de apertura:</span>
-                <span className="font-semibold text-foreground">{horaApertura}</span>
+                <span className="font-medium text-foreground">{horaApertura}</span>
               </div>
               <div className="flex justify-between items-center py-1 border-b border-border/50">
                 <span className="text-muted-foreground">Responsable:</span>
-                <span className="font-semibold text-foreground">{responsable}</span>
+                <span className="font-medium text-foreground">{responsable}</span>
               </div>
               <div className="flex justify-between items-center py-1 border-b border-border/50">
                 <span className="text-muted-foreground">Sucursal y Caja:</span>
-                <span className="font-semibold text-foreground">
+                <span className="font-medium text-foreground">
                   {cajaId === 'caja-1' ? 'Caja 01' : 'Caja 02'} — {sucursal.split(' ')[0]}
                 </span>
               </div>
-              <div className="flex justify-between items-center pt-1 font-bold text-sm">
+              <div className="flex justify-between items-center pt-1 font-semibold text-xs">
                 <span className="text-foreground">Sencillo inicial:</span>
                 <span className="text-emerald-700 tabular-nums">
                   {formatCurrency(saldoInicial)}
@@ -149,11 +149,11 @@ export const AbrirCajaDialog: React.FC<AbrirCajaDialogProps> = ({
             </div>
 
             <Button
-              className="w-full h-11 font-semibold text-sm gap-2"
+              className="w-full h-9 font-medium text-xs gap-2"
               onClick={handleCerrarModal}
             >
               Ir a mi caja
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-3.5 w-3.5" />
             </Button>
           </div>
         ) : (
@@ -164,8 +164,8 @@ export const AbrirCajaDialog: React.FC<AbrirCajaDialogProps> = ({
                 <Store className="h-4 w-4" />
                 <span>KIPU'S ERP • Módulo Caja</span>
               </div>
-              <DialogTitle className="text-xl font-bold flex items-center gap-2 pt-1">
-                <Sparkles className="h-5 w-5 text-primary" />
+              <DialogTitle className="text-lg font-semibold flex items-center gap-2 pt-1">
+                <Sparkles className="h-4 w-4 text-primary" />
                 Abrir turno de caja
               </DialogTitle>
               <DialogDescription className="text-xs">
@@ -230,7 +230,7 @@ export const AbrirCajaDialog: React.FC<AbrirCajaDialogProps> = ({
               {/* Monto Inicial / Sencillo */}
               <div className="space-y-2 p-3.5 rounded-xl bg-primary/5 border border-primary/20">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <Label className="text-xs font-medium text-foreground flex items-center gap-1.5">
                     <Coins className="h-4 w-4 text-primary" />
                     Monto inicial (Sencillo de apertura)
                   </Label>
@@ -247,7 +247,7 @@ export const AbrirCajaDialog: React.FC<AbrirCajaDialogProps> = ({
                 </div>
 
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground">
                     S/
                   </span>
                   <Input
@@ -257,7 +257,7 @@ export const AbrirCajaDialog: React.FC<AbrirCajaDialogProps> = ({
                     value={saldoInicial}
                     onChange={(e) => setSaldoInicial(Number(e.target.value))}
                     required
-                    className="h-11 pl-9 text-lg font-bold text-foreground tabular-nums"
+                    className="h-9 pl-8 text-base font-semibold text-foreground tabular-nums"
                     placeholder="0.00"
                   />
                 </div>
@@ -268,7 +268,7 @@ export const AbrirCajaDialog: React.FC<AbrirCajaDialogProps> = ({
                 {/* Desglose de billetes y monedas interactivo */}
                 {mostrarCalculadora && (
                   <div className="pt-2 border-t border-border/60 space-y-2 text-xs">
-                    <span className="text-[11px] font-semibold text-muted-foreground block">
+                    <span className="text-[11px] font-medium text-muted-foreground block">
                       Desglose rápido de sencillo:
                     </span>
                     <div className="grid grid-cols-3 gap-2">
@@ -282,7 +282,7 @@ export const AbrirCajaDialog: React.FC<AbrirCajaDialogProps> = ({
                             min="0"
                             value={denominaciones[den] || 0}
                             onChange={(e) => actualizarConteo(den, Number(e.target.value))}
-                            className="h-7 text-xs text-center p-0 font-semibold"
+                            className="h-7 text-xs text-center p-0 font-medium"
                           />
                         </div>
                       ))}
@@ -312,6 +312,7 @@ export const AbrirCajaDialog: React.FC<AbrirCajaDialogProps> = ({
                 size="sm"
                 onClick={handleCerrarModal}
                 disabled={isSubmitting}
+                className="h-9 text-xs font-medium"
               >
                 Cancelar
               </Button>
@@ -319,9 +320,9 @@ export const AbrirCajaDialog: React.FC<AbrirCajaDialogProps> = ({
                 type="submit"
                 size="sm"
                 disabled={isSubmitting || saldoInicial < 0}
-                className="font-semibold gap-1.5"
+                className="h-9 text-xs font-medium gap-1.5"
               >
-                <Sparkles className="h-4 w-4" />
+                <Sparkles className="h-3.5 w-3.5" />
                 {isSubmitting ? 'Abriendo...' : 'Abrir caja'}
               </Button>
             </DialogFooter>

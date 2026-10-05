@@ -50,43 +50,43 @@ export const AuditoriaCajaView: React.FC<AuditoriaCajaViewProps> = ({ auditorias
     switch (accion) {
       case 'APERTURA':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <RefreshCw className="h-3 w-3" /> APERTURA
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <RefreshCw className="h-3 w-3" /> Apertura
           </span>
         );
       case 'CIERRE':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-zinc-100 text-zinc-800 border border-zinc-200">
-            <Lock className="h-3 w-3" /> CIERRE
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-100 text-zinc-800 border border-zinc-200">
+            <Lock className="h-3 w-3" /> Cierre
           </span>
         );
       case 'ARQUEO':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-            <Calculator className="h-3 w-3" /> ARQUEO
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+            <Calculator className="h-3 w-3" /> Arqueo
           </span>
         );
       case 'INGRESO':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <ArrowDownCircle className="h-3 w-3" /> INGRESO
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <ArrowDownCircle className="h-3 w-3" /> Ingreso
           </span>
         );
       case 'EGRESO':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-            <ArrowUpCircle className="h-3 w-3" /> EGRESO
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-rose-50 text-rose-700 border border-rose-200">
+            <ArrowUpCircle className="h-3 w-3" /> Egreso
           </span>
         );
       case 'ANULACION':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-            <AlertCircle className="h-3 w-3" /> ANULACIÓN
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-amber-50 text-amber-800 border border-amber-200">
+            <AlertCircle className="h-3 w-3" /> Anulación
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-muted text-muted-foreground">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-muted text-muted-foreground">
             {accion}
           </span>
         );
@@ -99,7 +99,7 @@ export const AuditoriaCajaView: React.FC<AuditoriaCajaViewProps> = ({ auditorias
       <div className="flex items-center gap-3 p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/80 text-blue-900 text-xs">
         <ShieldCheck className="h-5 w-5 text-blue-600 shrink-0" />
         <div>
-          <span className="font-bold block">Bitácora de Auditoría Inmutable de Caja</span>
+          <span className="font-semibold block">Bitácora de Auditoría Inmutable de Caja</span>
           <p className="text-[11px] text-blue-800">
             Todas las acciones críticas (aperturas, cierres, arqueos y salidas manuales de efectivo) quedan registradas con huella temporal y usuario responsable para control de gerencia.
           </p>
@@ -116,13 +116,13 @@ export const AuditoriaCajaView: React.FC<AuditoriaCajaViewProps> = ({ auditorias
                 key={acc}
                 type="button"
                 onClick={() => setFiltroAccion(acc)}
-                className={`px-3 py-1 rounded text-xs font-semibold transition-all whitespace-nowrap ${
+                className={`px-3 py-1 rounded text-xs transition-all whitespace-nowrap ${
                   filtroAccion === acc
-                    ? 'bg-card text-foreground shadow-xs border border-border'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-card text-foreground shadow-xs border border-border font-medium'
+                    : 'text-muted-foreground hover:text-foreground font-normal'
                 }`}
               >
-                {acc}
+                {acc === 'TODAS' ? 'Todas' : acc.charAt(0) + acc.slice(1).toLowerCase()}
               </button>
             ))}
           </div>
@@ -165,12 +165,12 @@ export const AuditoriaCajaView: React.FC<AuditoriaCajaViewProps> = ({ auditorias
                     <TableCell className="font-mono text-muted-foreground whitespace-nowrap">
                       {aud.hora}
                     </TableCell>
-                    <TableCell className="font-semibold text-foreground">
+                    <TableCell className="font-medium text-foreground">
                       {aud.usuario}
                     </TableCell>
                     <TableCell>{renderBadgeAccion(aud.accion)}</TableCell>
                     <TableCell>
-                      <span className="font-semibold block text-foreground">
+                      <span className="font-medium block text-foreground">
                         {aud.caja}
                       </span>
                       <span className="text-[10px] text-muted-foreground">

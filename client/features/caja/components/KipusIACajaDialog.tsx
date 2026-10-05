@@ -141,7 +141,7 @@ export const KipusIACajaDialog: React.FC<KipusIACajaDialogProps> = ({
             <Sparkles className="h-5 w-5" />
           </div>
           <div>
-            <DialogTitle className="text-base font-bold flex items-center gap-2">
+            <DialogTitle className="text-sm font-semibold flex items-center gap-2">
               KIPU’S IA • Consultas de Caja
             </DialogTitle>
             <DialogDescription className="text-xs">
@@ -189,7 +189,7 @@ export const KipusIACajaDialog: React.FC<KipusIACajaDialogProps> = ({
 
         {/* Preguntas Rápidas */}
         <div className="p-3 bg-muted/30 border-t border-border/60 space-y-1.5">
-          <span className="text-[11px] font-semibold text-muted-foreground block">
+          <span className="text-[11px] font-medium text-muted-foreground block">
             Preguntas sugeridas:
           </span>
           <div className="flex flex-wrap gap-1.5">

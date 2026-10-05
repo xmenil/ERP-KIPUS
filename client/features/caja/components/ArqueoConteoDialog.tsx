@@ -197,7 +197,7 @@ export const ArqueoConteoDialog: React.FC<ArqueoConteoDialogProps> = ({
               {estadoCaja.nombre}
             </span>
           </div>
-          <DialogTitle className="text-xl font-bold pt-1">
+          <DialogTitle className="text-lg font-semibold pt-1">
             Contar dinero en caja
           </DialogTitle>
           <DialogDescription className="text-xs">
@@ -210,10 +210,10 @@ export const ArqueoConteoDialog: React.FC<ArqueoConteoDialogProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-xl bg-muted/30 border border-border">
             {/* Saldo Esperado */}
             <div className="space-y-1">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block">
+              <span className="text-xs font-medium text-muted-foreground block">
                 Efectivo esperado
               </span>
-              <div className="text-xl font-bold text-foreground tabular-nums">
+              <div className="text-lg font-semibold text-foreground tabular-nums">
                 {formatCurrency(efectivoEsperado)}
               </div>
               <span className="text-[10px] text-muted-foreground">
@@ -223,10 +223,10 @@ export const ArqueoConteoDialog: React.FC<ArqueoConteoDialogProps> = ({
 
             {/* Efectivo Contado */}
             <div className="space-y-1">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-primary block">
+              <span className="text-xs font-medium text-primary block">
                 Efectivo contado
               </span>
-              <div className="text-xl font-bold text-primary tabular-nums">
+              <div className="text-lg font-semibold text-primary tabular-nums">
                 {formatCurrency(efectivoContado)}
               </div>
               <span className="text-[10px] text-muted-foreground">
@@ -236,11 +236,11 @@ export const ArqueoConteoDialog: React.FC<ArqueoConteoDialogProps> = ({
 
             {/* Diferencia */}
             <div className="space-y-1">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block">
+              <span className="text-xs font-medium text-muted-foreground block">
                 Diferencia
               </span>
               <div
-                className={`text-xl font-bold tabular-nums flex items-center gap-1 ${
+                className={`text-lg font-semibold tabular-nums flex items-center gap-1 ${
                   estaCuadrada
                     ? 'text-emerald-700'
                     : diferencia > 0
@@ -250,12 +250,12 @@ export const ArqueoConteoDialog: React.FC<ArqueoConteoDialogProps> = ({
               >
                 {estaCuadrada ? (
                   <>
-                    <CheckCircle2 className="h-5 w-5 shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
                     <span>S/ 0.00</span>
                   </>
                 ) : (
                   <>
-                    <AlertTriangle className="h-5 w-5 shrink-0" />
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
                     <span>
                       {diferencia > 0 ? `+${formatCurrency(diferencia)}` : formatCurrency(diferencia)}
                     </span>
@@ -387,11 +387,11 @@ export const ArqueoConteoDialog: React.FC<ArqueoConteoDialogProps> = ({
           ) : (
             /* MODO 2: Ingreso directo */
             <div className="p-4 rounded-xl bg-card border border-border space-y-2">
-              <Label className="text-xs font-semibold text-foreground">
+              <Label className="text-xs font-medium text-foreground">
                 ¿Cuánto dinero tienes en total en la gaveta?
               </Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground">
                   S/
                 </span>
                 <Input
@@ -400,7 +400,7 @@ export const ArqueoConteoDialog: React.FC<ArqueoConteoDialogProps> = ({
                   min="0"
                   value={montoDirecto}
                   onChange={(e) => setMontoDirecto(Number(e.target.value))}
-                  className="h-11 pl-9 text-lg font-bold tabular-nums"
+                  className="h-9 pl-8 text-base font-semibold tabular-nums"
                   placeholder="0.00"
                 />
               </div>
@@ -572,7 +572,7 @@ export const ArqueoConteoDialog: React.FC<ArqueoConteoDialogProps> = ({
               size="sm"
               onClick={handleGuardar}
               disabled={isSubmitting}
-              className="w-full sm:w-auto text-xs font-semibold"
+              className="w-full sm:w-auto text-xs font-medium h-9"
             >
               Guardar arqueo
             </Button>
@@ -583,7 +583,7 @@ export const ArqueoConteoDialog: React.FC<ArqueoConteoDialogProps> = ({
                 size="sm"
                 onClick={handleProcederCierreClick}
                 disabled={isSubmitting}
-                className="w-full sm:w-auto text-xs font-semibold gap-1.5"
+                className="w-full sm:w-auto text-xs font-medium h-9 gap-1.5"
               >
                 <span>Proceder al cierre</span>
                 <ArrowRight className="h-3.5 w-3.5" />
