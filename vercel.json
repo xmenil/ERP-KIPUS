@@ -3,7 +3,6 @@
   "framework": "vite",
   "buildCommand": "npm run build:client",
   "outputDirectory": "dist/spa",
-  "cleanUrls": true,
   "rewrites": [
     {
       "source": "/(.*)",

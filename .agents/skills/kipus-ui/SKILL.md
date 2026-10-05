@@ -21,7 +21,7 @@ Principio rector: una interfaz parece hecha por una persona cuando es específic
 No usar nunca, salvo que el usuario lo pida explícitamente:
 
 1. Degradados en texto, en botones, en fondos de tarjeta o en bordes.
-2. Combinación morado-cian o índigo-rosa como estética general.
+2. Combinar dos acentos fuertes como estética general (morado con cian, índigo con rosa). La interfaz usa una sola familia de color: la ciruela del cliente.
 3. Glassmorphism, blur decorativo, blobs, esferas flotantes, rombos o formas abstractas de fondo.
 4. Tríos de tarjetas "icono + título corto + frase vaga" (ej. "Simple / Seguro / Siempre contigo").
 5. Un icono dentro de un círculo de color al lado de cada título o dato.
@@ -37,22 +37,35 @@ No usar nunca, salvo que el usuario lo pida explícitamente:
 
 ## 3. Sistema de color
 
-Los tokens viven en `kipus-tokens.css` (bloque para `global.css`). Los componentes solo usan tokens, nunca hex sueltos.
+Los tokens viven en `src/styles/global.css` (variables HSL) y se exponen en `tailwind.config.ts`. Los componentes usan solo tokens, nunca hex sueltos. Este es el sistema vigente: la paleta del cliente (ciruela).
 
-### Separar marca de interfaz
+### Paleta del cliente y papel de cada tono
 
-La paleta de marca (índigo `#2A2372`, cian `#06B6D4`, púrpura `#7C3AED`, rosa `#EC4899`) es identidad: se usa en el logotipo, el favicon y materiales de marca, y puede aparecer en un detalle puntual (pantalla de carga, estado vacío de la primera vez). No es la paleta de trabajo.
+La paleta es una sola familia de color (ciruela/magenta) en cinco niveles. No son cinco colores distintos: en la interfaz se usa uno como acento, otro como foco, y los demás quedan para gráficos y marca.
 
-La interfaz del ERP usa estos tokens:
+| Tono | Token | Contraste con blanco | Papel |
+|---|---|---|---|
+| `#732571` | `--primary`, `--chart-1` | 9.4 | Acento único de la UI: botón principal, ítem activo del menú, enlaces, énfasis. Texto blanco encima: 9.4. |
+| `#964895` | `--ring`, `--chart-2` | 5.7 | Anillo de foco de teclado, borde de elemento seleccionado, segunda serie de un gráfico. |
+| `#B96BB8` | `--chart-3` | 3.6 | Solo elementos gráficos (barras, líneas, iconos grandes). Nunca texto. |
+| `#DC8DDC` | `--chart-4` | 2.4 | Rellenos y gráficos. Nunca texto sobre blanco. En modo oscuro es el color primario. |
+| `#FFB0FF` | `--chart-5` | 1.6 | Solo marca (logo, pantalla de carga, detalle puntual). No se usa en superficies de trabajo. |
+
+Dos tonos derivados completan el sistema, porque la paleta no trae un extremo oscuro ni uno claro:
+
+- `--primary-hover` `#5E1D5C`: hover y estado presionado del botón primario (11.6 con blanco).
+- `--primary-soft` `#F7EBF7`: fondo del ítem activo del menú, badge informativo y fila seleccionada. El texto `--primary` sobre este fondo da 8.2.
+
+### Neutros (sin cambios)
 
 - Superficies: `--background` `#F4F6F9`, `--card` blanco.
-- Texto: `--foreground` `#111827`; `--muted-foreground` `#556274` (texto secundario, más oscuro que `#64748B` para cumplir contraste sobre el fondo gris).
-- Bordes: `--border` `#DCE2EB` para tarjetas, tablas y divisores; `--input` `#8391A5` para el borde de los campos (3.2:1 sobre blanco, el usuario ve dónde escribir).
-- Acento: `--primary` `#1855C6` para botón principal, navegación activa, enlaces y foco; `--primary-soft` `#EEF3FF` para fondo de ítem activo y badge informativo.
+- Texto: `--foreground` `#111827`; `--muted-foreground` `#556274` para texto secundario.
+- Bordes: `--border` `#DCE2EB` para tarjetas, tablas y divisores; `--input` `#8391A5` para el borde de los campos (3.2:1 sobre blanco).
+- Sidebar: fondo neutro `--sidebar-background`; el ítem activo usa `--sidebar-accent` (fondo suave) con texto `--sidebar-accent-foreground` (primario), o `--sidebar-primary` sólido con texto blanco. No se pinta el sidebar completo de ciruela.
 
-### Semánticos de negocio: base y texto separados
+### Semánticos de negocio (sin cambios): base, texto y fondo suave
 
-Cada color semántico tiene tres tokens. Se usan según el rol, no al azar:
+Cada color semántico tiene tres tokens, y se usan según el rol:
 
 | Significado | Relleno / icono | Texto | Fondo suave |
 |---|---|---|---|
@@ -60,18 +73,34 @@ Cada color semántico tiene tres tokens. Se usan según el rol, no al azar:
 | Advertencia: por agotarse, pendiente, arqueo sin cerrar | `warning` `#F59E0B` | `warning-text` `#B45309` | `warning-soft` `#FFFBEB` |
 | Peligro: gasto, salida de caja, agotado, error | `destructive` `#DC2626` | `danger-text` `#B91C1C` | `danger-soft` `#FEF2F2` |
 
+### Modo oscuro
+
+Definido en el bloque `.dark` de `global.css`. El primario pasa a `#DC8DDC` (7.2 sobre la tarjeta oscura) con texto oscuro encima (`--primary-foreground`, 7.5). Nunca texto blanco sobre ese primario: da 2.4. El hover se aclara en vez de oscurecerse. Los tonos profundos de la paleta pierden contraste sobre fondo oscuro, por eso `--chart-*` cambia de orden en `.dark`. Activar el selector de tema solo después de revisar todas las pantallas en oscuro.
+
 ### Reglas
 
-1. Un solo color de acento en la UI: `--primary`. Todo lo demás es neutro.
-2. El ámbar (`warning`) nunca se usa como color de texto: tiene unos 2:1 de contraste. Para texto de advertencia, `warning-text` sobre `warning-soft`.
-3. El verde `success` base solo en iconos y rellenos; montos y texto en verde usan `success-text`.
-4. Los semánticos tienen un único significado y no se usan como decoración.
-5. El color nunca es el único indicador de estado: acompañar con texto o icono (badge "Stock bajo", no solo un punto ámbar).
-6. Badges y alertas: fondo `*-soft` + texto `*-text`. Nunca texto claro sobre fondo saturado dentro de tablas.
-7. Contraste mínimo WCAG AA: 4.5:1 para texto normal, 3:1 para texto grande, bordes de campos e iconos informativos.
-8. Texto secundario (fechas, descripciones, etiquetas pequeñas) con `--muted-foreground`; no usar grises más claros.
-9. Modo oscuro: definido en el bloque `.dark` de `kipus-tokens.css` con superficies en tres escalones (fondo, tarjeta, elevado), sin negro puro. Activarlo solo después de revisarlo en todas las pantallas; si no se va a usar aún, no se expone el selector.
-10. Un color nuevo se agrega primero como token en `global.css` y `tailwind.config`, nunca como hex suelto en un componente.
+1. Un solo color de acento en la UI: `--primary`. Todo lo demás es neutro o semántico.
+2. `--primary` se usa para una sola acción principal por vista, el elemento activo de navegación, los enlaces y el foco. No se usa para decorar tarjetas, iconos o títulos.
+3. Los tonos claros de la paleta (`#B96BB8`, `#DC8DDC`, `#FFB0FF`) nunca se usan como color de texto sobre fondo claro ni como fondo de botones con texto blanco.
+4. El ámbar (`warning`) nunca se usa como color de texto (unos 2:1 de contraste); para texto, `warning-text` sobre `warning-soft`.
+5. El verde `success` base solo en iconos y rellenos; montos y texto en verde usan `success-text`.
+6. Los semánticos tienen un único significado y no se usan como decoración. El magenta del primario y el rojo de peligro pueden confundirse con daltonismo: los errores y alertas siempre llevan icono y texto, nunca solo color.
+7. El color nunca es el único indicador de estado: acompañar con texto o icono (badge "Stock bajo", no solo un punto ámbar).
+8. Badges y alertas: fondo `*-soft` + texto `*-text`. Nunca texto claro sobre fondo saturado dentro de tablas.
+9. Contraste mínimo WCAG AA: 4.5:1 para texto normal, 3:1 para texto grande, bordes de campos, foco e iconos informativos.
+10. Texto secundario (fechas, descripciones, etiquetas pequeñas) con `--muted-foreground`; no usar grises más claros.
+11. Gráficos: solo tokens `--chart-*` y `--chart-neutral`. Con dos series, `--chart-1` más `--chart-neutral`. Con más series, etiquetas directas sobre las líneas o barras, porque cinco tonos de la misma familia son difíciles de distinguir solo por color. Ingresos en verde y egresos en rojo solo cuando esa semántica aplique.
+12. Prohibidos los degradados, incluso entre tonos de la paleta (no combinar `#732571` con `#FFB0FF`).
+13. Un color nuevo se agrega primero como token en `global.css` y `tailwind.config.ts`, nunca como hex suelto en un componente.
+14. El logotipo es un asset de marca y no se recolorea desde la UI. Si cambia su color, se reemplaza el archivo del logo.
+
+### Tailwind: cómo se usan
+
+- Botón principal: `bg-primary text-primary-foreground hover:bg-primary-hover`
+- Ítem activo: `bg-primary-soft text-primary`
+- Foco: `focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`
+- Badge informativo: `bg-primary-soft text-primary`
+- Gráficos (Recharts): `stroke="hsl(var(--chart-1))"`, `fill="hsl(var(--chart-neutral))"`
 
 ## 4. Tipografía
 
@@ -162,7 +191,7 @@ Antes de crear algo, buscar en `components/ui`. Extender con CVA, no duplicar.
 ## 8. Gráficos (Recharts)
 
 - Elegir el gráfico por la pregunta: tendencia en el tiempo → línea; comparar categorías → barras; composición con pocas partes → barra apilada o lista con porcentajes. Evitar tortas con más de 4 partes y 3D de cualquier tipo.
-- Un color por serie, tomado de tokens; ingresos en verde y egresos en rojo solo cuando esa semántica aplique, en otros casos usar primary y un neutro.
+- Un color por serie, tomado de los tokens `--chart-*` y `--chart-neutral` (ver sección 3); ingresos en verde y egresos en rojo solo cuando esa semántica aplique. Con dos series: `--chart-1` más `--chart-neutral`; con más, etiquetas directas.
 - Ejes con números `tabular-nums`, formato `S/`, sin líneas de cuadrícula pesadas (solo horizontales, color `--border`).
 - Tooltip con fecha formateada en español, valores con moneda y etiqueta clara.
 - Siempre título que diga qué mide y en qué periodo ("Ventas diarias, últimos 30 días").
@@ -198,7 +227,7 @@ Además: deshabilitar botones durante envío, evitar doble envío, conservar lo 
 
 ## 12. Accesibilidad (mínimos no negociables)
 
-- Todo operable con teclado, orden de tabulación lógico, foco visible (`ring-2 ring-primary ring-offset-2`).
+- Todo operable con teclado, orden de tabulación lógico, foco visible (`focus-visible:ring-2 ring-ring ring-offset-2`).
 - Áreas táctiles de al menos 44×44 px en móvil.
 - Etiquetas asociadas a inputs (`htmlFor`/`FormLabel`), `aria-invalid` y `aria-describedby` en errores.
 - Iconos solos con `aria-label`. Tablas con encabezados semánticos.
