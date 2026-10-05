@@ -13,7 +13,6 @@ import {
   BarChart3,
   Sparkles,
   Settings,
-  Store,
   ShieldCheck,
 } from 'lucide-react';
 import {
@@ -119,11 +118,15 @@ export const AppSidebar: React.FC = () => {
     <Sidebar collapsible="icon" className="border-r border-border bg-sidebar select-none">
       {/* Encabezado del ERP estilo Desktop Software */}
       <SidebarHeader className="border-b border-border p-3">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-primary text-primary-foreground font-bold shadow-xs">
-            <Store className="h-5 w-5" />
+        <div className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white dark:bg-muted/40 border border-border/80 p-1 shadow-xs">
+            <img
+              src="/kipus-icon.png"
+              alt="KIPU'S"
+              className="h-full w-full object-contain"
+            />
           </div>
-          <div className="flex flex-col overflow-hidden">
+          <div className="flex flex-col overflow-hidden min-w-0 group-data-[collapsible=icon]:hidden">
             <div className="flex items-center gap-1.5">
               <span className="font-black text-sm tracking-tight text-foreground truncate">
                 KIPU'S ERP
