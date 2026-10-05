@@ -12,11 +12,17 @@ import {
   EyeOff,
   Loader2,
   AlertCircle,
-  Play,
   User as UserIcon,
   Lock as LockIcon,
 } from 'lucide-react';
-import kipusLogo from '@/assets/kipus-logo.png';
+
+// Letras independientes extraídas en alta resolución y transparencia
+import letterK from '@/assets/letters/k.png';
+import letterI from '@/assets/letters/i.png';
+import letterP from '@/assets/letters/p.png';
+import letterU from '@/assets/letters/u.png';
+import letterS from '@/assets/letters/s.png';
+import kipusLogoFull from '@/assets/kipus-logo.png';
 
 export const LoginPage: React.FC = () => {
   const { login, isAuthenticated } = useAuth();
@@ -30,45 +36,40 @@ export const LoginPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Estado de la animación de bienvenida oscura al abrir la app (3 segundos)
-  const [introState, setIntroState] = useState<'showing' | 'fading' | 'revealed'>('showing');
+  // La intro se ejecuta una sola vez al abrir la aplicación (3 segundos)
+  const [introState, setIntroState] = useState<'showing' | 'fading' | 'revealed'>(() => {
+    if (typeof window !== 'undefined') {
+      const alreadyPlayed = sessionStorage.getItem('kipus_intro_seen');
+      if (alreadyPlayed) return 'revealed';
+    }
+    return 'showing';
+  });
 
-  // Ejecución de la animación oscura al montar la pantalla (3 segundos)
+  // Efecto de temporizador de 3 segundos para la animación oscura
   useEffect(() => {
-    // Transición a los 3 segundos exactos
+    if (introState === 'revealed') return;
+
     const fadeTimer = setTimeout(() => {
       setIntroState('fading');
     }, 3000);
 
-    // Ocultamiento total de la cortina tras 3.7 segundos
     const revealTimer = setTimeout(() => {
       setIntroState('revealed');
+      sessionStorage.setItem('kipus_intro_seen', 'true');
     }, 3700);
 
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(revealTimer);
     };
-  }, []);
-
-  // Función para volver a ver la animación de inicio
-  const replayIntroAnimation = () => {
-    setIntroState('showing');
-
-    setTimeout(() => {
-      setIntroState('fading');
-    }, 3000);
-
-    setTimeout(() => {
-      setIntroState('revealed');
-    }, 3700);
-  };
+  }, [introState]);
 
   const skipIntro = () => {
     setIntroState('fading');
     setTimeout(() => {
       setIntroState('revealed');
-    }, 350);
+      sessionStorage.setItem('kipus_intro_seen', 'true');
+    }, 300);
   };
 
   useEffect(() => {
@@ -126,33 +127,55 @@ export const LoginPage: React.FC = () => {
     setErrorMessage(null);
   };
 
-  // Texto que salta letra por letra en la intro
-  const introHeadline = 'GESTIONA TU NEGOCIO';
+  // Arreglo de letras independientes con su animación desfasada
+  const logoLetters = [
+    { src: letterK, alt: 'K', delay: '0s' },
+    { src: letterI, alt: 'i', delay: '0.12s' },
+    { src: letterP, alt: 'p', delay: '0.24s' },
+    { src: letterU, alt: 'u', delay: '0.36s' },
+    { src: letterS, alt: 's', delay: '0.48s' },
+  ];
+
+  // Palabras que saltan independientemente
+  const words = ['GESTIONA', 'TU', 'NEGOCIO'];
 
   return (
     <div className="min-h-screen w-full relative overflow-x-hidden bg-[#FAF6FD] selection:bg-[#5B1C8A]/20 selection:text-[#5B1C8A]">
-      {/* Estilos CSS para el salto secuencial de las letras (onda de recarga) */}
+      {/* Estilos CSS para el salto de letras y palabras en la intro */}
       <style>{`
-        @keyframes kipusWaveJump {
+        @keyframes kipusLetterWave {
+          0%, 100% {
+            transform: translateY(0) scale(1);
+          }
+          35% {
+            transform: translateY(-24px) scale(1.08);
+          }
+        }
+        @keyframes kipusWordWave {
           0%, 100% {
             transform: translateY(0);
             opacity: 0.85;
           }
           40% {
-            transform: translateY(-14px) scale(1.08);
+            transform: translateY(-12px);
             opacity: 1;
-            text-shadow: 0 0 16px rgba(0, 167, 202, 0.9), 0 0 30px rgba(112, 34, 184, 0.7);
+            text-shadow: 0 0 20px rgba(0, 167, 202, 0.95), 0 0 35px rgba(112, 34, 184, 0.8);
           }
         }
-        .letter-wave-jump {
+        .letter-bounce-item {
           display: inline-block;
-          animation: kipusWaveJump 1.3s infinite ease-in-out;
+          animation: kipusLetterWave 1.4s infinite ease-in-out;
+          filter: drop-shadow(0 0 22px rgba(112, 34, 184, 0.75)) drop-shadow(0 0 32px rgba(0, 167, 202, 0.55));
+        }
+        .word-bounce-item {
+          display: inline-block;
+          animation: kipusWordWave 1.4s infinite ease-in-out;
         }
       `}</style>
 
       {/* 
         ========================================================================
-        1. ANIMACIÓN OSCURA DE 3 SEGUNDOS CON EL LOGO PURO Y LETRAS SALTANDO
+        1. INTRO OSCURA (3 SEGUNDOS): LETRAS INDEPENDIENTES SALTANDO Y SIN FONDO BLANCO
         ========================================================================
       */}
       {introState !== 'revealed' && (
@@ -165,11 +188,11 @@ export const LoginPage: React.FC = () => {
           }`}
           style={{
             background:
-              'radial-gradient(circle at 50% 45%, #180D2C 0%, #0D071A 55%, #050209 100%)',
+              'radial-gradient(circle at 50% 48%, #16082B 0%, #0D051B 55%, #050209 100%)',
           }}
           title="Haz clic para omitir la animación"
         >
-          {/* Botón flotante para omitir la animación */}
+          {/* Botón flotante para omitir la intro */}
           <button
             type="button"
             onClick={(e) => {
@@ -181,32 +204,38 @@ export const LoginPage: React.FC = () => {
             Omitir
           </button>
 
-          {/* Halo ambiental suave morado y cian detrás del logo */}
+          {/* Halo ambiental suave morado y cian detrás de las letras */}
           <div className="absolute w-80 h-80 sm:w-[32rem] sm:h-[32rem] rounded-full bg-gradient-to-tr from-[#5B1C8A]/45 via-[#7022B8]/35 to-[#00A7CA]/35 blur-3xl pointer-events-none animate-pulse" />
 
-          {/* Contenedor central del logo claro y nítido */}
+          {/* Contenedor central de la intro */}
           <div className="relative z-10 flex flex-col items-center px-4 text-center max-w-2xl w-full">
-            {/* Cápsula horizontal de alta nitidez que resalta el logo con sus colores puros originales */}
-            <div className="relative mb-8 px-8 py-5 sm:px-14 sm:py-7 bg-white rounded-3xl shadow-[0_0_80px_rgba(112,34,184,0.65)] border border-white/50 backdrop-blur-md transition-transform duration-700 ease-out transform scale-100 animate-in fade-in zoom-in-95">
-              <img
-                src={kipusLogo}
-                alt="KIPUS"
-                className="h-20 sm:h-28 md:h-36 w-auto object-contain select-none"
-              />
+            
+            {/* LETRAS DEL LOGO INDEPENDIENTES QUE REBOTAN EN ONDA (SIN CUADRO BLANCO) */}
+            <div className="flex items-center justify-center mb-10 select-none">
+              {logoLetters.map((item, index) => (
+                <div
+                  key={index}
+                  className="letter-bounce-item"
+                  style={{ animationDelay: item.delay }}
+                >
+                  <img
+                    src={item.src}
+                    alt={item.alt}
+                    className="h-20 sm:h-28 md:h-36 lg:h-40 w-auto object-contain pointer-events-none select-none"
+                  />
+                </div>
+              ))}
             </div>
 
-            {/* Letras saltando una por una como recarga: GESTIONA TU NEGOCIO (una sola línea) */}
-            <div className="flex items-center justify-center flex-nowrap whitespace-nowrap overflow-visible">
-              {introHeadline.split('').map((char, index) => (
+            {/* CADA PALABRA SALTA INDEPENDIENTEMENTE: GESTIONA TU NEGOCIO */}
+            <div className="flex items-center justify-center flex-wrap gap-x-4 sm:gap-x-6 gap-y-2 select-none">
+              {words.map((word, wIdx) => (
                 <span
-                  key={index}
-                  className="letter-wave-jump text-base sm:text-xl md:text-2xl lg:text-3xl font-black tracking-[0.18em] sm:tracking-[0.22em] text-white select-none"
-                  style={{
-                    animationDelay: `${index * 0.065}s`,
-                    marginRight: char === ' ' ? '0.6rem' : '0.04rem',
-                  }}
+                  key={wIdx}
+                  className="word-bounce-item text-lg sm:text-2xl md:text-3xl font-black tracking-[0.22em] text-white select-none"
+                  style={{ animationDelay: `${0.6 + wIdx * 0.2}s` }}
                 >
-                  {char === ' ' ? '\u00A0' : char}
+                  {word}
                 </span>
               ))}
             </div>
@@ -253,22 +282,6 @@ export const LoginPage: React.FC = () => {
         ========================================================================
       */}
       <div className="relative z-10 min-h-screen w-full flex flex-col justify-between">
-        {/* Barra superior móvil / tablet */}
-        <header className="w-full px-4 sm:px-8 py-3 flex items-center justify-between text-xs text-muted-foreground lg:hidden">
-          <span className="font-semibold text-[#5B1C8A] tracking-wider text-xs">
-            KIPU'S ERP
-          </span>
-          <button
-            type="button"
-            onClick={replayIntroAnimation}
-            className="flex items-center gap-1.5 text-xs text-[#5B1C8A] font-medium hover:underline bg-[#5B1C8A]/5 px-2.5 py-1 rounded-md border border-[#5B1C8A]/15"
-            title="Ver animación de bienvenida de nuevo"
-          >
-            <Play className="h-3 w-3 fill-current" />
-            <span>Ver intro</span>
-          </button>
-        </header>
-
         {/* Contenedor 50% / 50% */}
         <main className="flex-1 w-full max-w-6xl mx-auto flex flex-col lg:flex-row items-center justify-center p-4 sm:p-6 lg:p-10 gap-8 lg:gap-16">
           
@@ -281,7 +294,7 @@ export const LoginPage: React.FC = () => {
             {/* LOGO EN SU COLOR ORIGINAL SIN DEGRADAR */}
             <div className="relative group">
               <img
-                src={kipusLogo}
+                src={kipusLogoFull}
                 alt="KIPUS LOGO"
                 className="h-32 sm:h-40 lg:h-48 xl:h-52 w-auto object-contain drop-shadow-md select-none transition-transform duration-300 hover:scale-105"
               />
@@ -302,7 +315,7 @@ export const LoginPage: React.FC = () => {
             {/* Cabecera en celular: Solo el Logo + "GESTIONA TU NEGOCIO" */}
             <div className="lg:hidden flex flex-col items-center text-center space-y-2 mb-6">
               <img
-                src={kipusLogo}
+                src={kipusLogoFull}
                 alt="KIPUS LOGO"
                 className="h-20 sm:h-24 w-auto object-contain drop-shadow-sm"
               />
@@ -316,20 +329,9 @@ export const LoginPage: React.FC = () => {
               
               {/* Encabezado del Formulario */}
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-[#5B1C8A] uppercase tracking-wider bg-[#5B1C8A]/10 px-2.5 py-0.5 rounded-full">
-                    Acceso al Sistema
-                  </span>
-                  <button
-                    type="button"
-                    onClick={replayIntroAnimation}
-                    className="hidden lg:inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-[#5B1C8A] transition-colors"
-                    title="Reproducir animación de inicio de 3 segundos"
-                  >
-                    <Play className="h-3 w-3" />
-                    <span>Ver intro</span>
-                  </button>
-                </div>
+                <span className="text-[11px] font-semibold text-[#5B1C8A] uppercase tracking-wider bg-[#5B1C8A]/10 px-2.5 py-0.5 rounded-full inline-block">
+                  Acceso al Sistema
+                </span>
                 <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
                   Iniciar sesión
                 </h2>
