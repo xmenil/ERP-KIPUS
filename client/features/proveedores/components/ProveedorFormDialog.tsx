@@ -203,14 +203,14 @@ export const ProveedorFormDialog: React.FC<ProveedorFormDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl p-0 overflow-hidden">
+      <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[92vh] flex flex-col p-0 overflow-hidden rounded-lg">
         {/* Header */}
-        <DialogHeader className="p-6 pb-4 border-b border-border/60 bg-muted/20">
+        <DialogHeader className="p-4 sm:p-5 pb-3 sm:pb-4 border-b border-border/60 bg-muted/20 shrink-0">
           <div className="flex items-center gap-2 text-primary font-medium text-xs">
             <Building2 className="h-4 w-4" />
             <span>KIPU'S ERP • Módulo de Proveedores</span>
           </div>
-          <DialogTitle className="text-xl font-bold pt-1">
+          <DialogTitle className="text-lg sm:text-xl font-bold pt-1">
             {esEdicion ? 'Editar datos del proveedor' : 'Registrar nuevo proveedor'}
           </DialogTitle>
           <DialogDescription className="text-xs">
@@ -221,7 +221,7 @@ export const ProveedorFormDialog: React.FC<ProveedorFormDialogProps> = ({
         </DialogHeader>
 
         {/* Formulario con 3 secciones ordenadas */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
           {/* SECCIÓN 1: Identificación Fiscal & Comercial */}
           <div className="space-y-3">
             <div className="flex items-center justify-between border-b border-border/60 pb-1.5">
@@ -498,13 +498,14 @@ export const ProveedorFormDialog: React.FC<ProveedorFormDialogProps> = ({
             </div>
           </div>
 
-          <DialogFooter className="pt-3 border-t border-border/60 gap-2 sm:gap-0">
+          <DialogFooter className="p-3 sm:p-4 border-t border-border/60 bg-muted/20 shrink-0 flex flex-row items-center justify-end gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
+              className="text-xs h-9 font-medium"
             >
               Cancelar
             </Button>
@@ -512,7 +513,7 @@ export const ProveedorFormDialog: React.FC<ProveedorFormDialogProps> = ({
               type="submit"
               size="sm"
               disabled={isSubmitting || !ruc.trim() || !razonSocial.trim()}
-              className="font-semibold gap-1.5"
+              className="text-xs h-9 font-semibold gap-1.5 bg-primary text-primary-foreground"
             >
               <CheckCircle2 className="h-4 w-4" />
               {isSubmitting

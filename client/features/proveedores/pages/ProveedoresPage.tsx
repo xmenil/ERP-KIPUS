@@ -222,7 +222,7 @@ export const ProveedoresPage: React.FC = () => {
           value={formatNumber(totalProveedores)}
           subtitle="Empresas con RUC verificado"
           icon={Building2}
-          iconColor="text-blue-600 bg-blue-50 dark:bg-blue-950/40"
+          iconColor="text-primary bg-primary/10"
         />
 
         {/* Proveedores a Crédito */}
@@ -231,7 +231,7 @@ export const ProveedoresPage: React.FC = () => {
           value={formatNumber(aCredito)}
           subtitle="Con líneas de 15 a 60 días"
           icon={CreditCard}
-          iconColor="text-purple-600 bg-purple-50 dark:bg-purple-950/40"
+          iconColor="text-primary bg-primary/10"
         />
 
         {/* Compras Acumuladas */}
@@ -240,7 +240,7 @@ export const ProveedoresPage: React.FC = () => {
           value={formatCurrency(totalComprasAcumuladas)}
           subtitle="Volumen histórico facturado"
           icon={Store}
-          iconColor="text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40"
+          iconColor="text-success-text bg-success-soft"
         />
 
         {/* Cuentas por Pagar */}
@@ -249,7 +249,7 @@ export const ProveedoresPage: React.FC = () => {
           value={formatCurrency(totalCuentasPorPagar)}
           subtitle="Saldos pendientes a liquidar"
           icon={CreditCard}
-          iconColor="text-rose-600 bg-rose-50 dark:bg-rose-950/40"
+          iconColor="text-danger-text bg-danger-soft"
         />
       </div>
 
@@ -364,17 +364,17 @@ export const ProveedoresPage: React.FC = () => {
         <Card className="border border-border/80 shadow-sm bg-card overflow-hidden">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="w-full min-w-[850px]">
                 <TableHeader>
                   <TableRow className="text-xs bg-muted/40">
-                    <TableHead className="w-12 text-center">ID</TableHead>
-                    <TableHead>Proveedor (Nombre y Razón Social)</TableHead>
-                    <TableHead className="w-36">RUC / Doc</TableHead>
-                    <TableHead>Ubicación (Ciudad • Dirección)</TableHead>
-                    <TableHead>Contacto & Canales</TableHead>
-                    <TableHead>Condición Pago</TableHead>
-                    <TableHead className="text-right">Saldo Pendiente</TableHead>
-                    <TableHead className="w-24 text-center">Acciones</TableHead>
+                    <TableHead className="w-12 text-center whitespace-nowrap">ID</TableHead>
+                    <TableHead className="whitespace-nowrap">Proveedor (Nombre y Razón Social)</TableHead>
+                    <TableHead className="w-36 whitespace-nowrap">RUC / Doc</TableHead>
+                    <TableHead className="whitespace-nowrap">Ubicación (Ciudad • Dirección)</TableHead>
+                    <TableHead className="whitespace-nowrap">Contacto & Canales</TableHead>
+                    <TableHead className="whitespace-nowrap">Condición Pago</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">Saldo Pendiente</TableHead>
+                    <TableHead className="w-24 text-center whitespace-nowrap">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -390,7 +390,7 @@ export const ProveedoresPage: React.FC = () => {
                         }}
                       >
                         {/* ID / Código */}
-                        <TableCell className="text-center font-mono text-[11px] text-muted-foreground">
+                        <TableCell className="text-center font-mono text-[11px] text-muted-foreground whitespace-nowrap">
                           {prov.codigo || prov.id.slice(-3)}
                         </TableCell>
 
@@ -412,16 +412,16 @@ export const ProveedoresPage: React.FC = () => {
                         </TableCell>
 
                         {/* RUC con Copiar */}
-                        <TableCell onClick={(e) => e.stopPropagation()}>
+                        <TableCell onClick={(e) => e.stopPropagation()} className="whitespace-nowrap">
                           <button
                             type="button"
                             onClick={(e) => handleCopiarRuc(e, prov.ruc, prov.id)}
-                            className="inline-flex items-center gap-1 font-mono font-bold text-foreground hover:text-primary transition-colors text-[11px]"
+                            className="inline-flex items-center gap-1 font-mono font-bold text-foreground hover:text-primary transition-colors text-[11px] cursor-pointer"
                             title="Copiar RUC"
                           >
                             <span>{prov.ruc}</span>
                             {copiadoId === prov.id ? (
-                              <Check className="h-3 w-3 text-emerald-600" />
+                              <Check className="h-3 w-3 text-success-text" />
                             ) : (
                               <Copy className="h-3 w-3 text-muted-foreground" />
                             )}
@@ -441,7 +441,7 @@ export const ProveedoresPage: React.FC = () => {
                         </TableCell>
 
                         {/* Contacto & Teléfono */}
-                        <TableCell onClick={(e) => e.stopPropagation()}>
+                        <TableCell onClick={(e) => e.stopPropagation()} className="whitespace-nowrap">
                           <div className="space-y-0.5">
                             <span className="font-medium text-foreground block">
                               {prov.contacto || 'Contacto'}
@@ -462,7 +462,7 @@ export const ProveedoresPage: React.FC = () => {
                                   href={`https://wa.me/51${cleanPhone}`}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="text-emerald-600 hover:text-emerald-700"
+                                  className="text-success-text hover:text-success"
                                   title="WhatsApp"
                                 >
                                   <MessageSquare className="h-3 w-3" />
@@ -473,12 +473,12 @@ export const ProveedoresPage: React.FC = () => {
                         </TableCell>
 
                         {/* Condición de Pago */}
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">
                           <span
                             className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${
                               prov.condicionPago.includes('Crédito')
-                                ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                                : 'bg-muted text-muted-foreground border border-border'
+                                ? 'bg-muted/70 text-foreground border border-border/60'
+                                : 'bg-muted text-muted-foreground border border-border/40'
                             }`}
                           >
                             {prov.condicionPago}
@@ -486,10 +486,10 @@ export const ProveedoresPage: React.FC = () => {
                         </TableCell>
 
                         {/* Saldo Pendiente */}
-                        <TableCell className="text-right">
+                        <TableCell className="text-right whitespace-nowrap">
                           <span
-                            className={`font-bold tabular-nums text-xs ${
-                              (prov.saldoPendiente || 0) > 0 ? 'text-rose-600' : 'text-muted-foreground'
+                            className={`font-bold tabular-nums font-mono text-xs ${
+                              (prov.saldoPendiente || 0) > 0 ? 'text-danger-text' : 'text-muted-foreground'
                             }`}
                           >
                             {formatCurrency(prov.saldoPendiente || 0)}
@@ -497,7 +497,7 @@ export const ProveedoresPage: React.FC = () => {
                         </TableCell>
 
                         {/* Acciones */}
-                        <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                        <TableCell className="text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-center gap-1">
                             <Button
                               type="button"
@@ -529,7 +529,7 @@ export const ProveedoresPage: React.FC = () => {
                               type="button"
                               variant="ghost"
                               size="sm"
-                              className="h-7 w-7 p-0 text-muted-foreground hover:text-rose-600"
+                              className="h-7 w-7 p-0 text-muted-foreground hover:text-danger-text"
                               onClick={() => handleEliminarProveedor(prov)}
                               title="Eliminar proveedor"
                             >
@@ -600,8 +600,8 @@ export const ProveedoresPage: React.FC = () => {
                     <div className="flex justify-between items-center pt-1 border-t border-border/40">
                       <span className="text-muted-foreground">Saldo pendiente:</span>
                       <span
-                        className={`font-bold tabular-nums ${
-                          (prov.saldoPendiente || 0) > 0 ? 'text-rose-600' : 'text-emerald-700'
+                        className={`font-bold tabular-nums font-mono ${
+                          (prov.saldoPendiente || 0) > 0 ? 'text-danger-text' : 'text-success-text'
                         }`}
                       >
                         {formatCurrency(prov.saldoPendiente || 0)}
@@ -626,7 +626,7 @@ export const ProveedoresPage: React.FC = () => {
                           href={`https://wa.me/51${cleanPhone}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="p-1.5 rounded-lg border border-emerald-200 text-emerald-600 hover:bg-emerald-50 transition-colors"
+                          className="p-1.5 rounded-lg border border-border text-success-text hover:bg-success-soft transition-colors"
                           title="WhatsApp"
                         >
                           <MessageSquare className="h-3.5 w-3.5" />
@@ -652,7 +652,7 @@ export const ProveedoresPage: React.FC = () => {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="h-7 w-7 p-0 text-muted-foreground hover:text-rose-600"
+                        className="h-7 w-7 p-0 text-muted-foreground hover:text-danger-text"
                         onClick={() => handleEliminarProveedor(prov)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
