@@ -14,7 +14,8 @@ import {
 } from '@/components/ui/table';
 import { configuracionService } from '../services/configuracionService';
 import { ConfiguracionSistema } from '../types/configuracion.types';
-import { Settings, Save, Building, FileCheck, CheckCircle2 } from 'lucide-react';
+import { Settings, Save, Building, FileCheck, CheckCircle2, RotateCcw } from 'lucide-react';
+import { erpStore } from '@/services/erp/erpStore';
 import { toast } from 'sonner';
 
 export const ConfiguracionPage: React.FC = () => {
@@ -226,6 +227,37 @@ export const ConfiguracionPage: React.FC = () => {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Zona de Simulación y Datos Demo */}
+        <Card className="border-border/80">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-bold flex items-center gap-2">
+              <RotateCcw className="h-5 w-5 text-primary" />
+              Simulación y Datos de Demostración (Minimarket / Bodega)
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Todos los módulos (Ventas, Inventario, Kardex, Caja, Compras y Gastos) están interconectados y sincronizados.
+              Puedes restablecer los datos de ejemplo del minimarket en cualquier momento.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="text-xs text-muted-foreground">
+              Catálogo actual: <span className="font-semibold text-foreground">30 productos de abarrotes, lácteos, bebidas, snacks y limpieza</span> con stock, kardex y caja inicial sincronizados.
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                erpStore.restablecerDatosMinimarket();
+                toast.success('Datos del Minimarket restablecidos al estado inicial');
+              }}
+              className="h-9 text-xs gap-2 shrink-0 border-border"
+            >
+              <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
+              Restablecer Datos Demo Minimarket
+            </Button>
           </CardContent>
         </Card>
 

@@ -11,4 +11,19 @@ export const productosService = {
     const nuevo = erpStore.crearProducto(payload);
     return simulateDelay(nuevo);
   },
+
+  async actualizarProducto(id: string, payload: Partial<NuevoProductoPayload>): Promise<Producto> {
+    const actualizado = erpStore.actualizarProducto(id, payload);
+    return simulateDelay(actualizado);
+  },
+
+  async eliminarProducto(id: string): Promise<boolean> {
+    const res = erpStore.eliminarProducto(id);
+    return simulateDelay(res);
+  },
+
+  async toggleEstadoProducto(id: string): Promise<Producto> {
+    const res = erpStore.toggleEstadoProducto(id);
+    return simulateDelay(res);
+  },
 };

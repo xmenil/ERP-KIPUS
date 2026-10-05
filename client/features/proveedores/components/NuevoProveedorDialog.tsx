@@ -141,7 +141,7 @@ export const NuevoProveedorDialog: React.FC<NuevoProveedorDialogProps> = ({
               <Input
                 value={rubro}
                 onChange={(e) => setRubro(e.target.value)}
-                placeholder="Ej. Lubricantes"
+                placeholder="Ej. Abarrotes y Alimentos"
                 className="h-8 text-xs"
               />
             </div>

@@ -118,26 +118,29 @@ export const AppSidebar: React.FC = () => {
     <Sidebar collapsible="icon" className="border-r border-border bg-sidebar select-none">
       {/* Encabezado del ERP estilo Desktop Software */}
       <SidebarHeader className="border-b border-border p-3">
-        <div className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white dark:bg-muted/40 border border-border/80 p-1 shadow-xs">
+        {/* Vista expandida: Logo oficial Kipus + ERP PRO */}
+        <div className="flex flex-col gap-1 items-center group-data-[collapsible=icon]:hidden">
+          <div className="flex items-center justify-center gap-2 whitespace-nowrap">
+            <img
+              src="/kipus-logo.png"
+              alt="Kipu's"
+              className="h-10 w-auto object-contain shrink-0 dark:brightness-110"
+            />
+
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-bold">
+              PRO
+            </span>
+          </div>
+        </div>
+
+        {/* Vista colapsada (icon mode): Isotipo centrado */}
+        <div className="hidden group-data-[collapsible=icon]:flex items-center justify-center">
+          <div className="flex h-8 w-10 items-center justify-center rounded-lg dark:bg-muted/40 border border-border/80 p-1 shadow-xs">
             <img
               src="/kipus-icon.png"
               alt="KIPU'S"
               className="h-full w-full object-contain"
             />
-          </div>
-          <div className="flex flex-col overflow-hidden min-w-0 group-data-[collapsible=icon]:hidden">
-            <div className="flex items-center gap-1.5">
-              <span className="font-black text-sm tracking-tight text-foreground truncate">
-                KIPU'S ERP
-              </span>
-              <span className="text-[9px] px-1 py-0.2 rounded bg-primary/10 text-primary font-bold">
-                PRO
-              </span>
-            </div>
-            <span className="text-[11px] text-muted-foreground truncate">
-              Gestión Comercial & Servicios
-            </span>
           </div>
         </div>
       </SidebarHeader>

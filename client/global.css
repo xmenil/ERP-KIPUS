@@ -19,16 +19,14 @@
     /* Bordes */
     --border: 215 20% 88%;                /* #DCE2EB tarjetas, tablas, divisores */
     --input: 215 16% 58%;                 /* #8391A5 borde de campos (3.2:1 sobre blanco) */
-    --ring: 301 35% 44%;                  /* #964895 anillo de foco (5.7:1 sobre blanco) */
+    --ring: 260 55% 50%;                  /* #6839C6 anillo de foco (7.0:1 sobre blanco) */
 
-    /* Acento único de la interfaz — paleta del cliente (ciruela)
-       Escala completa: #732571 · #964895 · #B96BB8 · #DC8DDC · #FFB0FF
-       En la UI se usan #732571 (primary), #964895 (foco) y dos derivados (hover y soft).
-       Los otros tonos van solo a gráficos y marca (ver --chart-*). */
-    --primary: 302 51% 30%;               /* #732571 botón principal, ítem activo, enlaces (9.4:1) */
+    /* Acento único de la interfaz — violeta tomado del logo de Kipus (#431B94, tono 260°)
+       El cian del logo (#02A1BC) NO es color de interfaz: solo marca y segunda serie de gráficos. */
+    --primary: 260 69% 34%;               /* #431B94 botón principal, ítem activo, enlaces (11.5:1) */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 302 53% 24%;         /* #5E1D5C hover del botón primario (11.6:1) */
-    --primary-soft: 300 43% 95%;          /* #F7EBF7 fondo suave: ítem activo, badge informativo */
+    --primary-hover: 260 69% 27%;         /* #351574 hover del botón primario (13.9:1) */
+    --primary-soft: 260 60% 96%;          /* #F3EFFB fondo suave: ítem activo, badge informativo */
     --secondary: 216 20% 94%;
     --secondary-foreground: 222 47% 13%;
     --accent: 216 20% 94%;
@@ -52,21 +50,21 @@
     /* Sidebar */
     --sidebar-background: 216 25% 95%;
     --sidebar-foreground: 218 35% 24%;
-    --sidebar-primary: 302 51% 30%;
+    --sidebar-primary: 260 69% 34%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 300 43% 95%;
-    --sidebar-accent-foreground: 302 51% 30%;
+    --sidebar-accent: 260 60% 96%;
+    --sidebar-accent-foreground: 260 69% 34%;
     --sidebar-border: 215 20% 86%;
-    --sidebar-ring: 301 35% 44%;
+    --sidebar-ring: 260 55% 50%;
 
-    /* Gráficos (Recharts). Solo la escala del cliente; nunca texto con estos tonos.
-       Con 2 series: chart-1 + chart-neutral. Con más, etiquetas directas. */
-    --chart-1: 302 51% 30%;               /* #732571 */
-    --chart-2: 301 35% 44%;               /* #964895 */
-    --chart-3: 301 36% 57%;               /* #B96BB8 */
-    --chart-4: 300 53% 71%;               /* #DC8DDC */
-    --chart-5: 300 100% 85%;              /* #FFB0FF */
-    --chart-neutral: 215 16% 47%;         /* #64748B serie de comparación */
+    /* Gráficos (Recharts). Solo elementos gráficos, nunca texto con estos tonos.
+       Con 2 series: chart-1 + chart-2 (violeta y cian del logo). Con más, etiquetas directas. */
+    --chart-1: 260 69% 34%;               /* #431B94 violeta del logo */
+    --chart-2: 189 98% 37%;               /* #02A1BC cian del logo (3.1:1) */
+    --chart-3: 260 55% 50%;               /* #6839C6 */
+    --chart-4: 260 55% 64%;               /* #9271D6 */
+    --chart-5: 215 16% 47%;               /* #64748B gris neutro */
+    --chart-neutral: 215 16% 47%;         /* serie de comparación o "anterior" */
 
     /* Forma */
     --radius: 0.375rem;                   /* 6 px, radio base único */
@@ -86,12 +84,12 @@
 
     --border: 222 16% 22%;
     --input: 217 14% 40%;
-    --ring: 301 36% 57%;                  /* #B96BB8 */
+    --ring: 260 71% 68%;                  /* #9A74E7 */
 
-    --primary: 300 53% 71%;               /* #DC8DDC sobre fondo oscuro (7.2:1) */
-    --primary-foreground: 222 47% 11%;    /* texto oscuro sobre el primario (7.5:1) */
-    --primary-hover: 300 59% 79%;          /* #E9A9E9 */
-    --primary-soft: 300 30% 18%;           /* #3C203C */
+    --primary: 260 90% 76%;               /* #AF8BF9 sobre fondo oscuro (6.4:1) */
+    --primary-foreground: 222 47% 11%;    /* texto oscuro sobre el primario (6.7:1) */
+    --primary-hover: 260 91% 83%;         /* #C7ADFB */
+    --primary-soft: 260 35% 20%;          /* #2D2145 */
     --secondary: 222 18% 17%;
     --secondary-foreground: 214 32% 94%;
     --accent: 222 18% 17%;
@@ -112,19 +110,19 @@
 
     --sidebar-background: 222 35% 10%;
     --sidebar-foreground: 210 25% 92%;
-    --sidebar-primary: 300 53% 71%;
+    --sidebar-primary: 260 90% 76%;
     --sidebar-primary-foreground: 222 47% 11%;
-    --sidebar-accent: 300 30% 18%;
+    --sidebar-accent: 260 35% 20%;
     --sidebar-accent-foreground: 214 32% 94%;
     --sidebar-border: 217 25% 18%;
-    --sidebar-ring: 301 36% 57%;
+    --sidebar-ring: 260 71% 68%;
 
-    /* Gráficos en oscuro: los tonos profundos pierden contraste, se invierte el orden */
-    --chart-1: 300 53% 71%;               /* #DC8DDC */
-    --chart-2: 301 36% 57%;               /* #B96BB8 */
-    --chart-3: 300 100% 85%;              /* #FFB0FF */
-    --chart-4: 215 16% 62%;               /* gris neutro */
-    --chart-5: 301 35% 50%;
+    /* Gráficos en oscuro: tonos aclarados para mantener contraste sobre la tarjeta */
+    --chart-1: 260 90% 76%;               /* #AF8BF9 */
+    --chart-2: 189 85% 50%;               /* #13CBEC cian aclarado */
+    --chart-3: 260 60% 62%;               /* #8B64D8 */
+    --chart-4: 260 91% 83%;               /* #C7ADFB */
+    --chart-5: 215 16% 62%;               /* gris neutro */
     --chart-neutral: 215 16% 62%;
   }
 

@@ -1,7 +1,14 @@
 /**
- * Tienda de Negocio Unificada (Business ERP Store)
- * Coordina el flujo real entre Ventas, Inventario (Kardex), Caja, Compras y Gastos.
- * Cualquier transacción en un módulo impacta inmediatamente a los módulos dependientes.
+ * Tienda de Negocio Unificada (Business ERP Store) — KIPU'S ERP
+ * Especializada para BODEGAS Y MINIMARKETS.
+ * 
+ * Sincronización e Interconexión Correlacional Total:
+ * - Venta en POS / Facturación -> Descuenta Stock en Inventario + Registra salida en Kardex + Ingresa a Caja (Efectivo/Digital) + Actualiza métricas Dashboard.
+ * - Compra a Proveedor -> Incrementa Stock en Inventario + Registra entrada en Kardex + Egreso en Caja (si es efectivo) + Actualiza Compras.
+ * - Gastos Operativos -> Egreso en Caja (si es efectivo) + Registro en módulo de Gastos.
+ * - Ajustes y Conteo Físico -> Actualiza Stock + Registra movimiento de ajuste en Kardex.
+ * - Apertura / Cierre de Caja -> Cuadre de caja con diferencias, arqueos y auditoría.
+ * - Persistencia en LocalStorage (KIPUS_ERP_STORAGE_V2): todo lo que simules se conserva y no se pierde al recargar.
  */
 
 import {
@@ -15,7 +22,6 @@ import { Producto, NuevoProductoPayload } from '@/features/productos/types/produ
 import {
   MovimientoKardex,
   NuevoMovimientoPayload,
-  AlmacenResumen,
   RecepcionMercanciaPayload,
   AjusteAuditoriaPayload,
   AjusteInventario,
@@ -37,532 +43,827 @@ import { Compra, NuevaCompraPayload } from '@/features/compras/types/compras.typ
 import { Cliente, NuevoClientePayload } from '@/features/clientes/types/clientes.types';
 import { Proveedor, NuevoProveedorPayload } from '@/features/proveedores/types/proveedores.types';
 
-// ==========================================
-// ESTADO INICIAL COMPARTIDO
-// ==========================================
+// Clave de almacenamiento local versionada para Minimarket
+const STORAGE_KEY = 'KIPUS_ERP_STORAGE_V2';
 
-
-let productos: Producto[] = [
+// ==========================================
+// CATÁLOGO BASE DE PRODUCTOS DE BODEGA / MINIMARKET
+// ==========================================
+export const DEFAULT_PRODUCTOS: Producto[] = [
+  // 1. Abarrotes y Granos
   {
     id: 'prod-1',
-    sku: 'LUB-5W30-01',
-    nombre: 'Aceite Motor Sintético 5W-30 (Galón)',
-    categoria: 'Lubricantes',
-    precioCompra: 75.0,
-    precioVenta: 110.0,
-    stock: 8,
-    stockMinimo: 10,
-    unidadMedida: 'GALON',
+    sku: 'ARR-COS-01',
+    nombre: 'Arroz Costeño Extra 1 kg',
+    categoria: 'Abarrotes y Granos',
+    precioCompra: 3.80,
+    precioVenta: 4.80,
+    stock: 45,
+    stockMinimo: 15,
+    unidadMedida: 'BOLSA',
     activo: true,
-    ubicacion: 'Estante A-1 (Pasillo Central)',
+    ubicacion: 'Estante 1 - Abarrotes',
   },
   {
     id: 'prod-2',
-    sku: 'FLT-AIR-08',
-    nombre: 'Filtro de Aire Universal Premium',
-    categoria: 'Filtros',
-    precioCompra: 28.0,
-    precioVenta: 50.0,
-    stock: 12,
-    stockMinimo: 15,
-    unidadMedida: 'UNIDAD',
+    sku: 'ARR-FAR-05',
+    nombre: 'Arroz Faraón Extra Añejo 5 kg',
+    categoria: 'Abarrotes y Granos',
+    precioCompra: 18.50,
+    precioVenta: 23.50,
+    stock: 18,
+    stockMinimo: 8,
+    unidadMedida: 'BOLSA',
     activo: true,
-    ubicacion: 'Estante B-2 (Zona Filtros)',
+    ubicacion: 'Tarima 1 - Sacos y Bolsas',
   },
   {
     id: 'prod-3',
-    sku: 'BAT-12V-65',
-    nombre: 'Batería 12V 65Ah Sellada',
-    categoria: 'Eléctrico',
-    precioCompra: 320.0,
-    precioVenta: 455.0,
-    stock: 5,
-    stockMinimo: 12,
-    unidadMedida: 'UNIDAD',
+    sku: 'AZU-PAR-01',
+    nombre: 'Azúcar Rubia Paramonga 1 kg',
+    categoria: 'Abarrotes y Granos',
+    precioCompra: 3.10,
+    precioVenta: 4.00,
+    stock: 32,
+    stockMinimo: 10,
+    unidadMedida: 'BOLSA',
     activo: true,
-    ubicacion: 'Piso 1 - Tarima Baterías',
+    ubicacion: 'Estante 1 - Abarrotes',
   },
   {
     id: 'prod-4',
-    sku: 'LIQ-FRN-04',
-    nombre: 'Líquido de Frenos DOT 4 500ml',
-    categoria: 'Químicos',
-    precioCompra: 28.0,
-    precioVenta: 48.5,
-    stock: 16,
-    stockMinimo: 15,
-    unidadMedida: 'UNIDAD',
+    sku: 'FID-DVI-45',
+    nombre: 'Fideos Don Vittorio Spaghetti 450g',
+    categoria: 'Abarrotes y Granos',
+    precioCompra: 2.40,
+    precioVenta: 3.20,
+    stock: 38,
+    stockMinimo: 12,
+    unidadMedida: 'PAQUETE',
     activo: true,
-    ubicacion: 'Anaquel C-3 (Mostrador)',
+    ubicacion: 'Estante 1 - Pastas',
   },
   {
     id: 'prod-5',
-    sku: 'REF-ORG-01',
-    nombre: 'Refrigerante Orgánico 50/50 1 Galón',
-    categoria: 'Químicos',
-    precioCompra: 38.0,
-    precioVenta: 60.0,
-    stock: 24,
-    stockMinimo: 8,
-    unidadMedida: 'GALON',
+    sku: 'FID-LAV-25',
+    nombre: 'Fideos Lavaggi Canuto Corto 250g',
+    categoria: 'Abarrotes y Granos',
+    precioCompra: 1.40,
+    precioVenta: 2.00,
+    stock: 25,
+    stockMinimo: 10,
+    unidadMedida: 'PAQUETE',
     activo: true,
-    ubicacion: 'Estante A-3 (Líquidos)',
+    ubicacion: 'Estante 1 - Pastas',
   },
   {
     id: 'prod-6',
-    sku: 'PST-FRN-CER',
-    nombre: 'Pastillas de Freno Delanteras Cerámica',
-    categoria: 'Frenos',
-    precioCompra: 240.0,
-    precioVenta: 372.5,
-    stock: 18,
-    stockMinimo: 5,
-    unidadMedida: 'JUEGO',
+    sku: 'ACE-PRI-90',
+    nombre: 'Aceite Primor Clásico 900ml',
+    categoria: 'Abarrotes y Granos',
+    precioCompra: 7.20,
+    precioVenta: 9.50,
+    stock: 22,
+    stockMinimo: 10,
+    unidadMedida: 'BOTELLA',
     activo: true,
-    ubicacion: 'Vitrina 2 - Repuestos',
+    ubicacion: 'Estante 2 - Aceites',
+  },
+  {
+    id: 'prod-7',
+    sku: 'ACE-COC-90',
+    nombre: 'Aceite Vegetal Cocinero 900ml',
+    categoria: 'Abarrotes y Granos',
+    precioCompra: 6.30,
+    precioVenta: 8.20,
+    stock: 16,
+    stockMinimo: 8,
+    unidadMedida: 'BOTELLA',
+    activo: true,
+    ubicacion: 'Estante 2 - Aceites',
+  },
+  {
+    id: 'prod-8',
+    sku: 'ATN-FLO-17',
+    nombre: 'Filete de Atún Florida en Aceite 170g',
+    categoria: 'Abarrotes y Granos',
+    precioCompra: 4.50,
+    precioVenta: 6.20,
+    stock: 28,
+    stockMinimo: 12,
+    unidadMedida: 'LATA',
+    activo: true,
+    ubicacion: 'Anaquel Conservas A-1',
+  },
+  {
+    id: 'prod-9',
+    sku: 'HAR-BFL-01',
+    nombre: 'Harina Preparada Blanca Flor 1 kg',
+    categoria: 'Abarrotes y Granos',
+    precioCompra: 5.20,
+    precioVenta: 6.80,
+    stock: 14,
+    stockMinimo: 6,
+    unidadMedida: 'BOLSA',
+    activo: true,
+    ubicacion: 'Estante 1 - Repostería',
+  },
+  {
+    id: 'prod-10',
+    sku: 'SAL-EMS-01',
+    nombre: 'Sal de Mesa Emsal Yodada 1 kg',
+    categoria: 'Abarrotes y Granos',
+    precioCompra: 1.20,
+    precioVenta: 1.80,
+    stock: 40,
+    stockMinimo: 15,
+    unidadMedida: 'BOLSA',
+    activo: true,
+    ubicacion: 'Estante 1 - Condimentos',
+  },
+
+  // 2. Lácteos y Desayuno
+  {
+    id: 'prod-11',
+    sku: 'LEC-GLO-40',
+    nombre: 'Leche Evaporada Gloria Azul Entera 400g',
+    categoria: 'Lácteos y Desayuno',
+    precioCompra: 3.40,
+    precioVenta: 4.30,
+    stock: 54,
+    stockMinimo: 24,
+    unidadMedida: 'LATA',
+    activo: true,
+    ubicacion: 'Estante Lácteos - Nivel 2',
+  },
+  {
+    id: 'prod-12',
+    sku: 'YOG-GLO-1L',
+    nombre: 'Yogurt Gloria Batido Fresa 1 Litro',
+    categoria: 'Lácteos y Desayuno',
+    precioCompra: 5.10,
+    precioVenta: 6.80,
+    stock: 15,
+    stockMinimo: 6,
+    unidadMedida: 'BOTELLA',
+    activo: true,
+    ubicacion: 'Visicooler Lácteos 01',
+  },
+  {
+    id: 'prod-13',
+    sku: 'MAN-LAI-20',
+    nombre: 'Mantequilla Laive con Sal Barra 200g',
+    categoria: 'Lácteos y Desayuno',
+    precioCompra: 7.40,
+    precioVenta: 9.80,
+    stock: 11,
+    stockMinimo: 5,
+    unidadMedida: 'PAQUETE',
+    activo: true,
+    ubicacion: 'Visicooler Lácteos 01',
+  },
+  {
+    id: 'prod-14',
+    sku: 'CAF-NES-20',
+    nombre: 'Café Instantáneo Nescafé Tradición 200g',
+    categoria: 'Lácteos y Desayuno',
+    precioCompra: 16.80,
+    precioVenta: 21.50,
+    stock: 9,
+    stockMinimo: 5,
+    unidadMedida: 'FRASCO',
+    activo: true,
+    ubicacion: 'Anaquel Desayunos A-2',
+  },
+  {
+    id: 'prod-15',
+    sku: 'MIL-NES-40',
+    nombre: 'Chocolatada Milo Nestlé Lata 400g',
+    categoria: 'Lácteos y Desayuno',
+    precioCompra: 13.50,
+    precioVenta: 17.50,
+    stock: 7,
+    stockMinimo: 6,
+    unidadMedida: 'LATA',
+    activo: true,
+    ubicacion: 'Anaquel Desayunos A-2',
+  },
+  {
+    id: 'prod-16',
+    sku: 'AVE-3OS-30',
+    nombre: 'Avena 3 Ositos Tradicional 300g',
+    categoria: 'Lácteos y Desayuno',
+    precioCompra: 2.30,
+    precioVenta: 3.20,
+    stock: 26,
+    stockMinimo: 10,
+    unidadMedida: 'BOLSA',
+    activo: true,
+    ubicacion: 'Estante Desayunos',
+  },
+
+  // 3. Bebidas y Licores
+  {
+    id: 'prod-17',
+    sku: 'GAS-INK-15',
+    nombre: 'Gaseosa Inca Kola Sin Azúcar 1.5L',
+    categoria: 'Bebidas y Licores',
+    precioCompra: 5.20,
+    precioVenta: 7.00,
+    stock: 24,
+    stockMinimo: 10,
+    unidadMedida: 'BOTELLA',
+    activo: true,
+    ubicacion: 'Góndola Bebidas / Visicooler',
+  },
+  {
+    id: 'prod-18',
+    sku: 'GAS-INK-3L',
+    nombre: 'Gaseosa Inca Kola Original 3L Retornable',
+    categoria: 'Bebidas y Licores',
+    precioCompra: 10.50,
+    precioVenta: 13.50,
+    stock: 16,
+    stockMinimo: 8,
+    unidadMedida: 'BOTELLA',
+    activo: true,
+    ubicacion: 'Zona Retornables P-1',
+  },
+  {
+    id: 'prod-19',
+    sku: 'GAS-COK-50',
+    nombre: 'Gaseosa Coca-Cola Original Botella 500ml',
+    categoria: 'Bebidas y Licores',
+    precioCompra: 2.30,
+    precioVenta: 3.00,
+    stock: 36,
+    stockMinimo: 15,
+    unidadMedida: 'BOTELLA',
+    activo: true,
+    ubicacion: 'Visicooler Bebidas 02',
+  },
+  {
+    id: 'prod-20',
+    sku: 'AGU-SAN-60',
+    nombre: 'Agua Mineral San Mateo Sin Gas 600ml',
+    categoria: 'Bebidas y Licores',
+    precioCompra: 1.50,
+    precioVenta: 2.20,
+    stock: 30,
+    stockMinimo: 12,
+    unidadMedida: 'BOTELLA',
+    activo: true,
+    ubicacion: 'Visicooler Bebidas 02',
+  },
+  {
+    id: 'prod-21',
+    sku: 'CER-PIL-63',
+    nombre: 'Cerveza Pilsen Callao Botella 630ml',
+    categoria: 'Bebidas y Licores',
+    precioCompra: 5.80,
+    precioVenta: 7.50,
+    stock: 42,
+    stockMinimo: 18,
+    unidadMedida: 'BOTELLA',
+    activo: true,
+    ubicacion: 'Conservadora de Cervezas',
+  },
+  {
+    id: 'prod-22',
+    sku: 'CER-CUS-TR',
+    nombre: 'Cerveza Cusqueña Trigo Botella 310ml',
+    categoria: 'Bebidas y Licores',
+    precioCompra: 4.20,
+    precioVenta: 6.00,
+    stock: 20,
+    stockMinimo: 10,
+    unidadMedida: 'BOTELLA',
+    activo: true,
+    ubicacion: 'Conservadora de Cervezas',
+  },
+
+  // 4. Snacks y Golosinas
+  {
+    id: 'prod-23',
+    sku: 'GAL-CAS-ME',
+    nombre: 'Galletas Casino Menta Paquete x6',
+    categoria: 'Snacks y Golosinas',
+    precioCompra: 3.60,
+    precioVenta: 5.00,
+    stock: 19,
+    stockMinimo: 8,
+    unidadMedida: 'PAQUETE',
+    activo: true,
+    ubicacion: 'Góndola Snacks',
+  },
+  {
+    id: 'prod-24',
+    sku: 'GAL-MOR-06',
+    nombre: 'Galletas Morochas Chocochips Paquete x6',
+    categoria: 'Snacks y Golosinas',
+    precioCompra: 3.80,
+    precioVenta: 5.20,
+    stock: 22,
+    stockMinimo: 8,
+    unidadMedida: 'PAQUETE',
+    activo: true,
+    ubicacion: 'Góndola Snacks',
+  },
+  {
+    id: 'prod-25',
+    sku: 'SNK-LAY-16',
+    nombre: "Papas Fritas Lay's Clásicas Familiar 160g",
+    categoria: 'Snacks y Golosinas',
+    precioCompra: 5.40,
+    precioVenta: 7.50,
+    stock: 14,
+    stockMinimo: 8,
+    unidadMedida: 'BOLSA',
+    activo: true,
+    ubicacion: 'Exhibidor Snacks',
+  },
+  {
+    id: 'prod-26',
+    sku: 'CHO-SUB-30',
+    nombre: 'Chocolate Sublime Clásico Barra 30g',
+    categoria: 'Snacks y Golosinas',
+    precioCompra: 1.80,
+    precioVenta: 2.50,
+    stock: 40,
+    stockMinimo: 15,
+    unidadMedida: 'UNIDAD',
+    activo: true,
+    ubicacion: 'Vitrina Mostrador / Caja',
+  },
+
+  // 5. Limpieza del Hogar
+  {
+    id: 'prod-27',
+    sku: 'DET-BOL-80',
+    nombre: 'Detergente Bolívar Floral Bolsa 800g',
+    categoria: 'Limpieza del Hogar',
+    precioCompra: 5.80,
+    precioVenta: 7.50,
+    stock: 25,
+    stockMinimo: 10,
+    unidadMedida: 'BOLSA',
+    activo: true,
+    ubicacion: 'Estante Limpieza 1',
+  },
+  {
+    id: 'prod-28',
+    sku: 'LEJ-CLO-01',
+    nombre: 'Lejía Clorox Tradicional 1 Litro',
+    categoria: 'Limpieza del Hogar',
+    precioCompra: 2.90,
+    precioVenta: 4.00,
+    stock: 18,
+    stockMinimo: 8,
+    unidadMedida: 'BOTELLA',
+    activo: true,
+    ubicacion: 'Estante Limpieza 1',
+  },
+  {
+    id: 'prod-29',
+    sku: 'PAP-SUA-04',
+    nombre: 'Papel Higiénico Suave Rindemax Pack x4',
+    categoria: 'Limpieza del Hogar',
+    precioCompra: 3.90,
+    precioVenta: 5.20,
+    stock: 32,
+    stockMinimo: 12,
+    unidadMedida: 'PAQUETE',
+    activo: true,
+    ubicacion: 'Anaquel Papelería',
+  },
+
+  // 6. Cuidado Personal
+  {
+    id: 'prod-30',
+    sku: 'CRE-COL-75',
+    nombre: 'Crema Dental Colgate Triple Acción 75ml',
+    categoria: 'Cuidado Personal',
+    precioCompra: 3.20,
+    precioVenta: 4.50,
+    stock: 20,
+    stockMinimo: 8,
+    unidadMedida: 'UNIDAD',
+    activo: true,
+    ubicacion: 'Vitrina Cuidado Personal',
   },
 ];
 
-let ventas: Venta[] = [
+// ==========================================
+// VENTAS INICIALES REALISTAS
+// ==========================================
+export const DEFAULT_VENTAS: Venta[] = [
   {
     id: 'v-1',
     tipoComprobante: 'BOLETA',
     serieCorrelativo: 'B001-000482',
-    clienteNombre: 'Distribuidora San Juan',
-    clienteDocumento: '20554433221',
-    fecha: '2026-10-02 14:32',
+    clienteNombre: 'Carmen Rosa Benítez',
+    clienteDocumento: '41289341',
+    fecha: '2026-10-04 10:15',
     metodoPago: 'YAPE',
     estado: 'COMPLETADA',
-    subtotal: 550.85,
+    subtotal: 31.19,
     descuento: 0,
-    igv: 99.15,
-    total: 650.0,
-    montoRecibido: 650.0,
+    igv: 5.61,
+    total: 36.80,
+    montoRecibido: 36.80,
     vuelto: 0,
     sucursal: 'Sede Central (Tingo María)',
     caja: 'Caja 01 - Mostrador',
-    vendedor: 'Carlos Vega',
+    vendedor: 'Juan Pérez (Cajero)',
     items: [
-      { productoId: 'prod-1', nombre: 'Aceite Motor Sintético 5W-30 (Galón)', cantidad: 5, precioUnitario: 110.0, subtotal: 550.0 },
-      { productoId: 'prod-2', nombre: 'Filtro de Aire Universal Premium', cantidad: 2, precioUnitario: 50.0, subtotal: 100.0 },
+      { productoId: 'prod-1', nombre: 'Arroz Costeño Extra 1 kg', cantidad: 3, precioUnitario: 4.80, subtotal: 14.40 },
+      { productoId: 'prod-11', nombre: 'Leche Evaporada Gloria Azul Entera 400g', cantidad: 3, precioUnitario: 4.30, subtotal: 12.90 },
+      { productoId: 'prod-6', nombre: 'Aceite Primor Clásico 900ml', cantidad: 1, precioUnitario: 9.50, subtotal: 9.50 },
     ],
   },
   {
     id: 'v-2',
     tipoComprobante: 'FACTURA',
     serieCorrelativo: 'F001-000129',
-    clienteNombre: 'Constructora del Sur S.A.C.',
-    clienteDocumento: '20601299443',
-    fecha: '2026-10-02 13:15',
+    clienteNombre: 'Restaurante y Chifa El Huallaga E.I.R.L.',
+    clienteDocumento: '20603418291',
+    fecha: '2026-10-04 11:45',
     metodoPago: 'TRANSFERENCIA',
     estado: 'COMPLETADA',
-    subtotal: 1542.37,
+    subtotal: 161.86,
     descuento: 0,
-    igv: 277.63,
-    total: 1820.0,
-    montoRecibido: 1820.0,
+    igv: 29.14,
+    total: 191.00,
+    montoRecibido: 191.00,
     vuelto: 0,
     sucursal: 'Sede Central (Tingo María)',
     caja: 'Caja 01 - Mostrador',
     vendedor: 'Carlos Vega',
     items: [
-      { productoId: 'prod-3', nombre: 'Batería 12V 65Ah Sellada', cantidad: 4, precioUnitario: 455.0, subtotal: 1820.0 },
+      { productoId: 'prod-2', nombre: 'Arroz Faraón Extra Añejo 5 kg', cantidad: 4, precioUnitario: 23.50, subtotal: 94.00 },
+      { productoId: 'prod-6', nombre: 'Aceite Primor Clásico 900ml', cantidad: 4, precioUnitario: 9.50, subtotal: 38.00 },
+      { productoId: 'prod-4', nombre: 'Fideos Don Vittorio Spaghetti 450g', cantidad: 10, precioUnitario: 3.20, subtotal: 32.00 },
+      { productoId: 'prod-18', nombre: 'Gaseosa Inca Kola Original 3L Retornable', cantidad: 2, precioUnitario: 13.50, subtotal: 27.00 },
+    ],
+  },
+  {
+    id: 'v-3',
+    tipoComprobante: 'BOLETA',
+    serieCorrelativo: 'B001-000483',
+    clienteNombre: 'Luis Alberto Mendoza Ruiz',
+    clienteDocumento: '45892301',
+    fecha: '2026-10-04 13:20',
+    metodoPago: 'EFECTIVO',
+    estado: 'COMPLETADA',
+    subtotal: 29.66,
+    descuento: 0,
+    igv: 5.34,
+    total: 35.00,
+    montoRecibido: 50.00,
+    vuelto: 15.00,
+    sucursal: 'Sede Central (Tingo María)',
+    caja: 'Caja 01 - Mostrador',
+    vendedor: 'Juan Pérez (Cajero)',
+    items: [
+      { productoId: 'prod-21', nombre: 'Cerveza Pilsen Callao Botella 630ml', cantidad: 3, precioUnitario: 7.50, subtotal: 22.50 },
+      { productoId: 'prod-25', nombre: "Papas Fritas Lay's Clásicas Familiar 160g", cantidad: 1, precioUnitario: 7.50, subtotal: 7.50 },
+      { productoId: 'prod-26', nombre: 'Chocolate Sublime Clásico Barra 30g', cantidad: 2, precioUnitario: 2.50, subtotal: 5.00 },
     ],
   },
 ];
 
-let pedidos: Pedido[] = [
+// ==========================================
+// PEDIDOS Y COTIZACIONES
+// ==========================================
+export const DEFAULT_PEDIDOS: Pedido[] = [
   {
     id: 'ped-1',
     codigo: 'PED-0041',
-    clienteNombre: 'Distribuidora San Juan',
-    clienteTelefono: '991 884 122',
-    fecha: '2026-10-03 10:15',
-    fechaEntrega: '2026-10-04 15:00',
+    clienteNombre: 'Restaurante y Chifa El Huallaga E.I.R.L.',
+    clienteTelefono: '962 441 200',
+    fecha: '2026-10-05 09:15',
+    fechaEntrega: '2026-10-05 16:00',
     estado: 'CONFIRMADO',
-    total: 440.0,
+    total: 174.50,
     sucursal: 'Sede Central (Tingo María)',
-    notas: 'Despachar en caja sellada con guía de remisión',
+    notas: 'Despachar 5 sacos de arroz Faraón 5kg y 6 botellas de aceite Primor 900ml',
     items: [
-      { productoId: 'prod-1', nombre: 'Aceite Motor Sintético 5W-30 (Galón)', cantidad: 4, precioUnitario: 110.0, subtotal: 440.0 },
+      { productoId: 'prod-2', nombre: 'Arroz Faraón Extra Añejo 5 kg', cantidad: 5, precioUnitario: 23.50, subtotal: 117.50 },
+      { productoId: 'prod-6', nombre: 'Aceite Primor Clásico 900ml', cantidad: 6, precioUnitario: 9.50, subtotal: 57.00 },
     ],
   },
   {
     id: 'ped-2',
     codigo: 'PED-0042',
-    clienteNombre: 'Taller Mecánico El Chispazo',
-    clienteTelefono: '955 120 443',
-    fecha: '2026-10-03 11:30',
-    fechaEntrega: '2026-10-03 18:00',
+    clienteNombre: 'Juguería & Fuente de Soda Doña Mary',
+    clienteTelefono: '984 112 559',
+    fecha: '2026-10-05 10:30',
+    fechaEntrega: '2026-10-05 14:00',
     estado: 'PREPARANDO',
-    total: 390.0,
+    total: 78.80,
     sucursal: 'Tienda Mostrador (Tingo María)',
-    notas: 'Recoge en tienda en moto',
+    notas: '12 latas de Leche Gloria Azul y 4 botellas de Yogurt Fresa 1L',
     items: [
-      { productoId: 'prod-4', nombre: 'Líquido de Frenos DOT 4 500ml', cantidad: 6, precioUnitario: 48.5, subtotal: 291.0 },
-      { productoId: 'prod-2', nombre: 'Filtro de Aire Universal Premium', cantidad: 2, precioUnitario: 49.5, subtotal: 99.0 },
+      { productoId: 'prod-11', nombre: 'Leche Evaporada Gloria Azul Entera 400g', cantidad: 12, precioUnitario: 4.30, subtotal: 51.60 },
+      { productoId: 'prod-12', nombre: 'Yogurt Gloria Batido Fresa 1 Litro', cantidad: 4, precioUnitario: 6.80, subtotal: 27.20 },
     ],
   },
 ];
 
-let cotizaciones: Cotizacion[] = [
+export const DEFAULT_COTIZACIONES: Cotizacion[] = [
   {
     id: 'cot-1',
     numero: 'COT-0018',
-    clienteNombre: 'Constructora del Sur S.A.C.',
-    clienteDocumento: '20601299443',
-    fecha: '2026-10-02',
-    fechaVencimiento: '2026-10-16',
+    clienteNombre: 'Eventos & Banquetes Selva Tropical E.I.R.L.',
+    clienteDocumento: '20608821941',
+    fecha: '2026-10-04',
+    fechaVencimiento: '2026-10-18',
     validezDias: 14,
     estado: 'VIGENTE',
-    subtotal: 2182.2,
-    igv: 392.8,
-    total: 2575.0,
+    subtotal: 461.86,
+    igv: 83.14,
+    total: 545.00,
     vendedor: 'Carlos Vega',
     items: [
-      { productoId: 'prod-3', nombre: 'Batería 12V 65Ah Sellada', cantidad: 5, precioUnitario: 455.0, subtotal: 2275.0 },
-      { productoId: 'prod-5', nombre: 'Refrigerante Orgánico 50/50 1 Galón', cantidad: 5, precioUnitario: 60.0, subtotal: 300.0 },
+      { productoId: 'prod-21', nombre: 'Cerveza Pilsen Callao Botella 630ml', cantidad: 48, precioUnitario: 7.50, subtotal: 360.00 },
+      { productoId: 'prod-18', nombre: 'Gaseosa Inca Kola Original 3L Retornable', cantidad: 8, precioUnitario: 13.50, subtotal: 108.00 },
+      { productoId: 'prod-25', nombre: "Papas Fritas Lay's Clásicas Familiar 160g", cantidad: 10, precioUnitario: 7.70, subtotal: 77.00 },
     ],
   },
 ];
 
-let devoluciones: Devolucion[] = [
+export const DEFAULT_DEVOLUCIONES: Devolucion[] = [
   {
     id: 'dev-1',
     ventaId: 'v-1',
     serieCorrelativo: 'B001-000480',
-    fecha: '2026-10-01 16:10',
-    productoNombre: 'Filtro de Aire Universal Premium',
-    sku: 'FLT-AIR-08',
+    fecha: '2026-10-04 14:10',
+    productoNombre: 'Leche Evaporada Gloria Azul Entera 400g',
+    sku: 'LEC-GLO-40',
     cantidad: 1,
-    motivo: 'Cliente equivocó modelo de vehículo, cambio conforme',
-    montoDevuelto: 50.0,
+    motivo: 'Cliente solicitó cambio por versión Sin Lactosa',
+    montoDevuelto: 4.30,
     retornaAInventario: true,
     afectaCaja: true,
-    usuario: 'Carlos Vega',
+    usuario: 'Juan Pérez (Cajero)',
   },
 ];
 
-let movimientosKardex: MovimientoKardex[] = [
+// ==========================================
+// KARDEX INICIAL VINCULADO
+// ==========================================
+export const DEFAULT_KARDEX: MovimientoKardex[] = [
   {
     id: 'k-1',
-    fecha: '2026-10-02 14:32',
+    fecha: '2026-10-04 10:15',
     tipo: 'SALIDA',
     motivo: 'VENTA',
-    productoNombre: 'Aceite Motor Sintético 5W-30 (Galón)',
-    sku: 'LUB-5W30-01',
+    productoNombre: 'Arroz Costeño Extra 1 kg',
+    sku: 'ARR-COS-01',
     almacen: 'Almacén Principal',
-    cantidad: 5,
-    stockResultante: 8,
+    cantidad: 3,
+    stockResultante: 45,
     referencia: 'Boleta B001-000482',
-    usuario: 'Carlos Vega',
+    usuario: 'Juan Pérez',
     origen: 'Venta',
   },
   {
     id: 'k-2',
-    fecha: '2026-10-02 13:15',
+    fecha: '2026-10-04 10:15',
     tipo: 'SALIDA',
     motivo: 'VENTA',
-    productoNombre: 'Batería 12V 65Ah Sellada',
-    sku: 'BAT-12V-65',
+    productoNombre: 'Leche Evaporada Gloria Azul Entera 400g',
+    sku: 'LEC-GLO-40',
+    almacen: 'Almacén Principal',
+    cantidad: 3,
+    stockResultante: 54,
+    referencia: 'Boleta B001-000482',
+    usuario: 'Juan Pérez',
+    origen: 'Venta',
+  },
+  {
+    id: 'k-3',
+    fecha: '2026-10-04 10:15',
+    tipo: 'SALIDA',
+    motivo: 'VENTA',
+    productoNombre: 'Aceite Primor Clásico 900ml',
+    sku: 'ACE-PRI-90',
+    almacen: 'Almacén Principal',
+    cantidad: 1,
+    stockResultante: 22,
+    referencia: 'Boleta B001-000482',
+    usuario: 'Juan Pérez',
+    origen: 'Venta',
+  },
+  {
+    id: 'k-4',
+    fecha: '2026-10-04 11:45',
+    tipo: 'SALIDA',
+    motivo: 'VENTA',
+    productoNombre: 'Arroz Faraón Extra Añejo 5 kg',
+    sku: 'ARR-FAR-05',
     almacen: 'Almacén Principal',
     cantidad: 4,
-    stockResultante: 5,
+    stockResultante: 18,
     referencia: 'Factura F001-000129',
     usuario: 'Carlos Vega',
     origen: 'Venta',
   },
   {
-    id: 'k-3',
-    fecha: '2026-10-01 10:15',
-    tipo: 'AJUSTE',
-    motivo: 'MERMA',
-    productoNombre: 'Líquido de Frenos DOT 4 500ml',
-    sku: 'LIQ-FRN-04',
+    id: 'k-5',
+    fecha: '2026-10-04 13:20',
+    tipo: 'SALIDA',
+    motivo: 'VENTA',
+    productoNombre: 'Cerveza Pilsen Callao Botella 630ml',
+    sku: 'CER-PIL-63',
     almacen: 'Almacén Principal',
-    cantidad: 2,
-    stockResultante: 16,
-    referencia: 'Ajuste: Merma / rotura de envase',
-    usuario: 'Carlos Vega',
-    origen: 'Ajuste de inventario',
+    cantidad: 3,
+    stockResultante: 42,
+    referencia: 'Boleta B001-000483',
+    usuario: 'Juan Pérez',
+    origen: 'Venta',
   },
   {
-    id: 'k-4',
-    fecha: '2026-09-30 09:20',
+    id: 'k-6',
+    fecha: '2026-10-03 09:20',
     tipo: 'ENTRADA',
     motivo: 'COMPRA',
-    productoNombre: 'Refrigerante Orgánico 50/50 1 Galón',
-    sku: 'REF-ORG-01',
+    productoNombre: 'Arroz Costeño Extra 1 kg',
+    sku: 'ARR-COS-01',
     almacen: 'Almacén Principal',
-    cantidad: 15,
-    stockResultante: 24,
-    referencia: 'Factura F002-8821 (Distribuidora Selva)',
-    usuario: 'Almacenero / Admin',
+    cantidad: 50,
+    stockResultante: 48,
+    referencia: 'Factura F001-008921 (Alicorp S.A.A.)',
+    usuario: 'Carlos Vega',
     origen: 'Compra',
   },
   {
-    id: 'k-5',
-    fecha: '2026-09-28 17:40',
+    id: 'k-7',
+    fecha: '2026-10-03 14:30',
     tipo: 'AJUSTE',
-    motivo: 'AUDITORIA_CONTEO',
-    productoNombre: 'Filtro de Aire Universal Premium',
-    sku: 'FLT-AIR-08',
+    motivo: 'MERMA',
+    productoNombre: 'Filete de Atún Florida en Aceite 170g',
+    sku: 'ATN-FLO-17',
     almacen: 'Almacén Principal',
-    cantidad: 2,
-    stockResultante: 12,
-    referencia: 'Ajuste: Conteo físico',
-    usuario: 'Almacenero / Admin',
+    cantidad: 1,
+    stockResultante: 28,
+    referencia: 'Ajuste: Lata abollada con fuga en transporte',
+    usuario: 'Carlos Vega',
     origen: 'Ajuste de inventario',
   },
 ];
 
-let ajustesInventario: AjusteInventario[] = [
+export const DEFAULT_AJUSTES: AjusteInventario[] = [
   {
     id: 'aj-1',
-    productoId: 'prod-4',
-    productoNombre: 'Líquido de Frenos DOT 4 500ml',
-    sku: 'LIQ-FRN-04',
-    stockAnterior: 18,
-    nuevoStock: 16,
-    diferencia: -2,
+    productoId: 'prod-8',
+    productoNombre: 'Filete de Atún Florida en Aceite 170g',
+    sku: 'ATN-FLO-17',
+    stockAnterior: 29,
+    nuevoStock: 28,
+    diferencia: -1,
     motivo: 'Merma / daño de envase',
-    observacion: 'Envase con fisura durante traslado a vitrina',
-    fecha: '2026-10-01 10:15',
+    observacion: 'Envase de lata abollado con fisura durante descarga de camión',
+    fecha: '2026-10-03 14:30',
     usuario: 'Carlos Vega',
     almacen: 'Almacén Principal',
   },
   {
     id: 'aj-2',
-    productoId: 'prod-2',
-    productoNombre: 'Filtro de Aire Universal Premium',
-    sku: 'FLT-AIR-08',
-    stockAnterior: 10,
-    nuevoStock: 12,
+    productoId: 'prod-23',
+    productoNombre: 'Galletas Casino Menta Paquete x6',
+    sku: 'GAL-CAS-ME',
+    stockAnterior: 17,
+    nuevoStock: 19,
     diferencia: 2,
     motivo: 'Conteo físico',
-    observacion: '2 unidades encontradas en anaquel posterior',
-    fecha: '2026-09-28 17:40',
-    usuario: 'Almacenero / Admin',
+    observacion: '2 paquetes hallados en la parte posterior de la góndola de galletas',
+    fecha: '2026-10-02 18:00',
+    usuario: 'Carlos Vega',
     almacen: 'Almacén Principal',
   },
 ];
 
-let estadoCaja: EstadoCaja = {
+// ==========================================
+// CAJA INICIAL DEL MINIMARKET
+// ==========================================
+export const DEFAULT_ESTADO_CAJA: EstadoCaja = {
   id: 'caja-1',
   nombre: 'Caja 01 - Mostrador Principal',
   sucursal: 'Sede Central (Tingo María)',
-  responsable: 'Juan Pérez',
+  responsable: 'Juan Pérez (Cajero)',
   abierta: true,
   estado: 'ABIERTA',
   turno: 'Turno Mañana (08:00 - 16:00)',
-  fechaApertura: '2026-10-03',
+  fechaApertura: '2026-10-05',
   horaApertura: '08:00',
   saldoInicial: 200.0,
-  ventasEfectivo: 350.0,
-  otrosIngresosEfectivo: 150.0,
-  egresosEfectivo: 50.0,
-  saldoEfectivoEsperado: 650.0,
+  ventasEfectivo: 385.0,
+  otrosIngresosEfectivo: 100.0,
+  egresosEfectivo: 45.0,
+  saldoEfectivoEsperado: 640.0,
   ventasDigitales: {
-    yape: 580.0,
-    plin: 325.0,
-    tarjeta: 700.0,
-    transferencia: 1820.0,
+    yape: 425.0,
+    plin: 180.0,
+    tarjeta: 310.0,
+    transferencia: 780.0,
   },
-  totalVentasDigitales: 3425.0,
-  totalVentasGeneral: 3775.0,
+  totalVentasDigitales: 1695.0,
+  totalVentasGeneral: 2080.0,
 };
 
-let cajas: CajaInfo[] = [
+export const DEFAULT_CAJAS: CajaInfo[] = [
   {
     id: 'caja-1',
     nombre: 'Caja 01 - Mostrador Principal',
     sucursal: 'Sede Central (Tingo María)',
-    responsableActual: 'Juan Pérez',
+    responsableActual: 'Juan Pérez (Cajero)',
     estado: 'ABIERTA',
-    saldoActualEfectivo: 650.0,
-    ventasDia: 3775.0,
-    ultimaActividad: 'Hace 5 min',
+    saldoActualEfectivo: 640.0,
+    ventasDia: 2080.0,
+    ultimaActividad: 'Hace 3 min',
     abierta: true,
   },
   {
     id: 'caja-2',
     nombre: 'Caja 02 - Rápida / Billeteras',
     sucursal: 'Sede Central (Tingo María)',
-    responsableActual: 'María López',
+    responsableActual: 'María Santos',
     estado: 'ABIERTA',
-    saldoActualEfectivo: 420.0,
-    ventasDia: 1890.0,
-    ultimaActividad: 'Hace 12 min',
+    saldoActualEfectivo: 350.0,
+    ventasDia: 1240.0,
+    ultimaActividad: 'Hace 8 min',
     abierta: true,
   },
   {
     id: 'caja-3',
-    nombre: 'Caja 03 - Mostrador Secundario',
+    nombre: 'Caja 03 - Mostrador Pasillo',
     sucursal: 'Sede Central (Tingo María)',
     responsableActual: 'Sin asignar',
     estado: 'CERRADA',
     saldoActualEfectivo: 0.0,
     ventasDia: 0.0,
-    ultimaActividad: 'Ayer 20:00',
+    ultimaActividad: 'Ayer 20:30',
     abierta: false,
-  },
-  {
-    id: 'caja-4',
-    nombre: 'Caja 01 - Principal Huánuco',
-    sucursal: 'Sucursal Huánuco',
-    responsableActual: 'Carlos Vega',
-    estado: 'ABIERTA',
-    saldoActualEfectivo: 1120.0,
-    ventasDia: 2450.0,
-    ultimaActividad: 'Hace 18 min',
-    abierta: true,
-  },
-  {
-    id: 'caja-5',
-    nombre: 'Caja 02 - Huánuco Express',
-    sucursal: 'Sucursal Huánuco',
-    responsableActual: 'Ana Gómez',
-    estado: 'CERRADA',
-    saldoActualEfectivo: 0.0,
-    ventasDia: 0.0,
-    ultimaActividad: 'Ayer 19:30',
-    abierta: false,
-  },
-  {
-    id: 'caja-6',
-    nombre: 'Caja 01 - Aucayacu',
-    sucursal: 'Sucursal Aucayacu',
-    responsableActual: 'Pedro Ramírez',
-    estado: 'ABIERTA',
-    saldoActualEfectivo: 840.0,
-    ventasDia: 1630.0,
-    ultimaActividad: 'Hace 25 min',
-    abierta: true,
   },
 ];
 
-let cierresCaja: CierreCaja[] = [
+export const DEFAULT_CIERRES_CAJA: CierreCaja[] = [
   {
     id: 'cie-101',
     cajaId: 'caja-1',
     cajaNombre: 'Caja 01 - Mostrador Principal',
     sucursal: 'Sede Central (Tingo María)',
-    responsable: 'Juan Pérez',
-    fechaApertura: '2026-10-02 08:00',
-    fechaCierre: '2026-10-02',
+    responsable: 'Juan Pérez (Cajero)',
+    fechaApertura: '2026-10-04 08:00',
+    fechaCierre: '2026-10-04',
     horaCierre: '18:15',
     saldoInicial: 200.0,
-    ventasEfectivo: 1450.0,
-    otrosIngresos: 100.0,
-    egresos: 250.0,
-    saldoEsperado: 1500.0,
-    saldoContado: 1500.0,
-    diferencia: 0.0,
-    estado: 'CUADRADA',
-    ventasTotales: 3650.0,
-    totalOperaciones: 28,
-  },
-  {
-    id: 'cie-100',
-    cajaId: 'caja-1',
-    cajaNombre: 'Caja 01 - Mostrador Principal',
-    sucursal: 'Sede Central (Tingo María)',
-    responsable: 'Juan Pérez',
-    fechaApertura: '2026-10-01 08:00',
-    fechaCierre: '2026-10-01',
-    horaCierre: '18:30',
-    saldoInicial: 200.0,
-    ventasEfectivo: 1200.0,
+    ventasEfectivo: 1150.0,
     otrosIngresos: 50.0,
-    egresos: 180.0,
-    saldoEsperado: 1270.0,
-    saldoContado: 1260.0,
-    diferencia: -10.0,
-    estado: 'CON_DIFERENCIA',
-    motivoDiferencia: 'Error involuntario en vuelto de cliente',
-    observaciones: 'Faltante de S/ 10 asumido según política de caja',
-    ventasTotales: 2980.0,
-    totalOperaciones: 22,
-  },
-  {
-    id: 'cie-099',
-    cajaId: 'caja-2',
-    cajaNombre: 'Caja 02 - Rápida / Billeteras',
-    sucursal: 'Sede Central (Tingo María)',
-    responsable: 'María López',
-    fechaApertura: '2026-10-02 09:00',
-    fechaCierre: '2026-10-02',
-    horaCierre: '17:45',
-    saldoInicial: 150.0,
-    ventasEfectivo: 850.0,
-    otrosIngresos: 0.0,
-    egresos: 60.0,
-    saldoEsperado: 940.0,
-    saldoContado: 940.0,
+    egresos: 120.0,
+    saldoEsperado: 1280.0,
+    saldoContado: 1280.0,
     diferencia: 0.0,
     estado: 'CUADRADA',
-    ventasTotales: 4120.0,
-    totalOperaciones: 39,
+    ventasTotales: 3450.0,
+    totalOperaciones: 42,
   },
 ];
 
-let auditoriaCaja: AuditoriaCaja[] = [
+export const DEFAULT_AUDITORIA_CAJA: AuditoriaCaja[] = [
   {
     id: 'aud-1',
     usuario: 'Juan Pérez',
     accion: 'APERTURA',
-    fecha: '2026-10-03',
+    fecha: '2026-10-05',
     hora: '08:00',
     caja: 'Caja 01 - Mostrador Principal',
     sucursal: 'Sede Central (Tingo María)',
-    movimiento: 'Apertura con saldo inicial S/ 200.00',
+    movimiento: 'Apertura con saldo inicial de sencillo S/ 200.00',
     valorAnterior: 'CERRADA',
     valorNuevo: 'ABIERTA',
-    observacion: 'Inicio de turno sin incidencias',
+    observacion: 'Apertura de turno mañana',
   },
   {
     id: 'aud-2',
-    usuario: 'Admin',
+    usuario: 'Carlos Vega',
     accion: 'EGRESO',
-    fecha: '2026-10-03',
-    hora: '11:15',
+    fecha: '2026-10-05',
+    hora: '10:45',
     caja: 'Caja 01 - Mostrador Principal',
     sucursal: 'Sede Central (Tingo María)',
-    movimiento: 'Egreso de S/ 50.00 para compra de insumos de limpieza',
-    valorAnterior: 'S/ 550.00',
-    valorNuevo: 'S/ 500.00',
-    observacion: 'Autorizado por Supervisor',
-  },
-  {
-    id: 'aud-3',
-    usuario: 'Juan Pérez',
-    accion: 'INGRESO',
-    fecha: '2026-10-03',
-    hora: '12:30',
-    caja: 'Caja 01 - Mostrador Principal',
-    sucursal: 'Sede Central (Tingo María)',
-    movimiento: 'Ingreso de S/ 150.00 (Reposición de sencillo de tesorería)',
-    valorAnterior: 'S/ 500.00',
-    valorNuevo: 'S/ 650.00',
-  },
-  {
-    id: 'aud-4',
-    usuario: 'María López',
-    accion: 'APERTURA',
-    fecha: '2026-10-03',
-    hora: '08:30',
-    caja: 'Caja 02 - Rápida / Billeteras',
-    sucursal: 'Sede Central (Tingo María)',
-    movimiento: 'Apertura con saldo inicial S/ 150.00',
-    valorAnterior: 'CERRADA',
-    valorNuevo: 'ABIERTA',
+    movimiento: 'Egreso de S/ 45.00 para bolsas biodegradables y rollos térmicos',
+    valorAnterior: 'S/ 585.00',
+    valorNuevo: 'S/ 540.00',
+    observacion: 'Recibo simple de librería',
   },
 ];
 
-let movimientosCaja: MovimientoCaja[] = [
+export const DEFAULT_MOVIMIENTOS_CAJA: MovimientoCaja[] = [
   {
     id: 'mc-1',
-    fecha: '2026-10-03',
+    fecha: '2026-10-05',
     hora: '08:00',
     tipo: 'INGRESO',
     concepto: 'Apertura de turno - Sencillo en caja',
@@ -570,352 +871,457 @@ let movimientosCaja: MovimientoCaja[] = [
     monto: 200.0,
     usuario: 'Juan Pérez',
     sucursal: 'Sede Central (Tingo María)',
-    cajaNombre: 'Caja 01',
+    cajaNombre: 'Caja 01 - Mostrador Principal',
     origenTipo: 'APERTURA',
   },
   {
     id: 'mc-2',
-    fecha: '2026-10-03',
+    fecha: '2026-10-05',
     hora: '10:15',
     tipo: 'INGRESO',
-    concepto: 'Venta B001-000482 - Filtro de Aceite',
-    metodo: 'EFECTIVO',
-    monto: 85.0,
+    concepto: 'Venta B001-000482 (Carmen Rosa Benítez)',
+    metodo: 'YAPE',
+    monto: 36.80,
     usuario: 'Juan Pérez',
     sucursal: 'Sede Central (Tingo María)',
-    cajaNombre: 'Caja 01',
+    cajaNombre: 'Caja 01 - Mostrador Principal',
     origenTipo: 'VENTA',
     comprobanteRef: 'B001-000482',
   },
   {
     id: 'mc-3',
-    fecha: '2026-10-03',
-    hora: '11:15',
+    fecha: '2026-10-05',
+    hora: '10:45',
     tipo: 'EGRESO',
-    concepto: 'Compra de artículos de limpieza e higiene',
+    concepto: 'Compra de bolsas biodegradables y rollos térmicos de POS',
     metodo: 'EFECTIVO',
-    monto: 50.0,
-    usuario: 'Juan Pérez',
+    monto: 45.0,
+    usuario: 'Carlos Vega',
     sucursal: 'Sede Central (Tingo María)',
-    cajaNombre: 'Caja 01',
+    cajaNombre: 'Caja 01 - Mostrador Principal',
     origenTipo: 'EGRESO_MANUAL',
     categoria: 'Útiles y Limpieza',
-    observaciones: 'Comprado en bodega contigua',
   },
   {
     id: 'mc-4',
-    fecha: '2026-10-03',
-    hora: '12:30',
+    fecha: '2026-10-05',
+    hora: '11:45',
     tipo: 'INGRESO',
-    concepto: 'Reposición de sencillo desde tesorería',
-    metodo: 'EFECTIVO',
-    monto: 150.0,
-    usuario: 'Juan Pérez',
-    sucursal: 'Sede Central (Tingo María)',
-    cajaNombre: 'Caja 01',
-    origenTipo: 'INGRESO_MANUAL',
-    categoria: 'Sencillo Tesorería',
-  },
-  {
-    id: 'mc-5',
-    fecha: '2026-10-03',
-    hora: '13:10',
-    tipo: 'INGRESO',
-    concepto: 'Venta F001-000129 - Batería 12V 65Ah',
+    concepto: 'Venta F001-000129 (Chifa El Huallaga)',
     metodo: 'TRANSFERENCIA',
-    monto: 1820.0,
-    usuario: 'Juan Pérez',
+    monto: 191.00,
+    usuario: 'Carlos Vega',
     sucursal: 'Sede Central (Tingo María)',
-    cajaNombre: 'Caja 01',
+    cajaNombre: 'Caja 01 - Mostrador Principal',
     origenTipo: 'VENTA',
     comprobanteRef: 'F001-000129',
   },
   {
-    id: 'mc-6',
-    fecha: '2026-10-03',
-    hora: '14:20',
+    id: 'mc-5',
+    fecha: '2026-10-05',
+    hora: '13:20',
     tipo: 'INGRESO',
-    concepto: 'Venta B001-000483 - Aceite Sintético 5W-30',
-    metodo: 'YAPE',
-    monto: 580.0,
+    concepto: 'Venta B001-000483 (Luis Alberto Mendoza)',
+    metodo: 'EFECTIVO',
+    monto: 35.00,
     usuario: 'Juan Pérez',
     sucursal: 'Sede Central (Tingo María)',
-    cajaNombre: 'Caja 01',
+    cajaNombre: 'Caja 01 - Mostrador Principal',
     origenTipo: 'VENTA',
     comprobanteRef: 'B001-000483',
   },
-  {
-    id: 'mc-7',
-    fecha: '2026-10-03',
-    hora: '14:35',
-    tipo: 'INGRESO',
-    concepto: 'Venta B001-000484 - Bujías Iridium x4',
-    metodo: 'PLIN',
-    monto: 325.0,
-    usuario: 'Juan Pérez',
-    sucursal: 'Sede Central (Tingo María)',
-    cajaNombre: 'Caja 01',
-    origenTipo: 'VENTA',
-    comprobanteRef: 'B001-000484',
-  },
-  {
-    id: 'mc-8',
-    fecha: '2026-10-03',
-    hora: '15:10',
-    tipo: 'INGRESO',
-    concepto: 'Venta B001-000485 - Pastillas de Freno',
-    metodo: 'TARJETA',
-    monto: 700.0,
-    usuario: 'Juan Pérez',
-    sucursal: 'Sede Central (Tingo María)',
-    cajaNombre: 'Caja 01',
-    origenTipo: 'VENTA',
-    comprobanteRef: 'B001-000485',
-  },
-  {
-    id: 'mc-9',
-    fecha: '2026-10-03',
-    hora: '15:40',
-    tipo: 'INGRESO',
-    concepto: 'Venta NV01-000502 - Refrigerante 50/50',
-    metodo: 'EFECTIVO',
-    monto: 265.0,
-    usuario: 'Juan Pérez',
-    sucursal: 'Sede Central (Tingo María)',
-    cajaNombre: 'Caja 01',
-    origenTipo: 'VENTA',
-    comprobanteRef: 'NV01-000502',
-  },
 ];
 
-let gastos: Gasto[] = [
+// ==========================================
+// GASTOS OPERATIVOS DEL MINIMARKET
+// ==========================================
+export const DEFAULT_GASTOS: Gasto[] = [
   {
     id: 'g-1',
     fecha: '2026-10-01',
     categoria: 'ALQUILER',
-    descripcion: 'Alquiler local comercial mes de Octubre',
-    beneficiario: 'Inmobiliaria Los Pinos S.A.C.',
+    descripcion: 'Alquiler local comercial Minimarket Jr. Tito Jaime',
+    beneficiario: 'Inmobiliaria Tingo María S.A.C.',
     comprobante: 'Factura F002-1923',
-    monto: 2200.0,
+    monto: 1500.0,
     metodoPago: 'TRANSFERENCIA',
   },
   {
     id: 'g-2',
     fecha: '2026-10-02',
     categoria: 'SERVICIOS_BASICOS',
-    descripcion: 'Recibo de luz eléctrica comercial',
-    beneficiario: 'Enel Distribución',
+    descripcion: 'Recibo comercial de energía eléctrica (Visicoolers y congeladoras)',
+    beneficiario: 'Electro Oriente S.A.',
     comprobante: 'Recibo S-882194',
-    monto: 340.5,
+    monto: 245.0,
     metodoPago: 'TRANSFERENCIA',
+  },
+  {
+    id: 'g-3',
+    fecha: '2026-10-05',
+    categoria: 'OTROS',
+    descripcion: 'Bolsas biodegradables con asa y rollos térmicos 80mm',
+    beneficiario: 'Librería e Imprenta La Selva',
+    comprobante: 'Boleta B004-9128',
+    monto: 45.0,
+    metodoPago: 'EFECTIVO',
   },
 ];
 
-let compras: Compra[] = [
+// ==========================================
+// COMPRAS A DISTRIBUIDORES DE ALIMENTOS
+// ==========================================
+export const DEFAULT_COMPRAS: Compra[] = [
   {
     id: 'c-1',
-    fecha: '2026-10-01',
-    proveedorNombre: 'Importadora y Distribuidora PetroPerú Repuestos',
-    proveedorRuc: '20100128211',
-    serieFactura: 'F001-0004921',
-    total: 3500.0,
+    fecha: '2026-10-03',
+    proveedorNombre: 'Alicorp S.A.A.',
+    proveedorRuc: '20100055237',
+    serieFactura: 'F001-008921',
+    total: 1850.0,
     estado: 'RECIBIDO',
     metodoPago: 'TRANSFERENCIA',
-    itemsCount: 30,
+    itemsCount: 120,
+  },
+  {
+    id: 'c-2',
+    fecha: '2026-10-04',
+    proveedorNombre: 'Arca Continental Lindley S.A.',
+    proveedorRuc: '20100107843',
+    serieFactura: 'F002-004120',
+    total: 680.0,
+    estado: 'RECIBIDO',
+    metodoPago: 'TRANSFERENCIA',
+    itemsCount: 48,
+  },
+  {
+    id: 'c-3',
+    fecha: '2026-10-05',
+    proveedorNombre: 'Leche Gloria S.A.',
+    proveedorRuc: '20100190797',
+    serieFactura: 'F001-003412',
+    total: 940.0,
+    estado: 'RECIBIDO',
+    metodoPago: 'CREDITO_30_DIAS',
+    itemsCount: 72,
   },
 ];
 
-let clientes: Cliente[] = [
+// ==========================================
+// CLIENTES REALES DEL COMERCIO
+// ==========================================
+export const DEFAULT_CLIENTES: Cliente[] = [
   {
     id: 'cli-1',
-    documentoTipo: 'RUC',
-    numeroDocumento: '20601299443',
-    nombre: 'Constructora del Sur S.A.C.',
-    telefono: '984 123 456',
-    correo: 'compras@constructoradelsur.pe',
-    direccion: 'Av. Ejército 720, Arequipa',
-    totalCompras: 14250.0,
+    documentoTipo: 'DNI',
+    numeroDocumento: '00000000',
+    nombre: 'Consumidor Final',
+    telefono: '-',
+    correo: '-',
+    direccion: 'Mostrador Tienda',
+    totalCompras: 450.0,
     saldoPendiente: 0,
     activo: true,
   },
   {
     id: 'cli-2',
-    documentoTipo: 'RUC',
-    numeroDocumento: '20554433221',
-    nombre: 'Distribuidora San Juan',
-    telefono: '991 884 122',
-    correo: 'gerencia@distribuidorasanjuan.com',
-    direccion: 'Jr. Huánuco 310, Lima',
-    totalCompras: 8900.0,
-    saldoPendiente: 480.0,
+    documentoTipo: 'DNI',
+    numeroDocumento: '41289341',
+    nombre: 'Carmen Rosa Benítez',
+    telefono: '991 445 210',
+    correo: 'carmen.benitez@gmail.com',
+    direccion: 'Jr. Huánuco 312, Tingo María',
+    totalCompras: 340.0,
+    saldoPendiente: 0,
     activo: true,
   },
   {
     id: 'cli-3',
     documentoTipo: 'DNI',
-    numeroDocumento: '43928174',
-    nombre: 'María Elena Flores Gómez',
-    telefono: '955 771 229',
-    correo: 'm.flores@gmail.com',
-    direccion: 'Calle Los Jazmines 145, Surco',
-    totalCompras: 1450.5,
+    numeroDocumento: '45892301',
+    nombre: 'Luis Alberto Mendoza Ruiz',
+    telefono: '984 551 229',
+    correo: 'luis.mendoza@hotmail.com',
+    direccion: 'Av. Tito Jaime 520, Tingo María',
+    totalCompras: 215.0,
     saldoPendiente: 0,
+    activo: true,
+  },
+  {
+    id: 'cli-4',
+    documentoTipo: 'RUC',
+    numeroDocumento: '20603418291',
+    nombre: 'Restaurante y Chifa El Huallaga E.I.R.L.',
+    telefono: '962 441 200',
+    correo: 'compras@chifaelhuallaga.pe',
+    direccion: 'Jr. Raimondi 410, Tingo María',
+    totalCompras: 2450.0,
+    saldoPendiente: 0,
+    activo: true,
+  },
+  {
+    id: 'cli-5',
+    documentoTipo: 'RUC',
+    numeroDocumento: '10429182741',
+    nombre: 'Juguería & Fuente de Soda Doña Mary',
+    telefono: '984 112 559',
+    correo: 'mary.jugueria@gmail.com',
+    direccion: 'Jr. Monzón 115, Tingo María',
+    totalCompras: 1180.0,
+    saldoPendiente: 65.0,
     activo: true,
   },
 ];
 
-let proveedores: Proveedor[] = [
+// ==========================================
+// PROVEEDORES REALES DE CONSUMO MASIVO
+// ==========================================
+export const DEFAULT_PROVEEDORES: Proveedor[] = [
   {
     id: 'prov-1',
     codigo: 'PRV-001',
-    ruc: '20100128211',
-    razonSocial: 'Importadora y Distribuidora PetroPerú Repuestos S.A.C.',
-    nombreComercial: 'PetroPerú Repuestos',
-    contacto: 'Ing. Fernando Salazar',
-    telefono: '998 441 200',
-    correo: 'ventas@petroperurepuestos.pe',
-    direccion: 'Av. Elmer Faucett 3450, Callao',
-    ciudad: 'Lima',
-    provincia: 'Callao',
+    ruc: '20100055237',
+    razonSocial: 'Alicorp S.A.A.',
+    nombreComercial: 'Alicorp',
+    contacto: 'Marco Antonio Solís',
+    telefono: '981 223 344',
+    correo: 'pedidos@alicorp.com.pe',
+    direccion: 'Av. Argentina 4793, Callao (Distribución Tingo María)',
+    ciudad: 'Tingo María',
+    provincia: 'Leoncio Prado',
     pais: 'Perú',
-    codigoPostal: '07031',
-    rubro: 'Lubricantes y Filtros',
+    codigoPostal: '10131',
+    rubro: 'Abarrotes y Alimentos',
     condicionPago: 'Crédito a 30 días',
     diasCredito: 30,
-    limiteCredito: 25000,
-    totalCompras: 38450.0,
-    saldoPendiente: 3500.0,
-    descripcion: 'Distribuidor mayorista oficial de lubricantes industriales y filtros de alta rotación.',
+    limiteCredito: 30000,
+    totalCompras: 18500.0,
+    saldoPendiente: 1850.0,
+    descripcion: 'Distribuidor oficial de arroz Costeño, aceites Primor/Cocinero, fideos Don Vittorio y harinas Blanca Flor.',
     activo: true,
     calificacion: 5,
-    fechaRegistro: '2025-03-15',
+    fechaRegistro: '2025-01-15',
   },
   {
     id: 'prov-2',
     codigo: 'PRV-002',
-    ruc: '20512839912',
-    razonSocial: 'Filtros y Baterías del Pacífico S.A.C.',
-    nombreComercial: 'Baterías del Pacífico',
-    contacto: 'Lic. Claudia Mendoza',
-    telefono: '981 229 014',
-    correo: 'cmendoza@filtrosdelpacifico.com',
-    direccion: 'Jr. Huánuco 1240, La Victoria',
-    ciudad: 'Lima',
-    provincia: 'Lima',
+    ruc: '20100190797',
+    razonSocial: 'Leche Gloria S.A.',
+    nombreComercial: 'Gloria',
+    contacto: 'Patricia Benavides',
+    telefono: '994 551 220',
+    correo: 'ventas.oriente@gloria.com.pe',
+    direccion: 'Av. República de Panamá 2461, Lima',
+    ciudad: 'Tingo María',
+    provincia: 'Leoncio Prado',
     pais: 'Perú',
-    codigoPostal: '15018',
-    rubro: 'Baterías y Filtración',
-    condicionPago: 'Contado / Transferencia',
-    diasCredito: 0,
-    limiteCredito: 10000,
-    totalCompras: 19800.0,
-    saldoPendiente: 0.0,
-    descripcion: 'Proveedor de baterías automotrices 12V 65Ah y 13 placas con garantía de 12 meses.',
+    codigoPostal: '10131',
+    rubro: 'Lácteos y Derivados',
+    condicionPago: 'Crédito a 30 días',
+    diasCredito: 30,
+    limiteCredito: 15000,
+    totalCompras: 12400.0,
+    saldoPendiente: 940.0,
+    descripcion: 'Suministro mayorista de leche evaporada Gloria, yogures, mantequillas y conservas.',
     activo: true,
-    calificacion: 4,
-    fechaRegistro: '2025-06-20',
+    calificacion: 5,
+    fechaRegistro: '2025-02-10',
   },
   {
     id: 'prov-3',
     codigo: 'PRV-003',
-    ruc: '20601839210',
-    razonSocial: 'DonDocument Corporación Gráfica e Impresiones S.A.C.',
-    nombreComercial: 'DonDocument',
-    contacto: 'Marcos Villegas',
-    telefono: '944 567 890',
-    correo: 'pedidos@dondocument.com',
-    direccion: 'Av. Nicolás Arriola 450, San Luis',
-    ciudad: 'Lima',
-    provincia: 'Lima',
+    ruc: '20100107843',
+    razonSocial: 'Arca Continental Lindley S.A.',
+    nombreComercial: 'Coca-Cola / Arca Continental',
+    contacto: 'Roberto Chumpitaz',
+    telefono: '955 667 889',
+    correo: 'pedidos@arcacontal.com',
+    direccion: 'Planta Huánuco - Av. Universitaria 890',
+    ciudad: 'Huánuco',
+    provincia: 'Huánuco',
     pais: 'Perú',
-    codigoPostal: '15021',
-    rubro: 'Papelería y Comprobantes',
-    condicionPago: 'Crédito a 15 días',
-    diasCredito: 15,
-    limiteCredito: 5000,
-    totalCompras: 4200.0,
-    saldoPendiente: 650.0,
-    descripcion: 'Suministro de rollos térmicos de 80mm para ticketera POS y papelería corporativa.',
+    codigoPostal: '10001',
+    rubro: 'Bebidas y Gaseosas',
+    condicionPago: 'Contado / Transferencia',
+    diasCredito: 0,
+    limiteCredito: 10000,
+    totalCompras: 9800.0,
+    saldoPendiente: 0.0,
+    descripcion: 'Distribuidor oficial de Inca Kola, Coca-Cola, Fanta, Sprite y agua San Luis.',
     activo: true,
     calificacion: 5,
-    fechaRegistro: '2025-08-10',
+    fechaRegistro: '2025-03-01',
   },
   {
     id: 'prov-4',
     codigo: 'PRV-004',
-    ruc: '20492817429',
-    razonSocial: 'Comercializadora y Distribuidora Novelier S.A.C.',
-    nombreComercial: 'Novelier Insumos',
-    contacto: 'Gabriel López',
-    telefono: '999 888 888',
-    correo: 'contacto@novelier.pe',
-    direccion: 'Carretera Central Km 9.5, Ate',
-    ciudad: 'Lima',
-    provincia: 'Lima',
+    ruc: '20100113610',
+    razonSocial: 'Unión de Cervecerías Peruanas Backus y Johnston S.A.A.',
+    nombreComercial: 'Backus',
+    contacto: 'Walter Cárdenas',
+    telefono: '944 332 110',
+    correo: 'atencion.selva@backus.com.pe',
+    direccion: 'Distribuidora Pucallpa - Tingo María',
+    ciudad: 'Tingo María',
+    provincia: 'Leoncio Prado',
     pais: 'Perú',
-    codigoPostal: '15487',
-    rubro: 'Útiles y Limpieza',
+    codigoPostal: '10131',
+    rubro: 'Bebidas y Licores',
     condicionPago: 'Contado',
     diasCredito: 0,
-    limiteCredito: 3000,
-    totalCompras: 2150.0,
+    limiteCredito: 12000,
+    totalCompras: 14200.0,
     saldoPendiente: 0.0,
-    descripcion: 'Artículos de higiene, bolsas ecológicas de despacho y material de empaque.',
+    descripcion: 'Distribución de cervezas Pilsen Callao, Cristal, Cusqueña y agua San Mateo.',
     activo: true,
-    calificacion: 4,
-    fechaRegistro: '2025-11-04',
+    calificacion: 5,
+    fechaRegistro: '2025-03-20',
   },
   {
     id: 'prov-5',
     codigo: 'PRV-005',
-    ruc: '20381928471',
-    razonSocial: 'Salubres & Seguridad Industrial S.A.C.',
-    nombreComercial: 'Salubres EPP',
-    contacto: 'Dra. Méndez Pelayo',
-    telefono: '974 444 333',
-    correo: 'ventas@salubres.pe',
-    direccion: 'Av. Colonial 1890, Cercado de Lima',
-    ciudad: 'Lima',
-    provincia: 'Lima',
+    ruc: '20542318991',
+    razonSocial: 'Distribuidora Selva Central E.I.R.L.',
+    nombreComercial: 'Selva Central Mayorista',
+    contacto: 'Julio César Pérez',
+    telefono: '962 100 240',
+    correo: 'selvacentral.ventas@gmail.com',
+    direccion: 'Jr. Tito Jaime 840, Tingo María',
+    ciudad: 'Tingo María',
+    provincia: 'Leoncio Prado',
     pais: 'Perú',
-    codigoPostal: '15082',
-    rubro: 'Seguridad y EPP',
-    condicionPago: 'Crédito a 30 días',
-    diasCredito: 30,
-    limiteCredito: 8000,
-    totalCompras: 7600.0,
-    saldoPendiente: 1200.0,
-    descripcion: 'Guantes de nitrilo para taller, mascarillas, cascos y botiquines reglamentarios.',
+    codigoPostal: '10131',
+    rubro: 'Distribuidor Mayorista Local',
+    condicionPago: 'Crédito a 15 días',
+    diasCredito: 15,
+    limiteCredito: 6000,
+    totalCompras: 6700.0,
+    saldoPendiente: 450.0,
+    descripcion: 'Distribuidor local de snacks Lay’s, galletas Field/Mondelez, chocolates y confitería.',
     activo: true,
-    calificacion: 5,
-    fechaRegistro: '2026-01-18',
+    calificacion: 4,
+    fechaRegistro: '2025-05-12',
   },
   {
     id: 'prov-6',
     codigo: 'PRV-006',
-    ruc: '20194827361',
-    razonSocial: 'Reparaciones y Repuestos Mecánicos ReparaDOX S.A.',
-    nombreComercial: 'ReparaDOX',
-    contacto: 'Carlos Ferrando',
-    telefono: '912 345 678',
-    correo: 'carlos@reparadox.com',
-    direccion: 'Jr. Zorritos 890, Breña',
+    ruc: '20601839210',
+    razonSocial: 'DonDocument Rollos & Empaques S.A.C.',
+    nombreComercial: 'DonDocument POS',
+    contacto: 'Marcos Villegas',
+    telefono: '944 567 890',
+    correo: 'pedidos@dondocument.com',
+    direccion: 'Av. Nicolás Arriola 450, Lima',
     ciudad: 'Lima',
     provincia: 'Lima',
     pais: 'Perú',
-    codigoPostal: '15083',
-    rubro: 'Repuestos Automotrices',
-    condicionPago: 'Crédito a 45 días',
-    diasCredito: 45,
-    limiteCredito: 15000,
-    totalCompras: 14900.0,
-    saldoPendiente: 2800.0,
-    descripcion: 'Pastillas de frenos cerámicas, bujías de iridio y componentes de suspensión.',
+    codigoPostal: '15021',
+    rubro: 'Papelería y Rollos POS',
+    condicionPago: 'Contado',
+    diasCredito: 0,
+    limiteCredito: 3000,
+    totalCompras: 1250.0,
+    saldoPendiente: 0.0,
+    descripcion: 'Rollos térmicos de 80mm y 57mm para ticketeras y POS de minimarket, bolsas biodegradables.',
     activo: true,
-    calificacion: 4,
-    fechaRegistro: '2026-02-02',
+    calificacion: 5,
+    fechaRegistro: '2025-07-08',
   },
 ];
+
+// ==========================================
+// VARIABLES DE ESTADO EN MEMORIA
+// ==========================================
+let productos: Producto[] = structuredClone(DEFAULT_PRODUCTOS);
+let ventas: Venta[] = structuredClone(DEFAULT_VENTAS);
+let pedidos: Pedido[] = structuredClone(DEFAULT_PEDIDOS);
+let cotizaciones: Cotizacion[] = structuredClone(DEFAULT_COTIZACIONES);
+let devoluciones: Devolucion[] = structuredClone(DEFAULT_DEVOLUCIONES);
+let movimientosKardex: MovimientoKardex[] = structuredClone(DEFAULT_KARDEX);
+let ajustesInventario: AjusteInventario[] = structuredClone(DEFAULT_AJUSTES);
+let estadoCaja: EstadoCaja = structuredClone(DEFAULT_ESTADO_CAJA);
+let cajas: CajaInfo[] = structuredClone(DEFAULT_CAJAS);
+let cierresCaja: CierreCaja[] = structuredClone(DEFAULT_CIERRES_CAJA);
+let auditoriaCaja: AuditoriaCaja[] = structuredClone(DEFAULT_AUDITORIA_CAJA);
+let movimientosCaja: MovimientoCaja[] = structuredClone(DEFAULT_MOVIMIENTOS_CAJA);
+let gastos: Gasto[] = structuredClone(DEFAULT_GASTOS);
+let compras: Compra[] = structuredClone(DEFAULT_COMPRAS);
+let clientes: Cliente[] = structuredClone(DEFAULT_CLIENTES);
+let proveedores: Proveedor[] = structuredClone(DEFAULT_PROVEEDORES);
+
+// ==========================================
+// PERSISTENCIA EN LOCALSTORAGE
+// ==========================================
+function loadStateFromStorage(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    if (parsed && Array.isArray(parsed.productos) && parsed.productos.length > 0) {
+      productos = parsed.productos;
+      ventas = parsed.ventas || [];
+      pedidos = parsed.pedidos || [];
+      cotizaciones = parsed.cotizaciones || [];
+      devoluciones = parsed.devoluciones || [];
+      movimientosKardex = parsed.movimientosKardex || [];
+      ajustesInventario = parsed.ajustesInventario || [];
+      estadoCaja = parsed.estadoCaja || structuredClone(DEFAULT_ESTADO_CAJA);
+      cajas = parsed.cajas || structuredClone(DEFAULT_CAJAS);
+      cierresCaja = parsed.cierresCaja || [];
+      auditoriaCaja = parsed.auditoriaCaja || [];
+      movimientosCaja = parsed.movimientosCaja || [];
+      gastos = parsed.gastos || [];
+      compras = parsed.compras || [];
+      clientes = parsed.clientes || [];
+      proveedores = parsed.proveedores || [];
+      return true;
+    }
+  } catch (err) {
+    console.warn('[erpStore] Error al leer estado de localStorage:', err);
+  }
+  return false;
+}
+
+function saveStateToStorage(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const payload = {
+      productos,
+      ventas,
+      pedidos,
+      cotizaciones,
+      devoluciones,
+      movimientosKardex,
+      ajustesInventario,
+      estadoCaja,
+      cajas,
+      cierresCaja,
+      auditoriaCaja,
+      movimientosCaja,
+      gastos,
+      compras,
+      clientes,
+      proveedores,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  } catch (err) {
+    console.warn('[erpStore] Error al guardar estado en localStorage:', err);
+  }
+}
+
+// Inicialización de la persistencia
+if (typeof window !== 'undefined') {
+  // Limpieza preventiva de versiones anteriores obsoletas
+  try {
+    localStorage.removeItem('KIPUS_ERP_STORAGE');
+  } catch {}
+
+  const loaded = loadStateFromStorage();
+  if (!loaded) {
+    saveStateToStorage();
+  }
+}
 
 // ==========================================
 // SUSCRIPCIÓN REACTIVA DE EVENTOS
@@ -924,11 +1330,12 @@ type Listener = () => void;
 const listeners = new Set<Listener>();
 
 function notify() {
+  saveStateToStorage();
   listeners.forEach((listener) => {
     try {
       listener();
     } catch {
-      // Ignorar errores en callbacks desuscriptos
+      // Ignorar errores en callbacks
     }
   });
 }
@@ -940,10 +1347,24 @@ export function subscribeToErp(listener: Listener): () => void {
   };
 }
 
+// Sincronización en tiempo real entre múltiples pestañas
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === STORAGE_KEY) {
+      if (loadStateFromStorage()) {
+        listeners.forEach((listener) => {
+          try {
+            listener();
+          } catch {}
+        });
+      }
+    }
+  });
+}
+
 // ==========================================
 // API UNIFICADA DEL ERP STORE
 // ==========================================
-
 export const erpStore = {
   // Getters
   getProductos: () => [...productos],
@@ -960,13 +1381,37 @@ export const erpStore = {
   getProveedores: () => [...proveedores],
 
   /**
-   * FLUJO 1: EMITIR VENTA
-   * Efecto Dominó:
-   * 1. Registra venta.
-   * 2. Descuenta stock del producto en catálogo.
-   * 3. Registra movimiento en Kardex (SALIDA - VENTA).
-   * 4. Ingresa dinero a Caja (Efectivo o Digital).
-   * 5. Suma compra al cliente si existe.
+   * Restablece todos los datos de prueba a los valores por defecto del Minimarket.
+   */
+  restablecerDatosMinimarket: () => {
+    productos = structuredClone(DEFAULT_PRODUCTOS);
+    ventas = structuredClone(DEFAULT_VENTAS);
+    pedidos = structuredClone(DEFAULT_PEDIDOS);
+    cotizaciones = structuredClone(DEFAULT_COTIZACIONES);
+    devoluciones = structuredClone(DEFAULT_DEVOLUCIONES);
+    movimientosKardex = structuredClone(DEFAULT_KARDEX);
+    ajustesInventario = structuredClone(DEFAULT_AJUSTES);
+    estadoCaja = structuredClone(DEFAULT_ESTADO_CAJA);
+    cajas = structuredClone(DEFAULT_CAJAS);
+    cierresCaja = structuredClone(DEFAULT_CIERRES_CAJA);
+    auditoriaCaja = structuredClone(DEFAULT_AUDITORIA_CAJA);
+    movimientosCaja = structuredClone(DEFAULT_MOVIMIENTOS_CAJA);
+    gastos = structuredClone(DEFAULT_GASTOS);
+    compras = structuredClone(DEFAULT_COMPRAS);
+    clientes = structuredClone(DEFAULT_CLIENTES);
+    proveedores = structuredClone(DEFAULT_PROVEEDORES);
+    notify();
+  },
+
+  /**
+   * FLUJO 1: EMITIR VENTA (POS / FACTURACIÓN)
+   * Impactos Correlacionales:
+   * 1. Registra la venta con su comprobante (Boleta, Factura, Nota de Venta).
+   * 2. Descuenta stock del producto en el catálogo.
+   * 3. Registra movimiento en Kardex (SALIDA - VENTA) con stock resultante real.
+   * 4. Ingresa dinero a Caja (Efectivo en gaveta o Billeteras Digitales).
+   * 5. Actualiza total de compras del cliente.
+   * 6. Actualiza métricas del Dashboard en tiempo real.
    */
   emitirVenta: (payload: NuevaVentaPayload): Venta => {
     const subtotalBruto = payload.items.reduce((acc, it) => acc + it.cantidad * it.precioUnitario, 0);
@@ -984,8 +1429,8 @@ export const erpStore = {
       id: `v-${Date.now()}`,
       tipoComprobante: payload.tipoComprobante,
       serieCorrelativo,
-      clienteNombre: payload.clienteNombre,
-      clienteDocumento: payload.clienteDocumento,
+      clienteNombre: payload.clienteNombre || 'Consumidor Final',
+      clienteDocumento: payload.clienteDocumento || '00000000',
       fecha: ahora,
       metodoPago: payload.metodoPago,
       desglosePagoMixto: payload.desglosePagoMixto,
@@ -998,17 +1443,17 @@ export const erpStore = {
       total,
       sucursal: payload.sucursal || 'Sede Central (Tingo María)',
       caja: payload.caja || 'Caja 01 - Mostrador',
-      vendedor: payload.vendedor || 'Carlos Vega',
+      vendedor: payload.vendedor || 'Juan Pérez (Cajero)',
       items: payload.items.map((it) => ({
         ...it,
-        subtotal: it.cantidad * it.precioUnitario,
+        subtotal: +(it.cantidad * it.precioUnitario).toFixed(2),
       })),
     };
 
     // 1. Guardar Venta
     ventas = [nuevaVenta, ...ventas];
 
-    // 2. Descontar Stock & Generar Kardex por cada ítem
+    // 2. Descontar Stock & Generar Kardex por cada ítem vendido
     payload.items.forEach((item) => {
       const prod = productos.find((p) => p.id === item.productoId || p.nombre === item.nombre);
       const stockAnterior = prod ? prod.stock : 20;
@@ -1018,7 +1463,7 @@ export const erpStore = {
         prod.stock = stockNuevo;
       }
 
-      // Registro en Kardex
+      // Registro estricto en Kardex
       const movKardex: MovimientoKardex = {
         id: `k-${Date.now()}-${Math.random()}`,
         fecha: ahora,
@@ -1030,7 +1475,8 @@ export const erpStore = {
         cantidad: item.cantidad,
         stockResultante: stockNuevo,
         referencia: `${payload.tipoComprobante} ${serieCorrelativo}`,
-        usuario: payload.vendedor || 'Admin',
+        usuario: payload.vendedor || 'Cajero',
+        origen: 'Venta',
       };
       movimientosKardex = [movKardex, ...movimientosKardex];
     });
@@ -1048,10 +1494,10 @@ export const erpStore = {
       fecha: fechaHoy,
       hora,
       tipo: 'INGRESO',
-      concepto: `Cobro ${serieCorrelativo} (${payload.clienteNombre})`,
+      concepto: `Cobro ${serieCorrelativo} (${nuevaVenta.clienteNombre})`,
       metodo: metodoCaja,
       monto: total,
-      usuario: payload.vendedor || 'Admin',
+      usuario: payload.vendedor || 'Juan Pérez',
       sucursal: payload.sucursal || estadoCaja.sucursal,
       cajaNombre: estadoCaja.nombre,
       origenTipo: 'VENTA',
@@ -1065,7 +1511,7 @@ export const erpStore = {
       estadoCaja.totalVentasGeneral += total;
     } else if (payload.metodoPago === 'MIXTO' && payload.desglosePagoMixto) {
       const ef = payload.desglosePagoMixto.efectivo || 0;
-      const dig = total - ef;
+      const dig = Math.max(0, total - ef);
       estadoCaja.ventasEfectivo += ef;
       estadoCaja.saldoEfectivoEsperado += ef;
       estadoCaja.totalVentasDigitales += dig;
@@ -1077,6 +1523,14 @@ export const erpStore = {
       else if (payload.metodoPago === 'TRANSFERENCIA') estadoCaja.ventasDigitales.transferencia += total;
       estadoCaja.totalVentasDigitales += total;
       estadoCaja.totalVentasGeneral += total;
+    }
+
+    // Actualizar saldo de la caja activa
+    const idxCaja = cajas.findIndex((c) => c.id === estadoCaja.id);
+    if (idxCaja >= 0) {
+      cajas[idxCaja].saldoActualEfectivo = estadoCaja.saldoEfectivoEsperado;
+      cajas[idxCaja].ventasDia += total;
+      cajas[idxCaja].ultimaActividad = `Venta ${serieCorrelativo} a las ${hora}`;
     }
 
     // 4. Actualizar Cliente
@@ -1091,9 +1545,9 @@ export const erpStore = {
 
   /**
    * FLUJO 2: REGISTRAR COMPRA A PROVEEDOR
-   * 1. Registra compra.
-   * 2. Incrementa el stock en el inventario/kardex.
-   * 3. Si fue en efectivo, descuenta de Caja.
+   * 1. Registra la factura o comprobante del proveedor.
+   * 2. Incrementa el stock en el inventario/kardex del producto abastecido.
+   * 3. Si fue pagada en efectivo, descuenta dinero de Caja y añade movimiento de egreso.
    */
   registrarCompra: (payload: NuevaCompraPayload & { productoId?: string }): Compra => {
     const ahora = new Date().toISOString().slice(0, 10);
@@ -1126,26 +1580,26 @@ export const erpStore = {
         cantidad: payload.itemsCount,
         stockResultante: prod.stock,
         referencia: `Factura Proveedor ${payload.serieFactura}`,
-        usuario: 'Admin',
+        usuario: 'Carlos Vega',
+        origen: 'Compra',
       };
       movimientosKardex = [movKardex, ...movimientosKardex];
     }
 
     // Si se pagó en efectivo, egreso de caja
     if (payload.metodoPago === 'EFECTIVO') {
-      const ahora = new Date();
-      const fecha = ahora.toISOString().slice(0, 10);
-      const hora = ahora.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+      const ahoraDate = new Date();
+      const hora = ahoraDate.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
       movimientosCaja = [
         {
           id: `mc-${Date.now()}`,
-          fecha,
+          fecha: ahora,
           hora,
           tipo: 'EGRESO',
-          concepto: `Pago Factura Compra ${payload.serieFactura}`,
+          concepto: `Pago Factura Compra ${payload.serieFactura} (${payload.proveedorNombre})`,
           metodo: 'EFECTIVO',
           monto: payload.total,
-          usuario: 'Admin',
+          usuario: 'Carlos Vega',
           sucursal: estadoCaja.sucursal,
           cajaNombre: estadoCaja.nombre,
           origenTipo: 'GASTO',
@@ -1162,9 +1616,9 @@ export const erpStore = {
   },
 
   /**
-   * FLUJO 3: REGISTRAR GASTO
-   * 1. Registra egreso.
-   * 2. Si es en efectivo, descuenta de Caja.
+   * FLUJO 3: REGISTRAR GASTO OPERATIVO
+   * 1. Registra el egreso en el módulo de Gastos.
+   * 2. Si es en efectivo, descuenta inmediatamente de Caja y genera registro de auditoría.
    */
   registrarGasto: (payload: NuevoGastoPayload): Gasto => {
     const ahora = new Date().toISOString().slice(0, 10);
@@ -1176,18 +1630,17 @@ export const erpStore = {
     gastos = [nuevoGasto, ...gastos];
 
     if (payload.metodoPago === 'EFECTIVO') {
-      const fecha = ahora;
       const hora = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
       movimientosCaja = [
         {
           id: `mc-${Date.now()}`,
-          fecha,
+          fecha: ahora,
           hora,
           tipo: 'EGRESO',
           concepto: `Gasto: ${payload.descripcion}`,
           metodo: 'EFECTIVO',
           monto: payload.monto,
-          usuario: 'Admin',
+          usuario: 'Administrador',
           sucursal: estadoCaja.sucursal,
           cajaNombre: estadoCaja.nombre,
           origenTipo: 'GASTO',
@@ -1234,7 +1687,8 @@ export const erpStore = {
       cantidad: payload.cantidad,
       stockResultante: nuevoStock,
       referencia: payload.referencia || 'Ajuste de Almacén',
-      usuario: 'Admin',
+      usuario: 'Carlos Vega',
+      origen: 'Ajuste de inventario',
     };
 
     movimientosKardex = [nuevo, ...movimientosKardex];
@@ -1243,7 +1697,7 @@ export const erpStore = {
   },
 
   /**
-   * FLUJO 5: OPERACIÓN DIRECTA DE CAJA
+   * FLUJO 5: OPERACIÓN DIRECTA DE CAJA (Ingreso / Retiro de efectivo)
    */
   registrarOperacionCaja: (payload: NuevaOperacionCajaPayload): MovimientoCaja => {
     const ahora = new Date();
@@ -1305,7 +1759,9 @@ export const erpStore = {
     return nuevo;
   },
 
-  // Creación en catálogo
+  // ==========================================
+  // GESTIÓN DE CATÁLOGO DE PRODUCTOS
+  // ==========================================
   crearProducto: (payload: NuevoProductoPayload): Producto => {
     const skuNormalizado = payload.sku.trim().toLowerCase();
     const skuExiste = productos.some((p) => p.sku.trim().toLowerCase() === skuNormalizado);
@@ -1323,6 +1779,41 @@ export const erpStore = {
     return nuevo;
   },
 
+  actualizarProducto: (id: string, payload: Partial<NuevoProductoPayload>): Producto => {
+    const idx = productos.findIndex((p) => p.id === id);
+    if (idx === -1) throw new Error('Producto no encontrado');
+    if (payload.sku) {
+      const skuNormalizado = payload.sku.trim().toLowerCase();
+      const existe = productos.some((p) => p.id !== id && p.sku.trim().toLowerCase() === skuNormalizado);
+      if (existe) {
+        throw new Error(`El código SKU "${payload.sku}" ya se encuentra registrado en otro producto.`);
+      }
+    }
+    productos[idx] = {
+      ...productos[idx],
+      ...payload,
+    };
+    notify();
+    return productos[idx];
+  },
+
+  eliminarProducto: (id: string): boolean => {
+    productos = productos.filter((p) => p.id !== id);
+    notify();
+    return true;
+  },
+
+  toggleEstadoProducto: (id: string): Producto => {
+    const prod = productos.find((p) => p.id === id);
+    if (!prod) throw new Error('Producto no encontrado');
+    prod.activo = !prod.activo;
+    notify();
+    return prod;
+  },
+
+  // ==========================================
+  // CLIENTES Y PROVEEDORES
+  // ==========================================
   crearCliente: (payload: NuevoClientePayload): Cliente => {
     const nuevo: Cliente = {
       id: `cli-${Date.now()}`,
@@ -1343,7 +1834,7 @@ export const erpStore = {
       codigo: `PRV-${nextNum}`,
       ...payload,
       direccion: payload.direccion || 'Sin dirección registrada',
-      ciudad: payload.ciudad || 'Lima',
+      ciudad: payload.ciudad || 'Tingo María',
       totalCompras: 0,
       saldoPendiente: 0,
       activo: true,
@@ -1381,7 +1872,7 @@ export const erpStore = {
   },
 
   /**
-   * FLUJO: RECEPCIÓN DE MERCANCÍA (Vinculado a Compras/Proveedores)
+   * RECEPCIÓN DE MERCADERÍA
    */
   recepcionarMercancia: (payload: RecepcionMercanciaPayload): MovimientoKardex => {
     const prod = productos.find((p) => p.id === payload.productoId || p.sku === payload.sku || p.nombre === payload.productoNombre);
@@ -1412,7 +1903,8 @@ export const erpStore = {
       cantidad: payload.cantidad,
       stockResultante: nuevoStock,
       referencia: `Guía/Fac. ${payload.guiaFactura} (${payload.proveedorNombre})`,
-      usuario: 'Almacenero / Admin',
+      usuario: 'Carlos Vega',
+      origen: 'Compra',
     };
 
     movimientosKardex = [movKardex, ...movimientosKardex];
@@ -1421,7 +1913,7 @@ export const erpStore = {
   },
 
   /**
-   * FLUJO: AUDITORÍA Y AJUSTE DE CONTEO FÍSICO (Vinculado a Control de Mermas)
+   * AUDITORÍA Y AJUSTE DE CONTEO FÍSICO
    */
   registrarAjusteAuditoria: (payload: AjusteAuditoriaPayload): MovimientoKardex => {
     const prod = productos.find((p) => p.id === payload.productoId);
@@ -1436,8 +1928,7 @@ export const erpStore = {
 
     const tipo: 'ENTRADA' | 'SALIDA' | 'AJUSTE' =
       diferencia > 0 ? 'ENTRADA' : diferencia < 0 ? 'SALIDA' : 'AJUSTE';
-    const motivo =
-      diferencia < 0 ? 'MERMA' : 'AUDITORIA_CONTEO';
+    const motivo = diferencia < 0 ? 'MERMA' : 'AUDITORIA_CONTEO';
 
     const detalleReferencia =
       payload.observacion ||
@@ -1454,7 +1945,8 @@ export const erpStore = {
       cantidad: Math.abs(diferencia),
       stockResultante: nuevoStock,
       referencia: detalleReferencia,
-      usuario: 'Auditor / Dueño',
+      usuario: 'Carlos Vega',
+      origen: 'Ajuste de inventario',
     };
 
     movimientosKardex = [movKardex, ...movimientosKardex];
@@ -1462,9 +1954,9 @@ export const erpStore = {
     return movKardex;
   },
 
-  /**
-   * MÓDULO INVENTARIO: AJUSTES DE INVENTARIO
-   */
+  // ==========================================
+  // AJUSTES DE INVENTARIO
+  // ==========================================
   getAjustesInventario: (): AjusteInventario[] => [...ajustesInventario],
 
   registrarAjusteInventario: (payload: NuevoAjustePayload): AjusteInventario => {
@@ -1530,7 +2022,7 @@ export const erpStore = {
       const nuevoStock = Math.max(0, item.stockFisico);
       const diferencia = nuevoStock - stockAnterior;
 
-      if (diferencia === 0) return; // No requiere ajuste si coincide
+      if (diferencia === 0) return;
 
       prod.stock = nuevoStock;
 
@@ -1581,7 +2073,7 @@ export const erpStore = {
   },
 
   // ==========================================
-  // PEDIDOS (Gestión de ventas anticipadas)
+  // PEDIDOS
   // ==========================================
   getPedidos: () => [...pedidos],
 
@@ -1626,7 +2118,7 @@ export const erpStore = {
   },
 
   // ==========================================
-  // COTIZACIONES / PROFORMAS
+  // COTIZACIONES
   // ==========================================
   getCotizaciones: () => [...cotizaciones],
 
@@ -1683,7 +2175,7 @@ export const erpStore = {
 
     const itemVenta = venta?.items.find((it) => it.productoId === payload.productoId);
     const montoUnitario = itemVenta ? itemVenta.precioUnitario : prod?.precioVenta || 0;
-    const montoTotalDevuelto = montoUnitario * payload.cantidad;
+    const montoTotalDevuelto = +(montoUnitario * payload.cantidad).toFixed(2);
 
     const nuevaDevolucion: Devolucion = {
       id: `dev-${Date.now()}`,
@@ -1697,7 +2189,7 @@ export const erpStore = {
       montoDevuelto: montoTotalDevuelto,
       retornaAInventario: payload.retornaAInventario,
       afectaCaja: payload.afectaCaja,
-      usuario: 'Carlos Vega',
+      usuario: 'Juan Pérez',
     };
 
     devoluciones = [nuevaDevolucion, ...devoluciones];
@@ -1716,12 +2208,13 @@ export const erpStore = {
         cantidad: payload.cantidad,
         stockResultante: prod.stock,
         referencia: `Devolución ${venta?.serieCorrelativo}: ${payload.motivo}`,
-        usuario: 'Carlos Vega',
+        usuario: 'Juan Pérez',
+        origen: 'Ajuste de inventario',
       };
       movimientosKardex = [movKardex, ...movimientosKardex];
     }
 
-    // Egreso de caja por reembolso al cliente si afecta caja
+    // Egreso de caja si se entregó efectivo al cliente
     if (payload.afectaCaja) {
       const ahoraDate = new Date();
       const fecha = ahoraDate.toISOString().slice(0, 10);
@@ -1735,7 +2228,7 @@ export const erpStore = {
           concepto: `Reembolso por devolución ${venta?.serieCorrelativo}`,
           metodo: 'EFECTIVO',
           monto: montoTotalDevuelto,
-          usuario: 'Carlos Vega',
+          usuario: 'Juan Pérez',
           sucursal: venta?.sucursal || estadoCaja.sucursal,
           cajaNombre: estadoCaja.nombre,
           origenTipo: 'DEVOLUCION',
@@ -1776,12 +2269,13 @@ export const erpStore = {
           stockResultante: prod.stock,
           referencia: `Anulación ${venta.serieCorrelativo}: ${motivo}`,
           usuario: 'Carlos Vega',
+          origen: 'Ajuste de inventario',
         };
         movimientosKardex = [movKardex, ...movimientosKardex];
       }
     });
 
-    // Reembolso de caja si fue efectivo
+    // Reembolso de caja si fue en efectivo
     if (venta.metodoPago === 'EFECTIVO') {
       const ahoraDate = new Date();
       const fecha = ahoraDate.toISOString().slice(0, 10);
@@ -1795,7 +2289,7 @@ export const erpStore = {
           concepto: `Anulación comprobante ${venta.serieCorrelativo}`,
           metodo: 'EFECTIVO',
           monto: venta.total,
-          usuario: 'Admin',
+          usuario: 'Administrador',
           sucursal: venta.sucursal || estadoCaja.sucursal,
           cajaNombre: estadoCaja.nombre,
           origenTipo: 'VENTA',
@@ -1811,9 +2305,9 @@ export const erpStore = {
     return venta;
   },
 
-  /**
-   * FLUJO 6: GESTIÓN OPERATIVA DE CAJA
-   */
+  // ==========================================
+  // OPERACIONES DE CAJA (APERTURA, CIERRE, ARQUEO)
+  // ==========================================
   abrirCaja: (payload: AperturaCajaPayload): EstadoCaja => {
     const ahora = new Date();
     const fecha = ahora.toISOString().slice(0, 10);
@@ -1969,5 +2463,3 @@ export const erpStore = {
     notify();
   },
 };
-
-

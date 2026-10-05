@@ -42,14 +42,15 @@ interface ProveedorFormDialogProps {
 }
 
 const RUBROS_DISPONIBLES = [
-  'Lubricantes y Filtros',
-  'Baterías y Filtración',
-  'Repuestos Automotrices',
-  'Papelería y Comprobantes',
-  'Útiles y Limpieza',
-  'Seguridad y EPP',
-  'Herramientas y Ferretería',
-  'Tecnología y POS',
+  'Abarrotes y Alimentos',
+  'Lácteos y Derivados',
+  'Bebidas y Gaseosas',
+  'Bebidas y Licores',
+  'Snacks y Confitería',
+  'Distribuidor Mayorista Local',
+  'Artículos de Limpieza',
+  'Cuidado Personal',
+  'Papelería y Rollos POS',
   'Otros Insumos',
 ];
 

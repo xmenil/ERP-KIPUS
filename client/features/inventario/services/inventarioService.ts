@@ -16,21 +16,21 @@ import { erpStore } from '@/services/erp/erpStore';
 const almacenesFijos: AlmacenResumen[] = [
   {
     id: 'alm-1',
-    nombre: 'Almacén Principal (Sede Central)',
-    direccion: 'Jr. Miraflores 450, Tingo María',
-    totalProductos: 142,
-    stockTotalUnidades: 890,
-    responsable: 'Carlos Vega (Almacenero)',
-    zonas: ['Estante A (Lubricantes)', 'Estante B (Filtros)', 'Piso 1 (Baterías)'],
+    nombre: 'Almacén Principal / Trastienda (Sede Central)',
+    direccion: 'Jr. Tito Jaime 450, Tingo María',
+    totalProductos: 30,
+    stockTotalUnidades: 745,
+    responsable: 'Carlos Vega (Encargado Almacén)',
+    zonas: ['Estante 1 (Abarrotes y Granos)', 'Estante 2 (Lácteos y Pastas)', 'Tarima (Sacos Arroz y Azúcar)', 'Depósito de Bebidas'],
   },
   {
     id: 'alm-2',
-    nombre: 'Tienda Mostrador (Atención al Público)',
-    direccion: 'Av. Tito Jaime 230, Tingo María',
-    totalProductos: 85,
-    stockTotalUnidades: 310,
-    responsable: 'María Santos (Cajera / Mostrador)',
-    zonas: ['Vitrina 1', 'Vitrina 2', 'Anaquel Mostrador C'],
+    nombre: 'Sala de Ventas / Mostrador (Atención)',
+    direccion: 'Jr. Tito Jaime 450, Tingo María',
+    totalProductos: 30,
+    stockTotalUnidades: 350,
+    responsable: 'Juan Pérez (Cajero / Atención)',
+    zonas: ['Góndola Central', 'Visicooler Bebidas y Lácteos', 'Vitrina Mostrador / Golosinas', 'Estante Limpieza'],
   },
 ];
 

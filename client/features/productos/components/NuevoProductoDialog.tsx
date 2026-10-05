@@ -67,7 +67,7 @@ interface NuevoProductoDialogProps {
 const DEFAULT_VALUES: FormValues = {
   sku: '',
   nombre: '',
-  categoria: 'Lubricantes',
+  categoria: 'Abarrotes y Granos',
   precioCompra: 0,
   precioVenta: 0,
   stock: 10,
@@ -177,13 +177,14 @@ export const NuevoProductoDialog: React.FC<NuevoProductoDialogProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Lubricantes">Lubricantes</SelectItem>
-                        <SelectItem value="Filtros">Filtros</SelectItem>
-                        <SelectItem value="Frenos">Frenos</SelectItem>
-                        <SelectItem value="Eléctrico">Eléctrico</SelectItem>
-                        <SelectItem value="Químicos">Químicos</SelectItem>
-                        <SelectItem value="Encendido">Encendido</SelectItem>
-                        <SelectItem value="Servicios">Servicios / M.O.</SelectItem>
+                        <SelectItem value="Abarrotes y Granos">Abarrotes y Granos</SelectItem>
+                        <SelectItem value="Lácteos y Desayuno">Lácteos y Desayuno</SelectItem>
+                        <SelectItem value="Bebidas y Licores">Bebidas y Licores</SelectItem>
+                        <SelectItem value="Snacks y Golosinas">Snacks y Golosinas</SelectItem>
+                        <SelectItem value="Limpieza del Hogar">Limpieza del Hogar</SelectItem>
+                        <SelectItem value="Cuidado Personal">Cuidado Personal</SelectItem>
+                        <SelectItem value="Embutidos y Congelados">Embutidos y Congelados</SelectItem>
+                        <SelectItem value="Panadería y Frutas">Panadería y Frutas</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage className="text-xs" />
@@ -200,7 +201,7 @@ export const NuevoProductoDialog: React.FC<NuevoProductoDialogProps> = ({
                   <FormLabel className="text-xs font-medium">Descripción del producto</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Ej. Aceite Shell Helix 20W-50 Multigrado"
+                      placeholder="Ej. Arroz Costeño Extra 1 kg"
                       className="h-9 text-base md:text-sm"
                       disabled={isSubmitting}
                       {...field}

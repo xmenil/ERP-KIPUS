@@ -83,9 +83,10 @@ export const kipusIaService = {
       ];
     } else if (p.includes('venta') || p.includes('factura') || p.includes('hoy') || p.includes('producto')) {
       const totalVendido = ventas.reduce((acc, v) => acc + v.total, 0);
+      const prodMasRecurrente = productos.length > 0 ? productos[0].nombre : 'Arroz Costeño Extra 1 kg';
       respuesta = `Se han registrado ${ventas.length} comprobantes con un total facturado de ${formatCurrency(
         totalVendido
-      )}. El producto más recurrente en las operaciones es el Aceite Motor 5W-30.`;
+      )}. El producto más recurrente en las operaciones del minimarket es ${prodMasRecurrente}.`;
       dataPoints = [
         { label: 'Facturación Acumulada', value: formatCurrency(totalVendido) },
         { label: 'Comprobantes Emitidos', value: `${ventas.length} operaciones` },

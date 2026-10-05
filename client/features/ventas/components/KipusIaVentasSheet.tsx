@@ -84,12 +84,16 @@ export const KipusIaVentasSheet: React.FC<KipusIaVentasSheetProps> = ({
           recomendacion: 'Tu ritmo de venta en la tarde es el más fuerte. Mantén el sencillo en caja física para los vueltos.',
         };
       } else if (textoMin.includes('más vendido') || textoMin.includes('estrella') || textoMin.includes('demanda') || textoMin.includes('top')) {
+        const top1 = productos[0]?.nombre || 'Arroz Costeño Extra 1 kg';
+        const top1Precio = productos[0]?.precioVenta || 4.80;
+        const top2 = productos[10]?.nombre || 'Leche Evaporada Gloria Azul Entera 400g';
+        const top2Precio = productos[10]?.precioVenta || 4.30;
         respuestaIa = {
           id: `ia-${Date.now()}`,
           autor: 'ia',
-          texto: `Tus 2 productos con mayor rotación en las últimas 48 horas son:\n1. **Batería 12V 65Ah Sellada** (S/ 455.00)\n2. **Aceite Motor Sintético 5W-30** (S/ 110.00).`,
-          datos: 'Concentran el 68% de tu facturación bruta del turno.',
-          recomendacion: 'El stock de Aceite Motor tiene solo 8 unidades restantes. Te sugiero generar una orden de compra hoy para no quebrar stock.',
+          texto: `Tus productos con mayor rotación en la bodega/minimarket son:\n1. **${top1}** (${formatCurrency(top1Precio)})\n2. **${top2}** (${formatCurrency(top2Precio)}).`,
+          datos: 'Concentran la mayor frecuencia de compra en el mostrador.',
+          recomendacion: `El stock de ${top1} tiene ${productos[0]?.stock ?? 45} unidades restantes. Revisa el surtido en góndola antes del horario punta de la tarde.`,
         };
       } else if (textoMin.includes('método') || textoMin.includes('pago') || textoMin.includes('yape')) {
         respuestaIa = {

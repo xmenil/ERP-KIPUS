@@ -21,7 +21,7 @@ Principio rector: una interfaz parece hecha por una persona cuando es específic
 No usar nunca, salvo que el usuario lo pida explícitamente:
 
 1. Degradados en texto, en botones, en fondos de tarjeta o en bordes.
-2. Combinar dos acentos fuertes como estética general (morado con cian, índigo con rosa). La interfaz usa una sola familia de color: la ciruela del cliente.
+2. Combinar dos acentos fuertes como estética general (morado con cian, índigo con rosa). La interfaz usa un solo acento: el violeta del logo.
 3. Glassmorphism, blur decorativo, blobs, esferas flotantes, rombos o formas abstractas de fondo.
 4. Tríos de tarjetas "icono + título corto + frase vaga" (ej. "Simple / Seguro / Siempre contigo").
 5. Un icono dentro de un círculo de color al lado de cada título o dato.
@@ -37,33 +37,31 @@ No usar nunca, salvo que el usuario lo pida explícitamente:
 
 ## 3. Sistema de color
 
-Los tokens viven en `src/styles/global.css` (variables HSL) y se exponen en `tailwind.config.ts`. Los componentes usan solo tokens, nunca hex sueltos. Este es el sistema vigente: la paleta del cliente (ciruela).
+Los tokens viven en `src/styles/global.css` (variables HSL) y se exponen en `tailwind.config.ts`. Los componentes usan solo tokens, nunca hex sueltos. El color de la interfaz sale del logo de Kipus: el violeta de las letras es el acento y el cian de la "s" queda como detalle de marca.
 
-### Paleta del cliente y papel de cada tono
+### Acento de la interfaz: el violeta del logo
 
-La paleta es una sola familia de color (ciruela/magenta) en cinco niveles. No son cinco colores distintos: en la interfaz se usa uno como acento, otro como foco, y los demás quedan para gráficos y marca.
-
-| Tono | Token | Contraste con blanco | Papel |
+| Token | Valor | Contraste con blanco | Uso |
 |---|---|---|---|
-| `#732571` | `--primary`, `--chart-1` | 9.4 | Acento único de la UI: botón principal, ítem activo del menú, enlaces, énfasis. Texto blanco encima: 9.4. |
-| `#964895` | `--ring`, `--chart-2` | 5.7 | Anillo de foco de teclado, borde de elemento seleccionado, segunda serie de un gráfico. |
-| `#B96BB8` | `--chart-3` | 3.6 | Solo elementos gráficos (barras, líneas, iconos grandes). Nunca texto. |
-| `#DC8DDC` | `--chart-4` | 2.4 | Rellenos y gráficos. Nunca texto sobre blanco. En modo oscuro es el color primario. |
-| `#FFB0FF` | `--chart-5` | 1.6 | Solo marca (logo, pantalla de carga, detalle puntual). No se usa en superficies de trabajo. |
+| `--primary` | `#431B94` | 11.5 | Acento único de la UI: botón principal, ítem activo del menú, enlaces, énfasis. Texto blanco encima: 11.5. |
+| `--primary-hover` | `#351574` | 13.9 | Hover y estado presionado del botón primario. |
+| `--primary-soft` | `#F3EFFB` | 1.1 (es un fondo) | Fondo del ítem activo del menú, badge informativo y fila seleccionada. El texto `--primary` sobre este fondo da 10.2. |
+| `--ring` | `#6839C6` | 7.0 | Anillo de foco de teclado y borde de elemento seleccionado. |
 
-Dos tonos derivados completan el sistema, porque la paleta no trae un extremo oscuro ni uno claro:
+### El cian del logo (`#02A1BC`)
 
-- `--primary-hover` `#5E1D5C`: hover y estado presionado del botón primario (11.6 con blanco).
-- `--primary-soft` `#F7EBF7`: fondo del ítem activo del menú, badge informativo y fila seleccionada. El texto `--primary` sobre este fondo da 8.2.
+- Es color de marca, no de interfaz: con texto blanco encima da solo 3.1, así que no se usa en botones, enlaces ni texto.
+- Su único uso dentro del sistema es como segunda serie de un gráfico (`--chart-2`), donde con 3.1 cumple para elementos gráficos.
+- Nunca se combina con el violeta en degradados.
 
-### Neutros (sin cambios)
+### Neutros
 
 - Superficies: `--background` `#F4F6F9`, `--card` blanco.
 - Texto: `--foreground` `#111827`; `--muted-foreground` `#556274` para texto secundario.
 - Bordes: `--border` `#DCE2EB` para tarjetas, tablas y divisores; `--input` `#8391A5` para el borde de los campos (3.2:1 sobre blanco).
-- Sidebar: fondo neutro `--sidebar-background`; el ítem activo usa `--sidebar-accent` (fondo suave) con texto `--sidebar-accent-foreground` (primario), o `--sidebar-primary` sólido con texto blanco. No se pinta el sidebar completo de ciruela.
+- Sidebar: fondo neutro `--sidebar-background`; el ítem activo usa `--sidebar-accent` (fondo suave) con texto `--sidebar-accent-foreground` (primario), o `--sidebar-primary` sólido con texto blanco. No se pinta el sidebar completo de violeta.
 
-### Semánticos de negocio (sin cambios): base, texto y fondo suave
+### Semánticos de negocio: base, texto y fondo suave
 
 Cada color semántico tiene tres tokens, y se usan según el rol:
 
@@ -73,26 +71,38 @@ Cada color semántico tiene tres tokens, y se usan según el rol:
 | Advertencia: por agotarse, pendiente, arqueo sin cerrar | `warning` `#F59E0B` | `warning-text` `#B45309` | `warning-soft` `#FFFBEB` |
 | Peligro: gasto, salida de caja, agotado, error | `destructive` `#DC2626` | `danger-text` `#B91C1C` | `danger-soft` `#FEF2F2` |
 
+### Gráficos
+
+| Token | Claro | Oscuro | Nota |
+|---|---|---|---|
+| `--chart-1` | `#431B94` | `#AF8BF9` | Serie principal |
+| `--chart-2` | `#02A1BC` | `#13CBEC` | Segunda serie (cian del logo) |
+| `--chart-3` | `#6839C6` | `#8B64D8` | |
+| `--chart-4` | `#9271D6` | `#C7ADFB` | |
+| `--chart-5` / `--chart-neutral` | `#64748B` | `#8F9CAE` | Serie de comparación o "periodo anterior" |
+
+Con dos series se usa `--chart-1` y `--chart-2`. Con más de tres, etiquetas directas sobre las líneas o barras: no depender solo del color para distinguir series.
+
 ### Modo oscuro
 
-Definido en el bloque `.dark` de `global.css`. El primario pasa a `#DC8DDC` (7.2 sobre la tarjeta oscura) con texto oscuro encima (`--primary-foreground`, 7.5). Nunca texto blanco sobre ese primario: da 2.4. El hover se aclara en vez de oscurecerse. Los tonos profundos de la paleta pierden contraste sobre fondo oscuro, por eso `--chart-*` cambia de orden en `.dark`. Activar el selector de tema solo después de revisar todas las pantallas en oscuro.
+Definido en el bloque `.dark` de `global.css`. El primario pasa a `#AF8BF9` (6.4 sobre la tarjeta oscura) con texto oscuro encima (`--primary-foreground`, 6.7). Nunca texto blanco sobre ese primario. El hover se aclara en vez de oscurecerse. Activar el selector de tema solo después de revisar todas las pantallas en oscuro.
 
 ### Reglas
 
 1. Un solo color de acento en la UI: `--primary`. Todo lo demás es neutro o semántico.
 2. `--primary` se usa para una sola acción principal por vista, el elemento activo de navegación, los enlaces y el foco. No se usa para decorar tarjetas, iconos o títulos.
-3. Los tonos claros de la paleta (`#B96BB8`, `#DC8DDC`, `#FFB0FF`) nunca se usan como color de texto sobre fondo claro ni como fondo de botones con texto blanco.
+3. El cian del logo no se usa como acento de interfaz (ver sección anterior).
 4. El ámbar (`warning`) nunca se usa como color de texto (unos 2:1 de contraste); para texto, `warning-text` sobre `warning-soft`.
 5. El verde `success` base solo en iconos y rellenos; montos y texto en verde usan `success-text`.
-6. Los semánticos tienen un único significado y no se usan como decoración. El magenta del primario y el rojo de peligro pueden confundirse con daltonismo: los errores y alertas siempre llevan icono y texto, nunca solo color.
+6. Los semánticos tienen un único significado y no se usan como decoración. El violeta del primario y el rojo de peligro pueden confundirse con daltonismo: los errores y alertas siempre llevan icono y texto, nunca solo color.
 7. El color nunca es el único indicador de estado: acompañar con texto o icono (badge "Stock bajo", no solo un punto ámbar).
 8. Badges y alertas: fondo `*-soft` + texto `*-text`. Nunca texto claro sobre fondo saturado dentro de tablas.
 9. Contraste mínimo WCAG AA: 4.5:1 para texto normal, 3:1 para texto grande, bordes de campos, foco e iconos informativos.
 10. Texto secundario (fechas, descripciones, etiquetas pequeñas) con `--muted-foreground`; no usar grises más claros.
-11. Gráficos: solo tokens `--chart-*` y `--chart-neutral`. Con dos series, `--chart-1` más `--chart-neutral`. Con más series, etiquetas directas sobre las líneas o barras, porque cinco tonos de la misma familia son difíciles de distinguir solo por color. Ingresos en verde y egresos en rojo solo cuando esa semántica aplique.
-12. Prohibidos los degradados, incluso entre tonos de la paleta (no combinar `#732571` con `#FFB0FF`).
+11. Gráficos: solo tokens `--chart-*`. Ingresos en verde y egresos en rojo solo cuando esa semántica aplique.
+12. Prohibidos los degradados en la interfaz, incluido el del logo (el degradado vive solo en el archivo del logo, no se reproduce con CSS).
 13. Un color nuevo se agrega primero como token en `global.css` y `tailwind.config.ts`, nunca como hex suelto en un componente.
-14. El logotipo es un asset de marca y no se recolorea desde la UI. Si cambia su color, se reemplaza el archivo del logo.
+14. El logotipo es un asset de marca y no se recolorea desde la UI. Sobre fondos oscuros o en tamaños pequeños (sidebar, favicon) se usa la versión de una sola tinta, no el logo a color.
 
 ### Tailwind: cómo se usan
 
@@ -191,7 +201,7 @@ Antes de crear algo, buscar en `components/ui`. Extender con CVA, no duplicar.
 ## 8. Gráficos (Recharts)
 
 - Elegir el gráfico por la pregunta: tendencia en el tiempo → línea; comparar categorías → barras; composición con pocas partes → barra apilada o lista con porcentajes. Evitar tortas con más de 4 partes y 3D de cualquier tipo.
-- Un color por serie, tomado de los tokens `--chart-*` y `--chart-neutral` (ver sección 3); ingresos en verde y egresos en rojo solo cuando esa semántica aplique. Con dos series: `--chart-1` más `--chart-neutral`; con más, etiquetas directas.
+- Un color por serie, tomado de los tokens `--chart-*` y `--chart-neutral` (ver sección 3); ingresos en verde y egresos en rojo solo cuando esa semántica aplique. Con dos series: `--chart-1` más `--chart-2`; con más, etiquetas directas.
 - Ejes con números `tabular-nums`, formato `S/`, sin líneas de cuadrícula pesadas (solo horizontales, color `--border`).
 - Tooltip con fecha formateada en español, valores con moneda y etiqueta clara.
 - Siempre título que diga qué mide y en qué periodo ("Ventas diarias, últimos 30 días").

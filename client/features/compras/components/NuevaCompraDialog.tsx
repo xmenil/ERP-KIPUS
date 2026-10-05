@@ -19,7 +19,9 @@ import {
 } from '@/components/ui/select';
 import { NuevaCompraPayload } from '../types/compras.types';
 import { productosService } from '@/features/productos/services/productosService';
+import { proveedoresService } from '@/features/proveedores/services/proveedoresService';
 import { Producto } from '@/features/productos/types/productos.types';
+import { Proveedor } from '@/features/proveedores/types/proveedores.types';
 import { pluralizeUnit } from '@/utils/formatters';
 import { Truck, AlertCircle } from 'lucide-react';
 
@@ -34,12 +36,14 @@ export const NuevaCompraDialog: React.FC<NuevaCompraDialogProps> = ({
   onOpenChange,
   onCompraRegistrada,
 }) => {
-  const [proveedorNombre, setProveedorNombre] = useState('Importadora y Distribuidora PetroPerú Repuestos');
-  const [proveedorRuc, setProveedorRuc] = useState('20100128211');
+  const [proveedores, setProveedores] = useState<Proveedor[]>([]);
+  const [proveedorSeleccionadoId, setProveedorSeleccionadoId] = useState<string>('');
+  const [proveedorNombre, setProveedorNombre] = useState('Alicorp S.A.A.');
+  const [proveedorRuc, setProveedorRuc] = useState('20100055237');
   const [serieFactura, setSerieFactura] = useState('');
-  const [total, setTotal] = useState<string>('550');
+  const [total, setTotal] = useState<string>('240');
   const [metodoPago, setMetodoPago] = useState('TRANSFERENCIA');
-  const [itemsCount, setItemsCount] = useState<string>('10');
+  const [itemsCount, setItemsCount] = useState<string>('24');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorInput, setErrorInput] = useState<string | null>(null);
 
@@ -48,14 +52,32 @@ export const NuevaCompraDialog: React.FC<NuevaCompraDialogProps> = ({
 
   useEffect(() => {
     if (open) {
-      productosService.getProductos().then((prods) => {
+      Promise.all([
+        productosService.getProductos(),
+        proveedoresService.getProveedores(),
+      ]).then(([prods, provs]) => {
         setCatalogo(prods);
+        setProveedores(provs);
         if (prods.length > 0 && !productoSeleccionado) {
           setProductoSeleccionado(prods[0].id);
         }
+        if (provs.length > 0 && !proveedorSeleccionadoId) {
+          setProveedorSeleccionadoId(provs[0].id);
+          setProveedorNombre(provs[0].razonSocial);
+          setProveedorRuc(provs[0].ruc);
+        }
       });
     }
-  }, [open, productoSeleccionado]);
+  }, [open, productoSeleccionado, proveedorSeleccionadoId]);
+
+  const handleSelectProveedor = (provId: string) => {
+    setProveedorSeleccionadoId(provId);
+    const prov = proveedores.find((p) => p.id === provId);
+    if (prov) {
+      setProveedorNombre(prov.razonSocial);
+      setProveedorRuc(prov.ruc);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +103,7 @@ export const NuevaCompraDialog: React.FC<NuevaCompraDialogProps> = ({
     try {
       await onCompraRegistrada({
         proveedorNombre: proveedorNombre.trim(),
-        proveedorRuc: proveedorRuc.trim() || '20000000001',
+        proveedorRuc: proveedorRuc.trim() || '20100055237',
         serieFactura: serieFactura.trim() || `F001-${Math.floor(1000 + Math.random() * 9000)}`,
         total: totalNum,
         metodoPago,
@@ -90,7 +112,7 @@ export const NuevaCompraDialog: React.FC<NuevaCompraDialogProps> = ({
       });
       onOpenChange(false);
       setSerieFactura('');
-      setTotal('550');
+      setTotal('240');
       setErrorInput(null);
     } catch {
       setErrorInput('Ocurrió un error al registrar la compra. Inténtalo nuevamente.');
@@ -108,14 +130,14 @@ export const NuevaCompraDialog: React.FC<NuevaCompraDialogProps> = ({
             <span>Registrar factura o compra</span>
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            Ingresa la recepción de mercadería. El stock del almacén se incrementará automáticamente.
+            Ingresa la recepción de mercadería de tu proveedor. El stock en inventario se incrementará automáticamente.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-3.5 py-1 overflow-y-auto flex-1 pr-0.5">
           {/* Producto a Abastecer */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-foreground">Producto a abastecer</Label>
+            <Label className="text-xs font-medium text-foreground">Producto a abastecer en el minimarket</Label>
             <Select value={productoSeleccionado} onValueChange={setProductoSeleccionado}>
               <SelectTrigger className="h-9 text-xs border-border bg-card">
                 <SelectValue placeholder="Seleccionar producto del catálogo..." />
@@ -130,16 +152,33 @@ export const NuevaCompraDialog: React.FC<NuevaCompraDialogProps> = ({
             </Select>
           </div>
 
-          {/* Razón Social del Proveedor */}
+          {/* Selector de Proveedor */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-foreground">Proveedor (Razón Social)</Label>
+            <Label className="text-xs font-medium text-foreground">Proveedor Registrado</Label>
+            <Select value={proveedorSeleccionadoId} onValueChange={handleSelectProveedor}>
+              <SelectTrigger className="h-9 text-xs border-border bg-card">
+                <SelectValue placeholder="Elegir proveedor registrado..." />
+              </SelectTrigger>
+              <SelectContent className="max-h-56">
+                {proveedores.map((p) => (
+                  <SelectItem key={p.id} value={p.id} className="text-xs">
+                    {p.razonSocial} (RUC: {p.ruc})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Razón Social del Proveedor Manual/Editable */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-foreground">Razón Social del Proveedor</Label>
             <Input
               value={proveedorNombre}
               onChange={(e) => {
                 setProveedorNombre(e.target.value);
                 if (errorInput) setErrorInput(null);
               }}
-              placeholder="Ej. Distribuidora Automotriz S.A.C."
+              placeholder="Ej. Alicorp S.A.A."
               required
               className="h-9 text-xs border-border bg-card"
             />
@@ -162,7 +201,7 @@ export const NuevaCompraDialog: React.FC<NuevaCompraDialogProps> = ({
               <Input
                 value={serieFactura}
                 onChange={(e) => setSerieFactura(e.target.value)}
-                placeholder="F001-002492"
+                placeholder="F001-008921"
                 className="h-9 text-xs font-mono uppercase border-border bg-card"
               />
             </div>
@@ -180,76 +219,83 @@ export const NuevaCompraDialog: React.FC<NuevaCompraDialogProps> = ({
                   type="number"
                   step="0.01"
                   min="0.10"
-                  inputMode="decimal"
                   value={total}
                   onChange={(e) => {
                     setTotal(e.target.value);
                     if (errorInput) setErrorInput(null);
                   }}
+                  placeholder="0.00"
                   required
-                  className="pl-8 h-9 text-sm font-mono font-semibold tabular-nums border-border bg-card focus-visible:ring-1 focus-visible:ring-primary"
+                  className="h-9 pl-8 text-xs font-mono tabular-nums border-border bg-card"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-foreground">Cantidad a ingresar</Label>
+              <Label className="text-xs font-medium text-foreground">Cantidad Unidades</Label>
               <Input
                 type="number"
                 min="1"
-                inputMode="numeric"
                 value={itemsCount}
                 onChange={(e) => {
                   setItemsCount(e.target.value);
                   if (errorInput) setErrorInput(null);
                 }}
+                placeholder="Ej. 24"
                 required
-                className="h-9 text-sm font-mono text-center tabular-nums border-border bg-card focus-visible:ring-1 focus-visible:ring-primary"
+                className="h-9 text-xs font-mono tabular-nums border-border bg-card"
               />
             </div>
           </div>
 
           {/* Condición de Pago */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-foreground">Condición / Medio de pago</Label>
+            <Label className="text-xs font-medium text-foreground">Medio de Pago</Label>
             <Select value={metodoPago} onValueChange={setMetodoPago}>
               <SelectTrigger className="h-9 text-xs border-border bg-card">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="TRANSFERENCIA" className="text-xs">Transferencia bancaria (Contado)</SelectItem>
-                <SelectItem value="EFECTIVO" className="text-xs">Efectivo de caja (Descuenta de arqueo)</SelectItem>
-                <SelectItem value="CREDITO_30_DIAS" className="text-xs">Crédito comercial a 30 días</SelectItem>
+                <SelectItem value="TRANSFERENCIA" className="text-xs">
+                  Transferencia Bancaria (BCP / BBVA / Interbank)
+                </SelectItem>
+                <SelectItem value="EFECTIVO" className="text-xs">
+                  Efectivo (Descuenta automáticamente de Caja)
+                </SelectItem>
+                <SelectItem value="CREDITO_30_DIAS" className="text-xs">
+                  Crédito a 30 días
+                </SelectItem>
+                <SelectItem value="TARJETA" className="text-xs">
+                  Tarjeta Débito / Crédito
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* Error accesible */}
+          {/* Error inline */}
           {errorInput && (
-            <div className="flex items-center gap-1.5 text-xs text-danger-text p-2 rounded bg-danger-soft border border-destructive/20">
-              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+            <div className="flex items-center gap-2 p-2.5 rounded-md bg-destructive/10 text-destructive text-xs">
+              <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{errorInput}</span>
             </div>
           )}
 
-          <DialogFooter className="shrink-0 pt-3 border-t border-border flex flex-row items-center justify-end gap-2">
+          <DialogFooter className="pt-2 gap-2 sm:gap-0 shrink-0">
             <Button
               type="button"
               variant="outline"
-              size="sm"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
-              className="text-xs h-9 font-medium"
+              className="h-9 text-xs"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
-              size="sm"
               disabled={isSubmitting}
-              className="text-xs h-9 font-semibold bg-primary text-primary-foreground"
+              className="h-9 text-xs bg-primary text-primary-foreground hover:bg-primary-hover"
             >
-              {isSubmitting ? 'Registrando compra...' : 'Confirmar compra'}
+              {isSubmitting ? 'Guardando ingreso...' : 'Ingresar a almacén'}
             </Button>
           </DialogFooter>
         </form>
