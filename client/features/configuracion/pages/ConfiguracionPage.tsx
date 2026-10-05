@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -14,7 +15,8 @@ import {
 } from '@/components/ui/table';
 import { configuracionService } from '../services/configuracionService';
 import { ConfiguracionSistema } from '../types/configuracion.types';
-import { Settings, Save, Building, FileCheck, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Settings, Save, Building, FileCheck, CheckCircle2, RotateCcw, ShieldCheck, ArrowRight } from 'lucide-react';
+import { APP_ROUTES } from '@/constants/routes';
 import { erpStore } from '@/services/erp/erpStore';
 import { toast } from 'sonner';
 
@@ -227,6 +229,34 @@ export const ConfiguracionPage: React.FC = () => {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Zona de Usuarios y Seguridad */}
+        <Card className="border-border/80 bg-gradient-to-r from-card to-purple-500/5">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-bold flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+              Gestión de Usuarios, Roles y Seguridad
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Crea cuentas para tu personal, asigna roles (Administrador, Cajero, Supervisor) y define sucursales.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="text-xs text-muted-foreground">
+              Directorio de usuarios con control de contraseñas, permisos de auditoría y revocación de accesos.
+            </div>
+            <Button
+              type="button"
+              asChild
+              className="h-9 text-xs gap-2 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs"
+            >
+              <Link to={APP_ROUTES.USUARIOS}>
+                <span>Administrar Usuarios</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
           </CardContent>
         </Card>
 

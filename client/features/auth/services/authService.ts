@@ -72,7 +72,20 @@ class AuthService {
     const cleanId = credentials.identifier.trim().toLowerCase();
     const cleanPass = credentials.password.trim();
 
-    const matched = DEMO_USERS.find(
+    // Consultar lista dinámica de usuarios guardados en localStorage
+    let storedUsers: any[] = [];
+    try {
+      const stored = localStorage.getItem('kipus_erp_users_list');
+      if (stored) {
+        storedUsers = JSON.parse(stored);
+      }
+    } catch {
+      storedUsers = [];
+    }
+
+    const allUsers = [...storedUsers, ...DEMO_USERS];
+
+    const matched = allUsers.find(
       (u) =>
         (u.username.toLowerCase() === cleanId || u.email.toLowerCase() === cleanId) &&
         u.password === cleanPass
@@ -94,6 +107,10 @@ class AuthService {
         return fallbackUser;
       }
       throw new Error('Credenciales incorrectas. Verifica tu usuario y contraseña.');
+    }
+
+    if (matched.estado === 'INACTIVO') {
+      throw new Error('Esta cuenta de usuario ha sido desactivada por el administrador.');
     }
 
     const { password, descripcion, ...authUser } = matched;

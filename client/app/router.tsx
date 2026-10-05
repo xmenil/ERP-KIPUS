@@ -17,6 +17,7 @@ import ClientesPage from '@/features/clientes/pages/ClientesPage';
 import ProveedoresPage from '@/features/proveedores/pages/ProveedoresPage';
 import ReportesPage from '@/features/reportes/pages/ReportesPage';
 import KipusIaPage from '@/features/kipus-ia/pages/KipusIaPage';
+import UsuariosPage from '@/features/usuarios/pages/UsuariosPage';
 import ConfiguracionPage from '@/features/configuracion/pages/ConfiguracionPage';
 import NotFound from '@/pages/NotFound';
 
@@ -48,6 +49,7 @@ export const AppRouter: React.FC = () => {
           <Route path={APP_ROUTES.PROVEEDORES} element={<ProveedoresPage />} />
           <Route path={APP_ROUTES.REPORTES} element={<ReportesPage />} />
           <Route path={APP_ROUTES.KIPUS_IA} element={<KipusIaPage />} />
+          <Route path={APP_ROUTES.USUARIOS} element={<UsuariosPage />} />
           <Route path={APP_ROUTES.CONFIGURACION} element={<ConfiguracionPage />} />
         </Route>
       </Route>

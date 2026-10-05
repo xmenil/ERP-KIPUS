@@ -11,7 +11,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { NuevoProductoDialog } from '../components/NuevoProductoDialog';
+import { ProductoFormDialog } from '../components/ProductoFormDialog';
+import { ProductoDetalleModal } from '../components/ProductoDetalleModal';
 import { productosService } from '../services/productosService';
 import { Producto, NuevoProductoPayload } from '../types/productos.types';
 import { subscribeToErp } from '@/services/erp/erpStore';
@@ -27,6 +28,11 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
+  Eye,
+  Edit,
+  Trash2,
+  Filter,
+  Package,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -50,7 +56,12 @@ export const ProductosPage: React.FC = () => {
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
-  const [openModal, setOpenModal] = useState(false);
+  
+  // Modales de CRUD y Detalle
+  const [formModalOpen, setFormModalOpen] = useState(false);
+  const [productoAEditar, setProductoAEditar] = useState<Producto | null>(null);
+  const [detalleModalOpen, setDetalleModalOpen] = useState(false);
+  const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null);
 
   const fetchProductos = async () => {
     setLoading(true);
@@ -74,16 +85,60 @@ export const ProductosPage: React.FC = () => {
     return unsubscribe;
   }, []);
 
-  const handleCrearProducto = async (payload: NuevoProductoPayload) => {
+  // Guardar (Crear o Editar)
+  const handleGuardarProducto = async (payload: NuevoProductoPayload, id?: string) => {
     try {
-      const nuevo = await productosService.crearProducto(payload);
-      setProductos((prev) => [nuevo, ...prev]);
-      toast.success(`Producto "${nuevo.nombre}" registrado exitosamente · SKU: ${nuevo.sku}`);
+      if (id) {
+        const actualizado = await productosService.actualizarProducto(id, payload);
+        toast.success(`Producto "${actualizado.nombre}" actualizado correctamente`);
+      } else {
+        const nuevo = await productosService.crearProducto(payload);
+        toast.success(`Producto "${nuevo.nombre}" registrado exitosamente · SKU: ${nuevo.sku}`);
+      }
+      fetchProductos();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'No se pudo registrar el producto';
+      const msg = err instanceof Error ? err.message : 'Error al guardar el producto';
       toast.error(msg);
       throw err;
     }
+  };
+
+  // Eliminar producto
+  const handleEliminarProducto = async (prod: Producto) => {
+    const confirmacion = window.confirm(
+      `¿Estás seguro de eliminar el producto "${prod.nombre}" (SKU: ${prod.sku})?\n\nEsta acción quitará el producto del catálogo y de la lista de ventas.`
+    );
+    if (!confirmacion) return;
+
+    try {
+      await productosService.eliminarProducto(prod.id);
+      toast.success(`Producto "${prod.nombre}" eliminado del catálogo`);
+      if (detalleModalOpen && productoSeleccionado?.id === prod.id) {
+        setDetalleModalOpen(false);
+        setProductoSeleccionado(null);
+      }
+      fetchProductos();
+    } catch {
+      toast.error('No se pudo eliminar el producto');
+    }
+  };
+
+  // Abrir modal de nuevo producto
+  const handleNuevoProducto = () => {
+    setProductoAEditar(null);
+    setFormModalOpen(true);
+  };
+
+  // Abrir modal de edición
+  const handleEditarProducto = (prod: Producto) => {
+    setProductoAEditar(prod);
+    setFormModalOpen(true);
+  };
+
+  // Abrir modal de detalles
+  const handleVerDetalles = (prod: Producto) => {
+    setProductoSeleccionado(prod);
+    setDetalleModalOpen(true);
   };
 
   const categorias = useMemo(() => {
@@ -216,8 +271,8 @@ export const ProductosPage: React.FC = () => {
           </p>
         </div>
         <Button
-          onClick={() => setOpenModal(true)}
-          className="h-9 gap-1.5 self-start sm:self-auto"
+          onClick={handleNuevoProducto}
+          className="h-9 gap-1.5 self-start sm:self-auto bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs"
         >
           <Plus className="h-4 w-4" />
           <span>Nuevo producto</span>
@@ -349,18 +404,21 @@ export const ProductosPage: React.FC = () => {
               )}
             </div>
 
-            {/* Fila de Filtros: Estados y Categorías */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-border/40">
+            {/* Fila de Filtros: Estados y Selector Limpio de Categorías */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-3 border-t border-border/60">
               {/* Botones segmentados de estado de stock */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-                <span className="text-xs text-muted-foreground mr-1 hidden md:inline">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs font-medium text-muted-foreground whitespace-nowrap shrink-0 mr-1">
                   Estado:
                 </span>
                 <button
                   type="button"
-                  onClick={() => setSelectedEstado('TODOS')}
+                  onClick={() => {
+                    setSelectedEstado('TODOS');
+                    setCurrentPage(1);
+                  }}
                   className={cn(
-                    'px-2.5 py-1 text-xs font-medium rounded-md border transition-colors whitespace-nowrap',
+                    'px-2.5 py-1 text-xs font-medium rounded-md border transition-colors whitespace-nowrap shrink-0',
                     selectedEstado === 'TODOS'
                       ? 'bg-primary text-primary-foreground border-primary'
                       : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground'
@@ -370,9 +428,12 @@ export const ProductosPage: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSelectedEstado('STOCK_BAJO')}
+                  onClick={() => {
+                    setSelectedEstado('STOCK_BAJO');
+                    setCurrentPage(1);
+                  }}
                   className={cn(
-                    'px-2.5 py-1 text-xs font-medium rounded-md border transition-colors whitespace-nowrap',
+                    'px-2.5 py-1 text-xs font-medium rounded-md border transition-colors whitespace-nowrap shrink-0',
                     selectedEstado === 'STOCK_BAJO'
                       ? 'bg-warning-soft text-warning-text border-warning/40 font-semibold'
                       : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground'
@@ -382,9 +443,12 @@ export const ProductosPage: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSelectedEstado('AGOTADO')}
+                  onClick={() => {
+                    setSelectedEstado('AGOTADO');
+                    setCurrentPage(1);
+                  }}
                   className={cn(
-                    'px-2.5 py-1 text-xs font-medium rounded-md border transition-colors whitespace-nowrap',
+                    'px-2.5 py-1 text-xs font-medium rounded-md border transition-colors whitespace-nowrap shrink-0',
                     selectedEstado === 'AGOTADO'
                       ? 'bg-danger-soft text-danger-text border-destructive/40 font-semibold'
                       : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground'
@@ -394,23 +458,49 @@ export const ProductosPage: React.FC = () => {
                 </button>
               </div>
 
-              {/* Selector de categorías */}
-              <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto">
-                {categorias.map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setSelectedCategoria(cat)}
-                    className={cn(
-                      'px-2.5 py-1 text-xs font-medium rounded-md border transition-colors whitespace-nowrap shrink-0',
-                      selectedCategoria === cat
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground'
-                    )}
+              {/* Selector Desplegable Limpio de Categorías */}
+              <div className="flex items-center gap-2 w-full md:w-auto self-start md:self-auto">
+                <span className="text-xs font-medium text-muted-foreground whitespace-nowrap shrink-0 flex items-center gap-1">
+                  <Filter className="h-3.5 w-3.5 text-primary" />
+                  Categoría:
+                </span>
+                <div className="relative min-w-[210px] w-full md:w-64">
+                  <select
+                    aria-label="Filtrar por categoría"
+                    value={selectedCategoria}
+                    onChange={(e) => {
+                      setSelectedCategoria(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full h-8 rounded-md border border-border bg-card text-foreground px-2.5 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all cursor-pointer shadow-2xs pr-7"
                   >
-                    {cat === 'TODAS' ? 'Todas las categorías' : cat}
-                  </button>
-                ))}
+                    {categorias.map((cat) => {
+                      const count =
+                        cat === 'TODAS'
+                          ? productos.length
+                          : productos.filter((p) => p.categoria === cat).length;
+                      return (
+                        <option key={cat} value={cat}>
+                          {cat === 'TODAS' ? `Todas las categorías (${count})` : `${cat} (${count})`}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+                {selectedCategoria !== 'TODAS' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedCategoria('TODAS');
+                      setCurrentPage(1);
+                    }}
+                    className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground shrink-0"
+                    title="Ver todas las categorías"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -515,7 +605,7 @@ export const ProductosPage: React.FC = () => {
                     Agrega el primer producto o servicio a tu catálogo para empezar a vender y controlar tus existencias.
                   </p>
                   <Button
-                    onClick={() => setOpenModal(true)}
+                    onClick={handleNuevoProducto}
                     className="h-9 gap-1.5"
                   >
                     <Plus className="h-4 w-4" />
@@ -571,6 +661,9 @@ export const ProductosPage: React.FC = () => {
                       <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide text-center py-2.5 px-3 whitespace-nowrap">
                         Estado
                       </TableHead>
+                      <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide text-right py-2.5 px-3 whitespace-nowrap">
+                        Acciones
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -585,13 +678,14 @@ export const ProductosPage: React.FC = () => {
                       return (
                         <TableRow
                           key={prod.id}
-                          className="hover:bg-muted/40 border-b border-border/70 transition-colors"
+                          className="hover:bg-muted/40 border-b border-border/70 transition-colors cursor-pointer"
+                          onClick={() => handleVerDetalles(prod)}
                         >
                           <TableCell className="font-mono text-xs font-medium text-foreground py-2.5 px-3 whitespace-nowrap">
                             {prod.sku}
                           </TableCell>
                           <TableCell className="py-2.5 px-3 min-w-48">
-                            <span className="font-medium text-foreground text-sm block leading-snug">
+                            <span className="font-medium text-foreground text-sm block leading-snug hover:text-primary transition-colors">
                               {prod.nombre}
                             </span>
                             <span className="text-xs text-muted-foreground block">
@@ -669,6 +763,42 @@ export const ProductosPage: React.FC = () => {
                                 : 'Normal'}
                             </span>
                           </TableCell>
+
+                          {/* Acciones CRUD */}
+                          <TableCell
+                            className="text-right py-2.5 px-3 whitespace-nowrap"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleVerDetalles(prod)}
+                                title="Ver detalles del producto"
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEditarProducto(prod)}
+                                title="Editar producto"
+                                className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEliminarProducto(prod)}
+                                title="Eliminar producto"
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-danger-soft"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
                         </TableRow>
                       );
                     })}
@@ -689,10 +819,10 @@ export const ProductosPage: React.FC = () => {
                   return (
                     <div
                       key={prod.id}
-                      className="p-3.5 rounded-md border border-border bg-card space-y-2"
+                      className="p-3.5 rounded-md border border-border bg-card space-y-2.5 shadow-2xs"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-mono text-xs font-medium text-muted-foreground">
+                        <span className="font-mono text-xs font-semibold text-primary">
                           {prod.sku}
                         </span>
                         <span
@@ -714,7 +844,7 @@ export const ProductosPage: React.FC = () => {
                       </div>
 
                       <div>
-                        <h4 className="text-sm font-medium text-foreground leading-snug">
+                        <h4 className="text-sm font-semibold text-foreground leading-snug">
                           {prod.nombre}
                         </h4>
                         <p className="text-xs text-muted-foreground mt-0.5">
@@ -725,7 +855,7 @@ export const ProductosPage: React.FC = () => {
                       <div className="flex items-center justify-between pt-2 border-t border-border/60 text-xs">
                         <div>
                           <span className="text-muted-foreground block text-xs">PVP Venta</span>
-                          <span className="text-sm font-semibold text-foreground tabular-nums">
+                          <span className="text-sm font-bold text-foreground tabular-nums">
                             {formatCurrency(prod.precioVenta)}
                           </span>
                           {puedeVerCostos && (
@@ -738,17 +868,51 @@ export const ProductosPage: React.FC = () => {
                           <span className="text-muted-foreground block text-xs">Disponible</span>
                           <span
                             className={cn(
-                              'text-sm font-medium tabular-nums',
+                              'text-sm font-bold tabular-nums',
                               isAgotado
-                                ? 'text-danger-text font-semibold'
+                                ? 'text-danger-text'
                                 : isLowStock
-                                ? 'text-warning-text font-semibold'
+                                ? 'text-warning-text'
                                 : 'text-foreground'
                             )}
                           >
                             {prod.stock} {pluralizeUnit(prod.stock, prod.unidadMedida)}
                           </span>
+                          <span className="text-[11px] text-muted-foreground block">
+                            Mín. {prod.stockMinimo}
+                          </span>
                         </div>
+                      </div>
+
+                      {/* Botones de acción en Mobile */}
+                      <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-border/40">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleVerDetalles(prod)}
+                          className="h-8 text-xs px-2.5 gap-1 text-muted-foreground hover:text-foreground"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          <span>Detalle</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditarProducto(prod)}
+                          className="h-8 text-xs px-2.5 gap-1 text-primary border-primary/30 hover:bg-primary/5"
+                        >
+                          <Edit className="h-3.5 w-3.5" />
+                          <span>Editar</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEliminarProducto(prod)}
+                          className="h-8 text-xs px-2.5 gap-1 text-destructive border-destructive/30 hover:bg-danger-soft"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span>Eliminar</span>
+                        </Button>
                       </div>
                     </div>
                   );
@@ -800,10 +964,28 @@ export const ProductosPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <NuevoProductoDialog
-        open={openModal}
-        onOpenChange={setOpenModal}
-        onProductoCreado={handleCrearProducto}
+      {/* Modal Formulario de Producto (Crear o Editar) */}
+      <ProductoFormDialog
+        open={formModalOpen}
+        onOpenChange={setFormModalOpen}
+        onGuardar={handleGuardarProducto}
+        productoAEditar={productoAEditar}
+        categoriasExistentes={categorias}
+      />
+
+      {/* Modal Detalle de Producto */}
+      <ProductoDetalleModal
+        open={detalleModalOpen}
+        onOpenChange={setDetalleModalOpen}
+        producto={productoSeleccionado}
+        onEditarClick={(prod) => {
+          setDetalleModalOpen(false);
+          handleEditarProducto(prod);
+        }}
+        onEliminarClick={(prod) => {
+          handleEliminarProducto(prod);
+        }}
+        puedeVerCostos={puedeVerCostos}
       />
     </div>
   );

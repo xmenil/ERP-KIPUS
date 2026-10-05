@@ -17,6 +17,7 @@ export const APP_ROUTES = {
   CAJA: '/caja',
   REPORTES: '/reportes',
   KIPUS_IA: '/kipus-ia',
+  USUARIOS: '/usuarios',
   CONFIGURACION: '/configuracion',
 } as const;
 
@@ -109,6 +110,13 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     badge: 'Beta',
     category: 'inteligencia',
     description: 'Asistente predictivo de abastecimiento y ventas',
+  },
+  {
+    name: 'Usuarios',
+    path: APP_ROUTES.USUARIOS,
+    iconName: 'ShieldCheck',
+    category: 'sistema',
+    description: 'Gestión de cuentas, roles de acceso y credenciales',
   },
   {
     name: 'Configuración',

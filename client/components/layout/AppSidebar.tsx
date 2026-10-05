@@ -59,6 +59,7 @@ const inteligenciaItems: NavItemConfig[] = [
 ];
 
 const sistemaItems: NavItemConfig[] = [
+  { name: 'Usuarios', path: APP_ROUTES.USUARIOS, icon: ShieldCheck },
   { name: 'Configuración', path: APP_ROUTES.CONFIGURACION, icon: Settings },
 ];
 
