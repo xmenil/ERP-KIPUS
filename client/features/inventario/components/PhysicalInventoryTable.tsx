@@ -278,9 +278,9 @@ export const PhysicalInventoryTable: React.FC<PhysicalInventoryTableProps> = ({
 
                       {/* Stock del sistema */}
                       <TableCell className="py-2.5 px-4 text-right font-mono font-semibold text-sm text-foreground tabular-nums">
-                        {prod.stock.toLocaleString('es-PE')}{' '}
+                        {(prod.stock ?? 0).toLocaleString('es-PE')}{' '}
                         <span className="text-xs font-sans font-normal text-muted-foreground">
-                          {prod.unidadMedida.toLowerCase()}
+                          {(prod.unidadMedida || 'unidades').toLowerCase()}
                         </span>
                       </TableCell>
 

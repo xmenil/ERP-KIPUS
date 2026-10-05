@@ -74,9 +74,11 @@ export const MovementTable: React.FC<MovementTableProps> = ({
       // Filtro período
       let matchPeriodo = true;
       if (periodoFiltro !== 'TODOS') {
-        const movDate = new Date(m.fecha.replace(' ', 'T'));
+        const movDate = m.fecha ? new Date(m.fecha.replace(' ', 'T')) : new Date();
         const hoy = new Date();
-        if (periodoFiltro === 'HOY') {
+        if (isNaN(movDate.getTime())) {
+          matchPeriodo = true;
+        } else if (periodoFiltro === 'HOY') {
           matchPeriodo = movDate.toDateString() === hoy.toDateString();
         } else if (periodoFiltro === '7_DIAS') {
           const hace7Dias = new Date();
@@ -279,7 +281,7 @@ export const MovementTable: React.FC<MovementTableProps> = ({
                         >
                           {isEntrada ? `+${mov.cantidad}` : isSalida ? `-${mov.cantidad}` : mov.cantidad}
                         </span>
-                        <span className="text-xs text-muted-foreground ml-1">unid.</span>
+                        <span className="text-xs text-muted-foreground ml-1">unidades</span>
                       </TableCell>
 
                       {/* Origen */}
@@ -343,13 +345,13 @@ export const MovementTable: React.FC<MovementTableProps> = ({
                             !isEntrada && !isSalida && 'text-warning-text'
                           )}
                         >
-                          {isEntrada ? `+${mov.cantidad}` : isSalida ? `-${mov.cantidad}` : mov.cantidad} unid.
+                          {isEntrada ? `+${mov.cantidad}` : isSalida ? `-${mov.cantidad}` : mov.cantidad} unidades
                         </span>
                       </div>
                       <div>
                         <span className="text-muted-foreground block text-xs">Saldo posterior</span>
                         <span className="font-mono text-sm font-medium text-foreground tabular-nums">
-                          {mov.stockResultante} unid.
+                          {mov.stockResultante} unidades
                         </span>
                       </div>
                     </div>

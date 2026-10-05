@@ -155,7 +155,7 @@ export const AdjustmentForm: React.FC<AdjustmentFormProps> = ({
                 <SelectContent className="max-h-60">
                   {productos.map((prod) => (
                     <SelectItem key={prod.id} value={prod.id} className="text-xs">
-                      {prod.nombre} ({prod.sku}) — Stock: {prod.stock} {prod.unidadMedida.toLowerCase()}
+                      {prod.nombre} ({prod.sku}) — Stock: {prod.stock} {(prod.unidadMedida || 'unidades').toLowerCase()}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -167,7 +167,7 @@ export const AdjustmentForm: React.FC<AdjustmentFormProps> = ({
               <div>
                 <span className="text-xs text-muted-foreground block">Stock registrado actual</span>
                 <span className="text-base font-semibold font-mono text-foreground tabular-nums block mt-0.5">
-                  {stockActual} {productoSeleccionado?.unidadMedida.toLowerCase()}
+                  {stockActual} {(productoSeleccionado?.unidadMedida || 'unidades').toLowerCase()}
                 </span>
                 <span className="text-[11px] text-muted-foreground block">Automático del sistema</span>
               </div>

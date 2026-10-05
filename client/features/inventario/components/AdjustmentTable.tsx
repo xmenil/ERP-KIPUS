@@ -69,8 +69,11 @@ export const AdjustmentTable: React.FC<AdjustmentTableProps> = ({
           </TableHeader>
           <TableBody>
             {ajustes.map((aj) => {
-              const esPositivo = aj.diferencia > 0;
-              const esNegativo = aj.diferencia < 0;
+              const stockAnt = typeof aj.stockAnterior === 'number' ? aj.stockAnterior : Number(aj.stockAnterior) || 0;
+              const stockNuev = typeof aj.nuevoStock === 'number' ? aj.nuevoStock : Number(aj.nuevoStock) || 0;
+              const dif = typeof aj.diferencia === 'number' ? aj.diferencia : stockNuev - stockAnt;
+              const esPositivo = dif > 0;
+              const esNegativo = dif < 0;
 
               return (
                 <TableRow
@@ -79,25 +82,25 @@ export const AdjustmentTable: React.FC<AdjustmentTableProps> = ({
                 >
                   {/* Fecha */}
                   <TableCell className="py-2.5 px-4 font-mono text-xs text-muted-foreground whitespace-nowrap">
-                    {formatDateTime(aj.fecha)}
+                    {formatDateTime(aj.fecha || '')}
                   </TableCell>
 
                   {/* Producto */}
                   <TableCell className="py-2.5 px-4">
                     <span className="font-medium text-sm text-foreground block leading-tight">
-                      {aj.productoNombre}
+                      {aj.productoNombre || 'Producto sin nombre'}
                     </span>
-                    <span className="text-xs text-muted-foreground font-mono">{aj.sku}</span>
+                    <span className="text-xs text-muted-foreground font-mono">{aj.sku || '-'}</span>
                   </TableCell>
 
                   {/* Stock anterior */}
                   <TableCell className="py-2.5 px-3 text-right font-mono text-xs text-muted-foreground tabular-nums">
-                    {aj.stockAnterior.toLocaleString('es-PE')}
+                    {stockAnt.toLocaleString('es-PE')}
                   </TableCell>
 
                   {/* Nuevo stock */}
                   <TableCell className="py-2.5 px-3 text-right font-mono text-sm font-semibold text-foreground tabular-nums">
-                    {aj.nuevoStock.toLocaleString('es-PE')}
+                    {stockNuev.toLocaleString('es-PE')}
                   </TableCell>
 
                   {/* Diferencia */}
@@ -110,13 +113,13 @@ export const AdjustmentTable: React.FC<AdjustmentTableProps> = ({
                         !esPositivo && !esNegativo && 'text-muted-foreground bg-muted'
                       )}
                     >
-                      {esPositivo ? `+${aj.diferencia}` : aj.diferencia}
+                      {esPositivo ? `+${dif}` : dif}
                     </span>
                   </TableCell>
 
                   {/* Motivo */}
                   <TableCell className="py-2.5 px-4 text-xs">
-                    <span className="font-medium text-foreground block">{aj.motivo}</span>
+                    <span className="font-medium text-foreground block">{aj.motivo || 'Ajuste general'}</span>
                     {aj.observacion && (
                       <span className="text-xs text-muted-foreground block truncate max-w-xs">
                         {aj.observacion}
@@ -126,7 +129,7 @@ export const AdjustmentTable: React.FC<AdjustmentTableProps> = ({
 
                   {/* Usuario */}
                   <TableCell className="py-2.5 px-4 text-xs text-muted-foreground whitespace-nowrap">
-                    {aj.usuario}
+                    {aj.usuario || 'Sistema'}
                   </TableCell>
                 </TableRow>
               );
@@ -138,8 +141,11 @@ export const AdjustmentTable: React.FC<AdjustmentTableProps> = ({
       {/* Vista Móvil: Tarjetas compactas */}
       <div className="block md:hidden space-y-2.5">
         {ajustes.map((aj) => {
-          const esPositivo = aj.diferencia > 0;
-          const esNegativo = aj.diferencia < 0;
+          const stockAnt = typeof aj.stockAnterior === 'number' ? aj.stockAnterior : Number(aj.stockAnterior) || 0;
+          const stockNuev = typeof aj.nuevoStock === 'number' ? aj.nuevoStock : Number(aj.nuevoStock) || 0;
+          const dif = typeof aj.diferencia === 'number' ? aj.diferencia : stockNuev - stockAnt;
+          const esPositivo = dif > 0;
+          const esNegativo = dif < 0;
 
           return (
             <Card key={`m-aj-${aj.id}`} className="border-border bg-card shadow-2xs">
@@ -147,9 +153,9 @@ export const AdjustmentTable: React.FC<AdjustmentTableProps> = ({
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <h4 className="font-medium text-sm text-foreground leading-snug">
-                      {aj.productoNombre}
+                      {aj.productoNombre || 'Producto'}
                     </h4>
-                    <p className="text-xs text-muted-foreground font-mono">{aj.sku}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{aj.sku || '-'}</p>
                   </div>
                   <span
                     className={cn(
@@ -159,7 +165,7 @@ export const AdjustmentTable: React.FC<AdjustmentTableProps> = ({
                       !esPositivo && !esNegativo && 'text-muted-foreground bg-muted'
                     )}
                   >
-                    {esPositivo ? `+${aj.diferencia}` : aj.diferencia}
+                    {esPositivo ? `+${dif}` : dif}
                   </span>
                 </div>
 
@@ -167,24 +173,24 @@ export const AdjustmentTable: React.FC<AdjustmentTableProps> = ({
                   <div>
                     <span className="text-muted-foreground block text-xs">Stock anterior</span>
                     <span className="font-mono text-sm text-muted-foreground tabular-nums">
-                      {aj.stockAnterior.toLocaleString('es-PE')}
+                      {stockAnt.toLocaleString('es-PE')}
                     </span>
                   </div>
                   <div>
                     <span className="text-muted-foreground block text-xs">Nuevo stock</span>
                     <span className="font-mono text-sm font-semibold text-foreground tabular-nums">
-                      {aj.nuevoStock.toLocaleString('es-PE')}
+                      {stockNuev.toLocaleString('es-PE')}
                     </span>
                   </div>
                 </div>
 
                 <div className="space-y-1 text-xs text-muted-foreground pt-1 border-t border-border/40">
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-foreground">{aj.motivo}</span>
-                    <span className="font-mono text-[11px]">{formatDateTime(aj.fecha)}</span>
+                    <span className="font-medium text-foreground">{aj.motivo || 'Ajuste'}</span>
+                    <span className="font-mono text-[11px]">{formatDateTime(aj.fecha || '')}</span>
                   </div>
                   {aj.observacion && <p className="text-[11px] truncate">{aj.observacion}</p>}
-                  <p className="text-[11px]">Por: {aj.usuario}</p>
+                  <p className="text-[11px]">Por: {aj.usuario || 'Sistema'}</p>
                 </div>
               </CardContent>
             </Card>

@@ -87,20 +87,20 @@ export const ProductInventoryDetail: React.FC<ProductInventoryDetailProps> = ({
                     : 'text-foreground'
                 )}
               >
-                {producto.stock.toLocaleString('es-PE')}
+                {(producto.stock ?? 0).toLocaleString('es-PE')}
               </span>
               <span className="text-xs text-muted-foreground">
-                {producto.unidadMedida.toLowerCase()}
+                {(producto.unidadMedida || 'unidades').toLowerCase()}
               </span>
             </div>
 
             <div className="p-3 rounded-md bg-muted/30 border border-border">
               <span className="text-xs text-muted-foreground block">Stock mínimo</span>
               <span className="text-lg font-semibold font-mono text-foreground tabular-nums block mt-0.5">
-                {producto.stockMinimo.toLocaleString('es-PE')}
+                {(producto.stockMinimo ?? 0).toLocaleString('es-PE')}
               </span>
               <span className="text-xs text-muted-foreground">
-                {producto.unidadMedida.toLowerCase()}
+                {(producto.unidadMedida || 'unidades').toLowerCase()}
               </span>
             </div>
 
@@ -179,10 +179,10 @@ export const ProductInventoryDetail: React.FC<ProductInventoryDetailProps> = ({
                                 : 'text-warning-text'
                             )}
                           >
-                            {isEntrada ? `+${mov.cantidad}` : isSalida ? `-${mov.cantidad}` : mov.cantidad} unid.
+                            {isEntrada ? `+${mov.cantidad}` : isSalida ? `-${mov.cantidad}` : mov.cantidad} unidades
                           </span>
                           <span className="text-[11px] text-muted-foreground tabular-nums">
-                            Saldo: {mov.stockResultante} unid.
+                            Saldo: {mov.stockResultante} unidades
                           </span>
                         </div>
                       </div>

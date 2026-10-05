@@ -99,23 +99,23 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                   <span
                     className={cn(
                       'font-semibold font-mono text-sm tabular-nums',
-                      prod.stock <= 0
+                      (prod.stock ?? 0) <= 0
                         ? 'text-danger-text'
-                        : prod.stock <= prod.stockMinimo
+                        : (prod.stock ?? 0) <= (prod.stockMinimo ?? 0)
                         ? 'text-warning-text'
                         : 'text-foreground'
                     )}
                   >
-                    {prod.stock.toLocaleString('es-PE')}
+                    {(prod.stock ?? 0).toLocaleString('es-PE')}
                   </span>
                   <span className="text-xs text-muted-foreground ml-1 font-sans">
-                    {prod.unidadMedida.toLowerCase()}
+                    {(prod.unidadMedida || 'unidades').toLowerCase()}
                   </span>
                 </TableCell>
 
                 {/* Stock mínimo */}
                 <TableCell className="py-2.5 px-4 text-right font-mono text-xs text-muted-foreground tabular-nums">
-                  {prod.stockMinimo.toLocaleString('es-PE')} {prod.unidadMedida.toLowerCase()}
+                  {(prod.stockMinimo ?? 0).toLocaleString('es-PE')} {(prod.unidadMedida || 'unidades').toLowerCase()}
                 </TableCell>
 
                 {/* Estado */}
@@ -167,20 +167,20 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                   <span
                     className={cn(
                       'font-semibold font-mono text-sm tabular-nums',
-                      prod.stock <= 0
+                      (prod.stock ?? 0) <= 0
                         ? 'text-danger-text'
-                        : prod.stock <= prod.stockMinimo
+                        : (prod.stock ?? 0) <= (prod.stockMinimo ?? 0)
                         ? 'text-warning-text'
                         : 'text-foreground'
                     )}
                   >
-                    {prod.stock.toLocaleString('es-PE')} {prod.unidadMedida.toLowerCase()}
+                    {(prod.stock ?? 0).toLocaleString('es-PE')} {(prod.unidadMedida || 'unidades').toLowerCase()}
                   </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground block text-xs">Stock mínimo</span>
                   <span className="font-medium font-mono text-sm text-muted-foreground tabular-nums">
-                    {prod.stockMinimo.toLocaleString('es-PE')} {prod.unidadMedida.toLowerCase()}
+                    {(prod.stockMinimo ?? 0).toLocaleString('es-PE')} {(prod.unidadMedida || 'unidades').toLowerCase()}
                   </span>
                 </div>
               </div>

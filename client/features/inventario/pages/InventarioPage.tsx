@@ -13,6 +13,7 @@ import { AdjustmentForm } from '../components/AdjustmentForm';
 import { PhysicalInventoryTable } from '../components/PhysicalInventoryTable';
 import { LoadingState } from '../components/LoadingState';
 import { ErrorState } from '../components/ErrorState';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { inventarioService } from '../services/inventarioService';
 import {
   ItemStockDetalle,
@@ -47,29 +48,39 @@ export const InventarioPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Sección activa (controlada por URL param o estado)
-  const tabParam = searchParams.get('tab') as SeccionInventario | null;
-  const [seccionActiva, setSeccionActiva] = useState<SeccionInventario>(
-    tabParam && ['existencias', 'entradas-salidas', 'ajustes', 'inventario-fisico'].includes(tabParam)
-      ? tabParam
-      : 'existencias'
-  );
+  // Sección activa (controlada eficientemente por URL y estado sincronizado)
+  const tabParam = searchParams.get('tab');
+  const getSeccionValida = (tab: string | null): SeccionInventario =>
+    tab && ['existencias', 'entradas-salidas', 'ajustes', 'inventario-fisico'].includes(tab)
+      ? (tab as SeccionInventario)
+      : 'existencias';
 
-  // Sincronizar estado cuando cambia URL param
+  const [seccionActiva, setSeccionActiva] = useState<SeccionInventario>(() => getSeccionValida(tabParam));
+
+  // Sincronizar estado cuando cambia URL param por botones de historial
   useEffect(() => {
-    if (tabParam && ['existencias', 'entradas-salidas', 'ajustes', 'inventario-fisico'].includes(tabParam)) {
-      setSeccionActiva(tabParam);
+    const valid = getSeccionValida(tabParam);
+    if (valid !== seccionActiva) {
+      setSeccionActiva(valid);
     }
   }, [tabParam]);
 
+  // Cambio de pestaña instantáneo: sin recargas de página, sin retrasos y sin ensuciar el historial
   const handleTabChange = (value: string) => {
     const nuevaSeccion = value as SeccionInventario;
     setSeccionActiva(nuevaSeccion);
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.set('tab', nuevaSeccion);
-      return next;
-    });
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (nuevaSeccion === 'existencias') {
+          next.delete('tab');
+        } else {
+          next.set('tab', nuevaSeccion);
+        }
+        return next;
+      },
+      { replace: true }
+    );
   };
 
   // Modales
@@ -86,9 +97,11 @@ export const InventarioPage: React.FC = () => {
   const [estadoFiltro, setEstadoFiltro] = useState('TODOS');
   const [almacenFiltro, setAlmacenFiltro] = useState('TODOS');
 
-  // Carga de datos unificada
-  const cargarDatos = async () => {
-    setLoading(true);
+  // Carga de datos unificada: sólo muestra esqueleto en la primera carga para evitar parpadeos
+  const cargarDatos = async (isInitial: boolean = false) => {
+    if (isInitial) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const [prodsData, movsData, ajustesData, almacenesData] = await Promise.all([
@@ -97,22 +110,24 @@ export const InventarioPage: React.FC = () => {
         inventarioService.getAjustes(),
         inventarioService.getAlmacenes(),
       ]);
-      setProductos(prodsData);
-      setMovimientos(movsData);
-      setAjustes(ajustesData);
-      setAlmacenes(almacenesData);
+      setProductos(prodsData || []);
+      setMovimientos(movsData || []);
+      setAjustes(ajustesData || []);
+      setAlmacenes(almacenesData || []);
     } catch {
       setError('No se pudo cargar la información del inventario. Revisa tu conexión a internet.');
       toast.error('Error al sincronizar inventario');
     } finally {
-      setLoading(false);
+      if (isInitial) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    cargarDatos();
+    cargarDatos(true);
     const unsubscribe = subscribeToErp(() => {
-      cargarDatos();
+      cargarDatos(false);
     });
     return unsubscribe;
   }, []);
@@ -296,30 +311,32 @@ export const InventarioPage: React.FC = () => {
         {/* ========================================================================= */}
         {!loading && !error && (
           <TabsContent value="existencias" className="space-y-4 m-0 focus-visible:outline-none">
-            {/* Barra de Filtros */}
-            <FilterBar
-              busqueda={busquedaExistencias}
-              onBusquedaChange={setBusquedaExistencias}
-              categoria={categoriaFiltro}
-              onCategoriaChange={setCategoriaFiltro}
-              categorias={categorias}
-              estado={estadoFiltro}
-              onEstadoChange={setEstadoFiltro}
-              almacen={almacenFiltro}
-              onAlmacenChange={setAlmacenFiltro}
-              almacenes={almacenes}
-              onResetFilters={resetFiltrosExistencias}
-              hayFiltrosActivos={hayFiltrosExistenciasActivos}
-              totalResultados={productosFiltrados.length}
-            />
+            <ErrorBoundary moduleName="Catálogo de Existencias">
+              {/* Barra de Filtros */}
+              <FilterBar
+                busqueda={busquedaExistencias}
+                onBusquedaChange={setBusquedaExistencias}
+                categoria={categoriaFiltro}
+                onCategoriaChange={setCategoriaFiltro}
+                categorias={categorias}
+                estado={estadoFiltro}
+                onEstadoChange={setEstadoFiltro}
+                almacen={almacenFiltro}
+                onAlmacenChange={setAlmacenFiltro}
+                almacenes={almacenes}
+                onResetFilters={resetFiltrosExistencias}
+                hayFiltrosActivos={hayFiltrosExistenciasActivos}
+                totalResultados={productosFiltrados.length}
+              />
 
-            {/* Tabla de Existencias */}
-            <InventoryTable
-              productos={productosFiltrados}
-              onVerDetalle={handleVerDetalle}
-              onResetFilters={resetFiltrosExistencias}
-              isFiltered={hayFiltrosExistenciasActivos}
-            />
+              {/* Tabla de Existencias */}
+              <InventoryTable
+                productos={productosFiltrados}
+                onVerDetalle={handleVerDetalle}
+                onResetFilters={resetFiltrosExistencias}
+                isFiltered={hayFiltrosExistenciasActivos}
+              />
+            </ErrorBoundary>
           </TabsContent>
         )}
 
@@ -328,18 +345,20 @@ export const InventarioPage: React.FC = () => {
         {/* ========================================================================= */}
         {!loading && !error && (
           <TabsContent value="entradas-salidas" className="space-y-4 m-0 focus-visible:outline-none">
-            <div className="space-y-1">
-              <h2 className="text-base font-semibold text-foreground">Entradas y salidas</h2>
-              <p className="text-xs text-muted-foreground">
-                Consulta cómo ha cambiado el stock de tus productos a partir de compras, ventas y ajustes.
-              </p>
-            </div>
+            <ErrorBoundary moduleName="Entradas y Salidas">
+              <div className="space-y-1">
+                <h2 className="text-base font-semibold text-foreground">Entradas y salidas</h2>
+                <p className="text-xs text-muted-foreground">
+                  Consulta cómo ha cambiado el stock de tus productos a partir de compras, ventas y ajustes.
+                </p>
+              </div>
 
-            <MovementTable
-              movimientos={movimientos}
-              initialSearch={filtroMovimientosProducto}
-              onClearInitialSearch={() => setFiltroMovimientosProducto('')}
-            />
+              <MovementTable
+                movimientos={movimientos}
+                initialSearch={filtroMovimientosProducto}
+                onClearInitialSearch={() => setFiltroMovimientosProducto('')}
+              />
+            </ErrorBoundary>
           </TabsContent>
         )}
 
@@ -348,29 +367,31 @@ export const InventarioPage: React.FC = () => {
         {/* ========================================================================= */}
         {!loading && !error && (
           <TabsContent value="ajustes" className="space-y-4 m-0 focus-visible:outline-none">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="space-y-1">
-                <h2 className="text-base font-semibold text-foreground">Ajustes de inventario</h2>
-                <p className="text-xs text-muted-foreground">
-                  Corrige diferencias entre el stock registrado y el stock real por mermas, vencimientos o recuentos.
-                </p>
+            <ErrorBoundary moduleName="Ajustes de Inventario">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="space-y-1">
+                  <h2 className="text-base font-semibold text-foreground">Ajustes de inventario</h2>
+                  <p className="text-xs text-muted-foreground">
+                    Corrige diferencias entre el stock registrado y el stock real por mermas, vencimientos o recuentos.
+                  </p>
+                </div>
+
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setOpenAjusteModal(true)}
+                  className="gap-1.5 text-xs font-semibold bg-primary text-primary-foreground self-start sm:self-auto shadow-xs"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Nuevo ajuste</span>
+                </Button>
               </div>
 
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => setOpenAjusteModal(true)}
-                className="gap-1.5 text-xs font-semibold bg-primary text-primary-foreground self-start sm:self-auto shadow-xs"
-              >
-                <Plus className="h-4 w-4" />
-                <span>Nuevo ajuste</span>
-              </Button>
-            </div>
-
-            <AdjustmentTable
-              ajustes={ajustes}
-              onNuevoAjuste={() => setOpenAjusteModal(true)}
-            />
+              <AdjustmentTable
+                ajustes={ajustes}
+                onNuevoAjuste={() => setOpenAjusteModal(true)}
+              />
+            </ErrorBoundary>
           </TabsContent>
         )}
 
@@ -379,18 +400,20 @@ export const InventarioPage: React.FC = () => {
         {/* ========================================================================= */}
         {!loading && !error && (
           <TabsContent value="inventario-fisico" className="space-y-4 m-0 focus-visible:outline-none">
-            <div className="space-y-1">
-              <h2 className="text-base font-semibold text-foreground">Inventario físico</h2>
-              <p className="text-xs text-muted-foreground">
-                Compara el stock registrado con la cantidad real disponible ingresando el conteo de cada producto.
-              </p>
-            </div>
+            <ErrorBoundary moduleName="Inventario Físico">
+              <div className="space-y-1">
+                <h2 className="text-base font-semibold text-foreground">Inventario físico</h2>
+                <p className="text-xs text-muted-foreground">
+                  Compara el stock registrado con la cantidad real disponible ingresando el conteo de cada producto.
+                </p>
+              </div>
 
-            <PhysicalInventoryTable
-              productos={productos}
-              almacenes={almacenes}
-              onAplicarAjustes={handleAplicarAjustesFisicos}
-            />
+              <PhysicalInventoryTable
+                productos={productos}
+                almacenes={almacenes}
+                onAplicarAjustes={handleAplicarAjustesFisicos}
+              />
+            </ErrorBoundary>
           </TabsContent>
         )}
       </Tabs>
