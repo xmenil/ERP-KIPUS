@@ -43,3 +43,39 @@ export function formatDateTime(dateString: string): string {
   }
 }
 
+/**
+ * Pluraliza la unidad de medida según la cantidad.
+ * Cubre: GALON, UNIDAD, KILO, LITRO, JUEGO, PAQUETE.
+ */
+export function pluralizeUnit(quantity: number, unit: string): string {
+  if (!unit) return '';
+  const isPlural = Math.abs(quantity) !== 1;
+  const normalized = unit.trim().toUpperCase();
+
+  switch (normalized) {
+    case 'GALON':
+    case 'GALÓN':
+      return isPlural ? 'galones' : 'galón';
+    case 'UNIDAD':
+    case 'UND':
+    case 'UNI':
+      return isPlural ? 'unidades' : 'unidad';
+    case 'KILO':
+    case 'KG':
+      return isPlural ? 'kilos' : 'kilo';
+    case 'LITRO':
+    case 'LT':
+      return isPlural ? 'litros' : 'litro';
+    case 'JUEGO':
+    case 'JGO':
+      return isPlural ? 'juegos' : 'juego';
+    case 'PAQUETE':
+    case 'PQT':
+      return isPlural ? 'paquetes' : 'paquete';
+    default: {
+      const lower = unit.trim().toLowerCase();
+      return isPlural ? `${lower}s` : lower;
+    }
+  }
+}
+

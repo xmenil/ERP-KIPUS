@@ -20,6 +20,7 @@ import {
 import { AjusteAuditoriaPayload, ItemStockDetalle } from '../types/inventario.types';
 import { ClipboardCheck, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { pluralizeUnit } from '@/utils/formatters';
 
 interface AuditoriaConteoDialogProps {
   open: boolean;
@@ -125,7 +126,7 @@ export const AuditoriaConteoDialog: React.FC<AuditoriaConteoDialogProps> = ({
               <SelectContent>
                 {productos.map((prod) => (
                   <SelectItem key={prod.id} value={prod.id} className="text-xs">
-                    {prod.nombre} · Sistema: {prod.stock} {prod.unidadMedida.toLowerCase()}
+                    {prod.nombre} · Sistema: {prod.stock} {pluralizeUnit(prod.stock, prod.unidadMedida)}
                   </SelectItem>
                 ))}
               </SelectContent>

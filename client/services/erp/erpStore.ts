@@ -1307,6 +1307,12 @@ export const erpStore = {
 
   // Creación en catálogo
   crearProducto: (payload: NuevoProductoPayload): Producto => {
+    const skuNormalizado = payload.sku.trim().toLowerCase();
+    const skuExiste = productos.some((p) => p.sku.trim().toLowerCase() === skuNormalizado);
+    if (skuExiste) {
+      throw new Error(`El código SKU "${payload.sku}" ya se encuentra registrado en el catálogo.`);
+    }
+
     const nuevo: Producto = {
       id: `prod-${Date.now()}`,
       ...payload,

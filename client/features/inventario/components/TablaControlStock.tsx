@@ -19,6 +19,7 @@ import {
   ClipboardCheck,
   MapPin,
 } from 'lucide-react';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 interface TablaControlStockProps {
   productos: ItemStockDetalle[];
@@ -33,6 +34,10 @@ export const TablaControlStock: React.FC<TablaControlStockProps> = ({
   onOpenRecepcionConProducto,
   onOpenAuditoriaConProducto,
 }) => {
+  const { user } = useAuth();
+  // TODO backend: ocultar esto en el servidor
+  const puedeVerCostos = user?.rol !== 'CAJERO';
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroNivel, setFiltroNivel] = useState<'TODOS' | EstadoNivelStock>('TODOS');
 
@@ -131,21 +136,25 @@ export const TablaControlStock: React.FC<TablaControlStockProps> = ({
               <TableHead className="text-xs font-semibold py-2.5">Ubicación física</TableHead>
               <TableHead className="text-xs font-semibold py-2.5 text-center">Nivel de Stock</TableHead>
               <TableHead className="text-xs font-semibold py-2.5">Estado</TableHead>
-              <TableHead className="text-xs font-semibold py-2.5 text-right">Costo / Venta</TableHead>
-              <TableHead className="text-xs font-semibold py-2.5 text-right">Inversión Stock</TableHead>
+              <TableHead className="text-xs font-semibold py-2.5 text-right">
+                {puedeVerCostos ? 'Costo / Venta' : 'PVP Venta'}
+              </TableHead>
+              {puedeVerCostos && (
+                <TableHead className="text-xs font-semibold py-2.5 text-right">Inversión Stock</TableHead>
+              )}
               <TableHead className="text-xs font-semibold py-2.5 text-right w-40">Acción Rápida</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-28 text-center text-xs text-muted-foreground">
+                <TableCell colSpan={puedeVerCostos ? 8 : 7} className="h-28 text-center text-xs text-muted-foreground">
                   Cargando catálogo de existencias...
                 </TableCell>
               </TableRow>
             ) : filteredProductos.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-28 text-center text-xs text-muted-foreground">
+                <TableCell colSpan={puedeVerCostos ? 8 : 7} className="h-28 text-center text-xs text-muted-foreground">
                   No se encontraron productos con los filtros aplicados.
                 </TableCell>
               </TableRow>
@@ -224,18 +233,22 @@ export const TablaControlStock: React.FC<TablaControlStockProps> = ({
 
                     {/* Costo / Venta */}
                     <TableCell className="py-2.5 text-right font-mono tabular-nums">
-                      <span className="text-muted-foreground block text-[11px]">
-                        C: S/ {prod.precioCompra.toFixed(2)}
-                      </span>
+                      {puedeVerCostos && (
+                        <span className="text-muted-foreground block text-[11px]">
+                          C: S/ {prod.precioCompra.toFixed(2)}
+                        </span>
+                      )}
                       <span className="text-foreground font-medium">
-                        V: S/ {prod.precioVenta.toFixed(2)}
+                        {puedeVerCostos ? 'V: ' : ''}S/ {prod.precioVenta.toFixed(2)}
                       </span>
                     </TableCell>
 
                     {/* Inversión total en stock */}
-                    <TableCell className="py-2.5 text-right font-mono font-semibold tabular-nums text-foreground">
-                      S/ {prod.valorizadoCosto.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
-                    </TableCell>
+                    {puedeVerCostos && (
+                      <TableCell className="py-2.5 text-right font-mono font-semibold tabular-nums text-foreground">
+                        S/ {prod.valorizadoCosto.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                      </TableCell>
+                    )}
 
                     {/* Acciones directas */}
                     <TableCell className="py-2.5 text-right">

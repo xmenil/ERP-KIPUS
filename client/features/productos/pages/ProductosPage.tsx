@@ -15,19 +15,40 @@ import { NuevoProductoDialog } from '../components/NuevoProductoDialog';
 import { productosService } from '../services/productosService';
 import { Producto, NuevoProductoPayload } from '../types/productos.types';
 import { subscribeToErp } from '@/services/erp/erpStore';
-import { formatCurrency, formatNumber } from '@/utils/formatters';
+import { formatCurrency, formatNumber, formatPercentage, pluralizeUnit } from '@/utils/formatters';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import { cn } from '@/lib/utils';
-import { Plus, Search, X, RotateCw, AlertCircle } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  X,
+  RotateCw,
+  AlertCircle,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 const PAGE_SIZE = 12;
 
+type EstadoFiltro = 'TODOS' | 'STOCK_BAJO' | 'AGOTADO';
+type SortField = 'sku' | 'nombre' | 'precioCompra' | 'precioVenta' | 'stock';
+
 export const ProductosPage: React.FC = () => {
+  const { user } = useAuth();
+
+  // TODO backend: ocultar esto en el servidor
+  const puedeVerCostos = user?.rol !== 'CAJERO';
+
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategoria, setSelectedCategoria] = useState<string>('TODAS');
+  const [selectedEstado, setSelectedEstado] = useState<EstadoFiltro>('TODOS');
+  const [sortField, setSortField] = useState<SortField | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
   const [openModal, setOpenModal] = useState(false);
 
@@ -58,9 +79,10 @@ export const ProductosPage: React.FC = () => {
       const nuevo = await productosService.crearProducto(payload);
       setProductos((prev) => [nuevo, ...prev]);
       toast.success(`Producto "${nuevo.nombre}" registrado exitosamente · SKU: ${nuevo.sku}`);
-    } catch {
-      toast.error('No se pudo registrar el producto');
-      throw new Error('Error al registrar producto');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'No se pudo registrar el producto';
+      toast.error(msg);
+      throw err;
     }
   };
 
@@ -68,6 +90,24 @@ export const ProductosPage: React.FC = () => {
     return ['TODAS', ...Array.from(new Set(productos.map((p) => p.categoria)))];
   }, [productos]);
 
+  // Conteos para filtros
+  const stockCriticoCount = useMemo(() => {
+    return productos.filter((p) => p.stock <= p.stockMinimo && p.stock > 0).length;
+  }, [productos]);
+
+  const agotadosCount = useMemo(() => {
+    return productos.filter((p) => p.stock === 0).length;
+  }, [productos]);
+
+  const totalValorizadoVenta = useMemo(() => {
+    return productos.reduce((acc, p) => acc + p.stock * p.precioVenta, 0);
+  }, [productos]);
+
+  const totalValorizadoCosto = useMemo(() => {
+    return productos.reduce((acc, p) => acc + p.stock * p.precioCompra, 0);
+  }, [productos]);
+
+  // Filtrado compuesto: búsqueda, categoría y estado
   const filteredProductos = useMemo(() => {
     return productos.filter((p) => {
       const matchSearch =
@@ -75,28 +115,93 @@ export const ProductosPage: React.FC = () => {
         p.sku.toLowerCase().includes(searchTerm.toLowerCase());
       const matchCategory =
         selectedCategoria === 'TODAS' || p.categoria === selectedCategoria;
-      return matchSearch && matchCategory;
+      const matchEstado =
+        selectedEstado === 'TODOS' ||
+        (selectedEstado === 'STOCK_BAJO' && p.stock <= p.stockMinimo && p.stock > 0) ||
+        (selectedEstado === 'AGOTADO' && p.stock === 0);
+      return matchSearch && matchCategory && matchEstado;
     });
-  }, [productos, searchTerm, selectedCategoria]);
+  }, [productos, searchTerm, selectedCategoria, selectedEstado]);
+
+  // Ordenamiento interactivo por cabecera
+  const sortedProductos = useMemo(() => {
+    if (!sortField) return filteredProductos;
+
+    return [...filteredProductos].sort((a, b) => {
+      let comparison = 0;
+      if (sortField === 'sku' || sortField === 'nombre') {
+        comparison = a[sortField].localeCompare(b[sortField], 'es', { sensitivity: 'base' });
+      } else {
+        comparison = (a[sortField] ?? 0) - (b[sortField] ?? 0);
+      }
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [filteredProductos, sortField, sortDirection]);
 
   // Reiniciar a la primera página cuando cambian los filtros
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedCategoria]);
+  }, [searchTerm, selectedCategoria, selectedEstado]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredProductos.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(sortedProductos.length / PAGE_SIZE));
   const paginatedProductos = useMemo(() => {
     const start = (currentPage - 1) * PAGE_SIZE;
-    return filteredProductos.slice(start, start + PAGE_SIZE);
-  }, [filteredProductos, currentPage]);
+    return sortedProductos.slice(start, start + PAGE_SIZE);
+  }, [sortedProductos, currentPage]);
 
-  const totalValorizadoVenta = useMemo(() => {
-    return productos.reduce((acc, p) => acc + p.stock * p.precioVenta, 0);
-  }, [productos]);
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else {
+        setSortField(null);
+        setSortDirection('asc');
+      }
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
 
-  const stockCriticoCount = useMemo(() => {
-    return productos.filter((p) => p.stock <= p.stockMinimo).length;
-  }, [productos]);
+  const renderSortableHeader = (
+    field: SortField,
+    label: string,
+    align: 'left' | 'right' = 'left',
+    extraClass?: string
+  ) => {
+    const isSorted = sortField === field;
+    return (
+      <TableHead
+        className={cn(
+          'text-xs font-medium text-muted-foreground uppercase tracking-wide py-2.5 px-3 whitespace-nowrap',
+          align === 'right' ? 'text-right' : 'text-left',
+          extraClass
+        )}
+      >
+        <button
+          type="button"
+          onClick={() => handleSort(field)}
+          className={cn(
+            'inline-flex items-center gap-1 hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary rounded py-0.5',
+            align === 'right' ? 'flex-row-reverse ml-auto' : 'flex-row'
+          )}
+          aria-sort={isSorted ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+          aria-label={`Ordenar por ${label}`}
+        >
+          <span>{label}</span>
+          {isSorted ? (
+            sortDirection === 'asc' ? (
+              <ArrowUp className="h-3.5 w-3.5 text-primary shrink-0" />
+            ) : (
+              <ArrowDown className="h-3.5 w-3.5 text-primary shrink-0" />
+            )
+          ) : (
+            <ArrowUpDown className="h-3 w-3 opacity-40 shrink-0" />
+          )}
+        </button>
+      </TableHead>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -120,7 +225,15 @@ export const ProductosPage: React.FC = () => {
       </div>
 
       {/* Resumen métrico operativo */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+      <div
+        className={cn(
+          'grid gap-3.5',
+          puedeVerCostos
+            ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
+            : 'grid-cols-1 md:grid-cols-3'
+        )}
+      >
+        {/* Total en catálogo */}
         <Card className="border-border bg-card shadow-xs">
           <CardContent className="p-4">
             <p className="text-xs font-medium text-muted-foreground">
@@ -139,6 +252,28 @@ export const ProductosPage: React.FC = () => {
           </CardContent>
         </Card>
 
+        {/* Valorizado a costo (inversión total en stock) - Oculto para CAJERO */}
+        {puedeVerCostos && (
+          <Card className="border-border bg-card shadow-xs">
+            <CardContent className="p-4">
+              <p className="text-xs font-medium text-muted-foreground">
+                Inversión en stock (costo)
+              </p>
+              {loading ? (
+                <Skeleton className="h-7 w-32 mt-1" />
+              ) : (
+                <p className="text-2xl font-semibold tracking-tight text-foreground tabular-nums mt-0.5">
+                  {formatCurrency(totalValorizadoCosto)}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Costo de adquisición total
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Valorizado en venta */}
         <Card className="border-border bg-card shadow-xs">
           <CardContent className="p-4">
             <p className="text-xs font-medium text-muted-foreground">
@@ -157,29 +292,32 @@ export const ProductosPage: React.FC = () => {
           </CardContent>
         </Card>
 
+        {/* Stock por agotarse / Crítico */}
         <Card className="border-border bg-card shadow-xs">
           <CardContent className="p-4">
             <p className="text-xs font-medium text-muted-foreground">
-              Stock por agotarse
+              Stock crítico o agotado
             </p>
             {loading ? (
               <Skeleton className="h-7 w-24 mt-1" />
             ) : (
               <div className="flex items-baseline gap-2 mt-0.5">
                 <p className="text-2xl font-semibold tracking-tight text-foreground tabular-nums">
-                  {stockCriticoCount}
+                  {stockCriticoCount + agotadosCount}
                 </p>
-                {stockCriticoCount > 0 && (
+                {(stockCriticoCount > 0 || agotadosCount > 0) && (
                   <span className="text-xs font-medium text-danger-text">
-                    en nivel crítico
+                    {agotadosCount > 0
+                      ? `${agotadosCount} sin stock`
+                      : 'requieren reposición'}
                   </span>
                 )}
               </div>
             )}
             <p className="text-xs text-muted-foreground mt-0.5">
-              {stockCriticoCount === 0
+              {stockCriticoCount + agotadosCount === 0
                 ? 'Todas las existencias en nivel óptimo'
-                : 'Requieren orden de reposición'}
+                : `${stockCriticoCount} por agotarse · ${agotadosCount} agotados`}
             </p>
           </CardContent>
         </Card>
@@ -188,8 +326,8 @@ export const ProductosPage: React.FC = () => {
       {/* Bloque principal: Filtros y Tabla */}
       <Card className="border-border bg-card">
         <CardContent className="p-4 space-y-4">
-          {/* Barra de Filtros en 2 filas limpias */}
-          <div className="flex flex-col gap-3">
+          {/* Barra de Filtros */}
+          <div className="space-y-3">
             {/* Buscador */}
             <div className="relative w-full max-w-md">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -211,23 +349,69 @@ export const ProductosPage: React.FC = () => {
               )}
             </div>
 
-            {/* Selector de categorías con botones que no rompen texto */}
-            <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-border/40">
-              {categorias.map((cat) => (
+            {/* Fila de Filtros: Estados y Categorías */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-border/40">
+              {/* Botones segmentados de estado de stock */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                <span className="text-xs text-muted-foreground mr-1 hidden md:inline">
+                  Estado:
+                </span>
                 <button
-                  key={cat}
                   type="button"
-                  onClick={() => setSelectedCategoria(cat)}
+                  onClick={() => setSelectedEstado('TODOS')}
                   className={cn(
-                    'px-2.5 py-1 text-xs font-medium rounded-md border transition-colors whitespace-nowrap shrink-0',
-                    selectedCategoria === cat
+                    'px-2.5 py-1 text-xs font-medium rounded-md border transition-colors whitespace-nowrap',
+                    selectedEstado === 'TODOS'
                       ? 'bg-primary text-primary-foreground border-primary'
                       : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground'
                   )}
                 >
-                  {cat === 'TODAS' ? 'Todas las categorías' : cat}
+                  Todos ({productos.length})
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => setSelectedEstado('STOCK_BAJO')}
+                  className={cn(
+                    'px-2.5 py-1 text-xs font-medium rounded-md border transition-colors whitespace-nowrap',
+                    selectedEstado === 'STOCK_BAJO'
+                      ? 'bg-warning-soft text-warning-text border-warning/40 font-semibold'
+                      : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground'
+                  )}
+                >
+                  Stock bajo ({stockCriticoCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedEstado('AGOTADO')}
+                  className={cn(
+                    'px-2.5 py-1 text-xs font-medium rounded-md border transition-colors whitespace-nowrap',
+                    selectedEstado === 'AGOTADO'
+                      ? 'bg-danger-soft text-danger-text border-destructive/40 font-semibold'
+                      : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground'
+                  )}
+                >
+                  Agotado ({agotadosCount})
+                </button>
+              </div>
+
+              {/* Selector de categorías */}
+              <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto">
+                {categorias.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setSelectedCategoria(cat)}
+                    className={cn(
+                      'px-2.5 py-1 text-xs font-medium rounded-md border transition-colors whitespace-nowrap shrink-0',
+                      selectedCategoria === cat
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground'
+                    )}
+                  >
+                    {cat === 'TODAS' ? 'Todas las categorías' : cat}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -261,8 +445,13 @@ export const ProductosPage: React.FC = () => {
                       <TableHead className="text-xs font-medium text-muted-foreground py-2.5 px-3 whitespace-nowrap">Código SKU</TableHead>
                       <TableHead className="text-xs font-medium text-muted-foreground py-2.5 px-3 whitespace-nowrap min-w-48">Descripción del artículo</TableHead>
                       <TableHead className="text-xs font-medium text-muted-foreground py-2.5 px-3 whitespace-nowrap">Categoría</TableHead>
-                      <TableHead className="text-xs font-medium text-muted-foreground text-right py-2.5 px-3 whitespace-nowrap">P. Costo</TableHead>
+                      {puedeVerCostos && (
+                        <TableHead className="text-xs font-medium text-muted-foreground text-right py-2.5 px-3 whitespace-nowrap">P. Costo</TableHead>
+                      )}
                       <TableHead className="text-xs font-medium text-muted-foreground text-right py-2.5 px-3 whitespace-nowrap">PVP Venta</TableHead>
+                      {puedeVerCostos && (
+                        <TableHead className="text-xs font-medium text-muted-foreground text-right py-2.5 px-3 whitespace-nowrap">Margen</TableHead>
+                      )}
                       <TableHead className="text-xs font-medium text-muted-foreground text-right py-2.5 px-3 whitespace-nowrap">Stock en almacén</TableHead>
                       <TableHead className="text-xs font-medium text-muted-foreground text-center py-2.5 px-3 whitespace-nowrap">Estado</TableHead>
                     </TableRow>
@@ -276,8 +465,13 @@ export const ProductosPage: React.FC = () => {
                           <Skeleton className="h-3 w-24" />
                         </TableCell>
                         <TableCell className="py-3 px-3 whitespace-nowrap"><Skeleton className="h-5 w-20 rounded-md" /></TableCell>
+                        {puedeVerCostos && (
+                          <TableCell className="py-3 px-3 text-right whitespace-nowrap"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
+                        )}
                         <TableCell className="py-3 px-3 text-right whitespace-nowrap"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
-                        <TableCell className="py-3 px-3 text-right whitespace-nowrap"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
+                        {puedeVerCostos && (
+                          <TableCell className="py-3 px-3 text-right whitespace-nowrap"><Skeleton className="h-4 w-12 ml-auto" /></TableCell>
+                        )}
                         <TableCell className="py-3 px-3 text-right whitespace-nowrap">
                           <Skeleton className="h-4 w-16 ml-auto mb-1" />
                           <Skeleton className="h-3 w-12 ml-auto" />
@@ -310,7 +504,7 @@ export const ProductosPage: React.FC = () => {
           )}
 
           {/* Estado Vacío */}
-          {!loading && !error && filteredProductos.length === 0 && (
+          {!loading && !error && sortedProductos.length === 0 && (
             <div className="py-12 px-4 text-center border border-border rounded-md bg-muted/10 space-y-3">
               {productos.length === 0 ? (
                 <>
@@ -334,13 +528,15 @@ export const ProductosPage: React.FC = () => {
                     No encontramos productos que coincidan
                   </p>
                   <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                    No hay resultados para {searchTerm ? `«${searchTerm}»` : 'la categoría seleccionada'}. Revisa el código SKU o la descripción.
+                    No hay resultados para los filtros seleccionados
+                    {searchTerm ? ` («${searchTerm}»)` : ''}. Modifica o restablece los criterios.
                   </p>
                   <Button
                     variant="outline"
                     onClick={() => {
                       setSearchTerm('');
                       setSelectedCategoria('TODAS');
+                      setSelectedEstado('TODOS');
                     }}
                     className="h-9 text-xs"
                   >
@@ -352,25 +548,40 @@ export const ProductosPage: React.FC = () => {
           )}
 
           {/* Contenido con Datos */}
-          {!loading && !error && filteredProductos.length > 0 && (
+          {!loading && !error && sortedProductos.length > 0 && (
             <>
               {/* Tabla Desktop (>= lg) */}
               <div className="hidden lg:block rounded-md border border-border bg-card overflow-x-auto">
                 <Table className="w-full min-w-table">
                   <TableHeader className="sticky top-0 bg-card z-10">
                     <TableRow className="bg-muted/40 border-b border-border hover:bg-muted/40">
-                      <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide py-2.5 px-3 whitespace-nowrap">Código SKU</TableHead>
-                      <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide py-2.5 px-3 whitespace-nowrap min-w-48">Descripción del artículo</TableHead>
-                      <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide py-2.5 px-3 whitespace-nowrap">Categoría</TableHead>
-                      <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide text-right py-2.5 px-3 whitespace-nowrap">P. Costo</TableHead>
-                      <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide text-right py-2.5 px-3 whitespace-nowrap">PVP Venta</TableHead>
-                      <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide text-right py-2.5 px-3 whitespace-nowrap">Stock en almacén</TableHead>
-                      <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide text-center py-2.5 px-3 whitespace-nowrap">Estado</TableHead>
+                      {renderSortableHeader('sku', 'Código SKU')}
+                      {renderSortableHeader('nombre', 'Descripción del artículo', 'left', 'min-w-48')}
+                      <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide py-2.5 px-3 whitespace-nowrap">
+                        Categoría
+                      </TableHead>
+                      {puedeVerCostos && renderSortableHeader('precioCompra', 'P. Costo', 'right')}
+                      {renderSortableHeader('precioVenta', 'PVP Venta', 'right')}
+                      {puedeVerCostos && (
+                        <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide text-right py-2.5 px-3 whitespace-nowrap">
+                          Margen
+                        </TableHead>
+                      )}
+                      {renderSortableHeader('stock', 'Stock en almacén', 'right')}
+                      <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide text-center py-2.5 px-3 whitespace-nowrap">
+                        Estado
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedProductos.map((prod) => {
-                      const isLowStock = prod.stock <= prod.stockMinimo;
+                      const isAgotado = prod.stock === 0;
+                      const isLowStock = prod.stock <= prod.stockMinimo && !isAgotado;
+                      const marginPct =
+                        prod.precioCompra > 0
+                          ? ((prod.precioVenta - prod.precioCompra) / prod.precioCompra) * 100
+                          : 100;
+
                       return (
                         <TableRow
                           key={prod.id}
@@ -392,37 +603,70 @@ export const ProductosPage: React.FC = () => {
                               {prod.categoria}
                             </span>
                           </TableCell>
-                          <TableCell className="text-right text-muted-foreground tabular-nums py-2.5 px-3 text-xs whitespace-nowrap">
-                            {formatCurrency(prod.precioCompra)}
-                          </TableCell>
-                          <TableCell className="text-right font-semibold text-foreground py-2.5 px-3 text-sm tabular-nums whitespace-nowrap">
+
+                          {/* P. Costo - Oculto para CAJERO */}
+                          {puedeVerCostos && (
+                            <TableCell className="text-right text-muted-foreground tabular-nums py-2.5 px-3 text-xs whitespace-nowrap font-mono">
+                              {formatCurrency(prod.precioCompra)}
+                            </TableCell>
+                          )}
+
+                          <TableCell className="text-right font-semibold text-foreground py-2.5 px-3 text-sm tabular-nums whitespace-nowrap font-mono">
                             {formatCurrency(prod.precioVenta)}
                           </TableCell>
+
+                          {/* Margen comercial - Oculto para CAJERO */}
+                          {puedeVerCostos && (
+                            <TableCell className="text-right tabular-nums py-2.5 px-3 text-xs whitespace-nowrap font-mono">
+                              <span
+                                className={cn(
+                                  'font-medium',
+                                  marginPct < 0
+                                    ? 'text-danger-text'
+                                    : marginPct < 15
+                                    ? 'text-warning-text'
+                                    : 'text-foreground'
+                                )}
+                              >
+                                {formatPercentage(marginPct)}
+                              </span>
+                            </TableCell>
+                          )}
+
                           <TableCell className="text-right py-2.5 px-3 whitespace-nowrap">
                             <span
                               className={cn(
                                 'inline-block text-sm tabular-nums',
-                                isLowStock
+                                isAgotado
                                   ? 'font-medium text-danger-text bg-danger-soft px-1.5 py-0.5 rounded-md border border-destructive/20'
+                                  : isLowStock
+                                  ? 'font-medium text-warning-text bg-warning-soft px-1.5 py-0.5 rounded-md border border-warning/20'
                                   : 'font-medium text-foreground'
                               )}
                             >
-                              {prod.stock} {prod.unidadMedida.toLowerCase()}s
+                              {prod.stock} {pluralizeUnit(prod.stock, prod.unidadMedida)}
                             </span>
                             <span className="block text-xs text-muted-foreground mt-0.5 tabular-nums">
                               Mín. {prod.stockMinimo}
                             </span>
                           </TableCell>
+
                           <TableCell className="text-center py-2.5 px-3 whitespace-nowrap">
                             <span
                               className={cn(
                                 'inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border',
-                                isLowStock
+                                isAgotado
                                   ? 'bg-danger-soft text-danger-text border-destructive/30'
+                                  : isLowStock
+                                  ? 'bg-warning-soft text-warning-text border-warning/30'
                                   : 'bg-success-soft text-success-text border-success/30'
                               )}
                             >
-                              {isLowStock ? 'Stock bajo' : 'Normal'}
+                              {isAgotado
+                                ? 'Agotado'
+                                : isLowStock
+                                ? 'Stock bajo'
+                                : 'Normal'}
                             </span>
                           </TableCell>
                         </TableRow>
@@ -435,7 +679,13 @@ export const ProductosPage: React.FC = () => {
               {/* Lista Adaptada Mobile y pantallas medianas (< lg) */}
               <div className="block lg:hidden space-y-2.5">
                 {paginatedProductos.map((prod) => {
-                  const isLowStock = prod.stock <= prod.stockMinimo;
+                  const isAgotado = prod.stock === 0;
+                  const isLowStock = prod.stock <= prod.stockMinimo && !isAgotado;
+                  const marginPct =
+                    prod.precioCompra > 0
+                      ? ((prod.precioVenta - prod.precioCompra) / prod.precioCompra) * 100
+                      : 100;
+
                   return (
                     <div
                       key={prod.id}
@@ -448,12 +698,18 @@ export const ProductosPage: React.FC = () => {
                         <span
                           className={cn(
                             'inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border',
-                            isLowStock
+                            isAgotado
                               ? 'bg-danger-soft text-danger-text border-destructive/30'
+                              : isLowStock
+                              ? 'bg-warning-soft text-warning-text border-warning/30'
                               : 'bg-success-soft text-success-text border-success/30'
                           )}
                         >
-                          {isLowStock ? 'Stock bajo' : 'Normal'}
+                          {isAgotado
+                            ? 'Agotado'
+                            : isLowStock
+                            ? 'Stock bajo'
+                            : 'Normal'}
                         </span>
                       </div>
 
@@ -472,16 +728,25 @@ export const ProductosPage: React.FC = () => {
                           <span className="text-sm font-semibold text-foreground tabular-nums">
                             {formatCurrency(prod.precioVenta)}
                           </span>
+                          {puedeVerCostos && (
+                            <span className="text-[11px] text-muted-foreground block font-mono mt-0.5">
+                              Costo: {formatCurrency(prod.precioCompra)} · Margen: {formatPercentage(marginPct)}
+                            </span>
+                          )}
                         </div>
                         <div className="text-right">
                           <span className="text-muted-foreground block text-xs">Disponible</span>
                           <span
                             className={cn(
                               'text-sm font-medium tabular-nums',
-                              isLowStock ? 'text-danger-text font-semibold' : 'text-foreground'
+                              isAgotado
+                                ? 'text-danger-text font-semibold'
+                                : isLowStock
+                                ? 'text-warning-text font-semibold'
+                                : 'text-foreground'
                             )}
                           >
-                            {prod.stock} {prod.unidadMedida.toLowerCase()}s
+                            {prod.stock} {pluralizeUnit(prod.stock, prod.unidadMedida)}
                           </span>
                         </div>
                       </div>
@@ -495,11 +760,11 @@ export const ProductosPage: React.FC = () => {
                 <p>
                   Mostrando{' '}
                   <span className="font-medium text-foreground tabular-nums">
-                    {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filteredProductos.length)}
+                    {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, sortedProductos.length)}
                   </span>{' '}
                   de{' '}
                   <span className="font-medium text-foreground tabular-nums">
-                    {filteredProductos.length}
+                    {sortedProductos.length}
                   </span>{' '}
                   productos
                 </p>

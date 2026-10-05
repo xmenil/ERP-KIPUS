@@ -20,6 +20,7 @@ import {
 import { RecepcionMercanciaPayload, ItemStockDetalle } from '../types/inventario.types';
 import { Truck, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { pluralizeUnit } from '@/utils/formatters';
 
 interface RecepcionMercanciaDialogProps {
   open: boolean;
@@ -117,7 +118,7 @@ export const RecepcionMercanciaDialog: React.FC<RecepcionMercanciaDialogProps> =
               <SelectContent>
                 {productos.map((prod) => (
                   <SelectItem key={prod.id} value={prod.id} className="text-xs">
-                    {prod.nombre} (Stock actual: {prod.stock} {prod.unidadMedida.toLowerCase()})
+                    {prod.nombre} (Stock actual: {prod.stock} {pluralizeUnit(prod.stock, prod.unidadMedida)})
                   </SelectItem>
                 ))}
               </SelectContent>

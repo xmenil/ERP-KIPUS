@@ -27,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import { NuevoProductoPayload } from '../types/productos.types';
 
 const nuevoProductoSchema = z.object({
@@ -88,6 +88,12 @@ export const NuevoProductoDialog: React.FC<NuevoProductoDialogProps> = ({
 
   const { isSubmitting } = form.formState;
 
+  const precioCompra = form.watch('precioCompra');
+  const precioVenta = form.watch('precioVenta');
+  const numCompra = Number(precioCompra) || 0;
+  const numVenta = Number(precioVenta) || 0;
+  const isVentaMenorQueCosto = numVenta > 0 && numCompra > 0 && numVenta < numCompra;
+
   const handleSubmit = async (values: FormValues) => {
     try {
       await onProductoCreado({
@@ -102,8 +108,12 @@ export const NuevoProductoDialog: React.FC<NuevoProductoDialogProps> = ({
       });
       form.reset(DEFAULT_VALUES);
       onOpenChange(false);
-    } catch {
-      // El error se maneja con toast en el handler padre
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error al registrar el producto';
+      if (message.toLowerCase().includes('sku')) {
+        form.setError('sku', { type: 'manual', message });
+        form.setFocus('sku');
+      }
     }
   };
 
@@ -246,6 +256,23 @@ export const NuevoProductoDialog: React.FC<NuevoProductoDialogProps> = ({
                 )}
               />
             </div>
+
+            {isVentaMenorQueCosto && (
+              <div
+                role="alert"
+                className="p-3 rounded-md bg-warning-soft border border-warning/30 text-warning-text flex items-start gap-2.5 text-xs animate-in fade-in-50 duration-150"
+              >
+                <AlertTriangle className="h-4 w-4 shrink-0 text-warning mt-0.5" />
+                <div className="space-y-0.5">
+                  <p className="font-medium">
+                    Aviso: El precio de venta (S/ {numVenta.toFixed(2)}) es menor que el precio de costo (S/ {numCompra.toFixed(2)}).
+                  </p>
+                  <p className="text-[11px] opacity-90">
+                    Se registrará con margen negativo (-{(((numCompra - numVenta) / numCompra) * 100).toFixed(1)}%). Puedes continuar si corresponde a una oferta o liquidación.
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <FormField
