@@ -134,11 +134,11 @@ export const KipusIACajaDialog: React.FC<KipusIACajaDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg p-0 overflow-hidden">
+      <DialogContent className="w-[95vw] sm:max-w-lg p-0 overflow-hidden max-h-[92vh] flex flex-col">
         {/* Cabecera */}
-        <DialogHeader className="p-4 border-b border-border/60 bg-muted/20 flex flex-row items-center gap-3 space-y-0">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-            <Sparkles className="h-5 w-5" />
+        <DialogHeader className="p-4 border-b border-border/60 bg-muted/20 flex flex-row items-center gap-3 space-y-0 shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+            <Sparkles className="h-4.5 w-4.5" />
           </div>
           <div>
             <DialogTitle className="text-sm font-semibold flex items-center gap-2">
@@ -151,7 +151,7 @@ export const KipusIACajaDialog: React.FC<KipusIACajaDialogProps> = ({
         </DialogHeader>
 
         {/* Historial de Chat */}
-        <div className="p-4 space-y-3 max-h-[50vh] overflow-y-auto">
+        <div className="p-4 space-y-3 flex-1 overflow-y-auto min-h-[220px] max-h-[55vh]">
           {mensajes.map((m) => {
             const esIA = m.autor === 'IA';
             return (
@@ -167,7 +167,7 @@ export const KipusIACajaDialog: React.FC<KipusIACajaDialogProps> = ({
                   </div>
                 )}
                 <div
-                  className={`p-3 rounded-2xl max-w-[85%] leading-relaxed ${
+                  className={`p-3 rounded-lg max-w-[85%] leading-relaxed ${
                     esIA
                       ? 'bg-muted/40 border border-border text-foreground rounded-tl-xs'
                       : 'bg-primary text-primary-foreground rounded-tr-xs'

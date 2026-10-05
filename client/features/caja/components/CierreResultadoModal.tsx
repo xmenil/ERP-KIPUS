@@ -50,14 +50,14 @@ export const CierreResultadoModal: React.FC<CierreResultadoModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-0 overflow-hidden">
+      <DialogContent className="w-[95vw] sm:max-w-md p-0 overflow-hidden max-h-[92vh] flex flex-col">
         {/* Cabecera */}
-        <DialogHeader className="p-6 pb-4 border-b border-border/60 bg-muted/20 text-center">
-          <div className="mx-auto w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 mb-2 shadow-xs">
+        <DialogHeader className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-border/60 bg-muted/20 text-center shrink-0">
+          <div className="mx-auto w-12 h-12 rounded-lg bg-success-soft border border-success/30 flex items-center justify-center text-success-text mb-2 shadow-xs">
             <Receipt className="h-6 w-6 stroke-[2]" />
           </div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-medium mx-auto">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-success-soft text-success-text border border-success/30 text-xs font-medium mx-auto">
+            <span className="h-1.5 w-1.5 rounded-full bg-success" />
             Caja cerrada
           </div>
           <DialogTitle className="text-lg font-semibold pt-1 text-center">
@@ -69,27 +69,27 @@ export const CierreResultadoModal: React.FC<CierreResultadoModalProps> = ({
         </DialogHeader>
 
         {/* Cuerpo del Comprobante */}
-        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto print:p-0">
+        <div className="p-4 sm:p-6 space-y-4 flex-1 overflow-y-auto print:p-0">
           {/* Datos Generales */}
-          <div className="grid grid-cols-2 gap-2 text-xs p-3 rounded-lg bg-muted/30 border border-border/70">
+          <div className="grid grid-cols-2 gap-2 text-xs p-3 rounded-md bg-muted/30 border border-border/70">
             <div>
-              <span className="text-muted-foreground block text-[10px]">Caja & Sucursal:</span>
+              <span className="text-muted-foreground block text-xs">Caja & Sucursal:</span>
               <span className="font-semibold text-foreground">
                 {cierre.cajaNombre}
               </span>
             </div>
             <div>
-              <span className="text-muted-foreground block text-[10px]">Responsable:</span>
+              <span className="text-muted-foreground block text-xs">Responsable:</span>
               <span className="font-semibold text-foreground">{cierre.responsable}</span>
             </div>
             <div>
-              <span className="text-muted-foreground block text-[10px]">Fecha y Hora Cierre:</span>
+              <span className="text-muted-foreground block text-xs">Fecha y Hora Cierre:</span>
               <span className="font-semibold text-foreground">
                 {cierre.fechaCierre} {cierre.horaCierre}
               </span>
             </div>
             <div>
-              <span className="text-muted-foreground block text-[10px]">Total Operaciones:</span>
+              <span className="text-muted-foreground block text-xs">Total Operaciones:</span>
               <span className="font-semibold text-foreground">
                 {cierre.totalOperaciones} movimientos
               </span>
@@ -97,40 +97,40 @@ export const CierreResultadoModal: React.FC<CierreResultadoModalProps> = ({
           </div>
 
           {/* Desglose de Números */}
-          <div className="p-4 rounded-xl bg-card border border-border text-xs space-y-2">
+          <div className="p-4 rounded-md bg-card border border-border text-xs space-y-2">
             <div className="flex justify-between items-center py-0.5">
               <span className="text-muted-foreground">Saldo inicial (Sencillo):</span>
               <span className="font-semibold text-foreground tabular-nums">
                 {formatCurrency(cierre.saldoInicial)}
               </span>
             </div>
-            <div className="flex justify-between items-center py-0.5 text-emerald-700">
+            <div className="flex justify-between items-center py-0.5 text-success-text">
               <span className="font-medium">+ Ventas en efectivo:</span>
-              <span className="font-semibold tabular-nums">
+              <span className="font-semibold tabular-nums font-mono">
                 + {formatCurrency(cierre.ventasEfectivo)}
               </span>
             </div>
-            <div className="flex justify-between items-center py-0.5 text-emerald-700">
+            <div className="flex justify-between items-center py-0.5 text-success-text">
               <span className="font-medium">+ Otros ingresos:</span>
-              <span className="font-semibold tabular-nums">
+              <span className="font-semibold tabular-nums font-mono">
                 + {formatCurrency(cierre.otrosIngresos)}
               </span>
             </div>
-            <div className="flex justify-between items-center py-0.5 text-rose-600 border-b border-border pb-2">
+            <div className="flex justify-between items-center py-0.5 text-danger-text border-b border-border pb-2">
               <span className="font-medium">- Egresos y retiros:</span>
-              <span className="font-semibold tabular-nums">
+              <span className="font-semibold tabular-nums font-mono">
                 - {formatCurrency(cierre.egresos)}
               </span>
             </div>
 
             <div className="flex justify-between items-center pt-1 font-medium text-foreground">
               <span>Saldo esperado en sistema:</span>
-              <span className="tabular-nums font-semibold">{formatCurrency(cierre.saldoEsperado)}</span>
+              <span className="tabular-nums font-semibold font-mono">{formatCurrency(cierre.saldoEsperado)}</span>
             </div>
 
-            <div className="flex justify-between items-center font-medium text-xs bg-muted/40 p-2.5 rounded-lg">
+            <div className="flex justify-between items-center font-medium text-xs bg-muted/40 p-2.5 rounded-md">
               <span className="text-foreground">Efectivo final entregado:</span>
-              <span className="text-primary tabular-nums font-semibold text-sm">
+              <span className="text-primary tabular-nums font-semibold font-mono text-sm">
                 {formatCurrency(cierre.saldoContado)}
               </span>
             </div>
@@ -139,8 +139,8 @@ export const CierreResultadoModal: React.FC<CierreResultadoModalProps> = ({
             <div className="flex justify-between items-center pt-1 text-xs font-medium">
               <span className="text-muted-foreground">Diferencia registrada:</span>
               <span
-                className={`tabular-nums font-semibold ${
-                  estaCuadrada ? 'text-emerald-700' : 'text-amber-700'
+                className={`tabular-nums font-semibold font-mono ${
+                  estaCuadrada ? 'text-success-text' : 'text-warning-text'
                 }`}
               >
                 {estaCuadrada ? 'S/ 0.00 (Cuadrada)' : formatCurrency(cierre.diferencia)}
@@ -148,7 +148,7 @@ export const CierreResultadoModal: React.FC<CierreResultadoModalProps> = ({
             </div>
 
             {cierre.motivoDiferencia && (
-              <div className="mt-2 p-2 bg-amber-50 rounded border border-amber-200 text-[11px] text-amber-900">
+              <div className="mt-2 p-2 bg-warning-soft rounded-md border border-warning/30 text-xs text-warning-text">
                 <span className="font-medium">Motivo diferencia:</span> {cierre.motivoDiferencia}
               </div>
             )}

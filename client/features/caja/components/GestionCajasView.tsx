@@ -94,10 +94,10 @@ export const GestionCajasView: React.FC<GestionCajasViewProps> = ({
             <span className="text-xs font-medium text-muted-foreground block">
               Cajas abiertas
             </span>
-            <div className="text-xl font-semibold text-emerald-700 tabular-nums">
+            <div className="text-xl font-semibold text-success-text tabular-nums">
               {abiertas} <span className="text-xs font-normal text-muted-foreground">de {totalCajas}</span>
             </div>
-            <span className="text-[10px] text-muted-foreground block">
+            <span className="text-xs text-muted-foreground block">
               {cerradas} cajas cerradas
             </span>
           </CardContent>
@@ -108,10 +108,10 @@ export const GestionCajasView: React.FC<GestionCajasViewProps> = ({
             <span className="text-xs font-medium text-muted-foreground block">
               Efectivo en red
             </span>
-            <div className="text-xl font-semibold text-foreground tabular-nums">
+            <div className="text-xl font-semibold text-foreground tabular-nums font-mono">
               {formatCurrency(saldoTotalEfectivo)}
             </div>
-            <span className="text-[10px] text-muted-foreground block">
+            <span className="text-xs text-muted-foreground block">
               Total disponible en gavetas
             </span>
           </CardContent>
@@ -122,10 +122,10 @@ export const GestionCajasView: React.FC<GestionCajasViewProps> = ({
             <span className="text-xs font-medium text-muted-foreground block">
               Ventas del día (Red)
             </span>
-            <div className="text-xl font-semibold text-primary tabular-nums">
+            <div className="text-xl font-semibold text-primary tabular-nums font-mono">
               {formatCurrency(ventasTotalesDia)}
             </div>
-            <span className="text-[10px] text-muted-foreground block">
+            <span className="text-xs text-muted-foreground block">
               Suma de todos los canales
             </span>
           </CardContent>
@@ -136,11 +136,11 @@ export const GestionCajasView: React.FC<GestionCajasViewProps> = ({
             <span className="text-xs font-medium text-muted-foreground block">
               Auditoría y control
             </span>
-            <div className="text-xs font-medium text-foreground pt-1 flex items-center gap-1.5 text-emerald-700">
-              <CheckCircle2 className="h-4 w-4" />
+            <div className="text-xs font-medium pt-1 flex items-center gap-1.5 text-success-text">
+              <CheckCircle2 className="h-4 w-4 text-success" />
               Cajas sincronizadas
             </div>
-            <span className="text-[10px] text-muted-foreground block">
+            <span className="text-xs text-muted-foreground block">
               Sin descuadres críticos activos
             </span>
           </CardContent>
@@ -166,7 +166,7 @@ export const GestionCajasView: React.FC<GestionCajasViewProps> = ({
                     <h4 className="text-sm font-semibold text-foreground line-clamp-1">
                       {caja.nombre}
                     </h4>
-                    <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <Store className="h-3 w-3" />
                       {caja.sucursal}
                     </span>
@@ -174,15 +174,15 @@ export const GestionCajasView: React.FC<GestionCajasViewProps> = ({
 
                   {/* Estado con Texto y Color (Regla 6) */}
                   <span
-                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0 ${
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-medium border shrink-0 ${
                       caja.abierta
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : 'bg-rose-50 text-rose-700 border border-rose-200'
+                        ? 'bg-success-soft text-success-text border-success/30'
+                        : 'bg-danger-soft text-danger-text border-destructive/30'
                     }`}
                   >
                     <span
                       className={`h-1.5 w-1.5 rounded-full ${
-                        caja.abierta ? 'bg-emerald-600' : 'bg-rose-600'
+                        caja.abierta ? 'bg-success animate-pulse' : 'bg-destructive'
                       }`}
                     />
                     {caja.abierta ? 'Abierta' : 'Cerrada'}
@@ -190,7 +190,7 @@ export const GestionCajasView: React.FC<GestionCajasViewProps> = ({
                 </div>
 
                 {/* Datos Operativos */}
-                <div className="space-y-2 p-3 rounded-xl bg-muted/30 border border-border/60 text-xs">
+                <div className="space-y-2 p-3 rounded-md bg-muted/30 border border-border/60 text-xs">
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground flex items-center gap-1">
                       <User className="h-3 w-3" /> Cajero:

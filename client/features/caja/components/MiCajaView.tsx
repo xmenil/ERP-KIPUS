@@ -44,15 +44,15 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
   return (
     <div className="space-y-6">
       {/* 1. Encabezado de Contexto Operativo y Estado de Caja (Reglas 4, 5, 6) */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-card border border-border/80 shadow-xs">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-lg bg-card border border-border/80 shadow-xs">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="text-base font-semibold text-foreground">
               {estado.nombre}
             </span>
             {/* Estado Semántico con Icono y Texto (Regla 6) */}
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-medium bg-success-soft text-success-text border border-success/30">
+              <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
               Caja abierta
             </span>
           </div>
@@ -103,16 +103,17 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
               </p>
             </div>
 
-            {/* BOTONES DE ACCIÓN DISCRETOS Y ERGONÓMICOS */}
-            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full lg:w-auto">
+            {/* BOTONES DE ACCIÓN DISCRETOS Y ERGONÓMICOS (Grid 2x2 en móvil, en línea en desktop) */}
+            <div className="grid grid-cols-2 sm:flex sm:flex-nowrap items-center gap-2 w-full lg:w-auto">
               {/* Ingreso */}
               <Button
                 type="button"
                 size="sm"
                 onClick={onOpenIngreso}
-                className="h-9 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs gap-1.5 shadow-xs rounded-md"
+                variant="outline"
+                className="h-10 sm:h-9 px-3.5 border-border hover:bg-muted text-foreground font-medium text-xs gap-1.5 rounded-md justify-center"
               >
-                <ArrowDownCircle className="h-3.5 w-3.5" />
+                <ArrowDownCircle className="h-3.5 w-3.5 text-primary" />
                 <span>Ingreso</span>
               </Button>
 
@@ -122,9 +123,9 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
                 size="sm"
                 onClick={onOpenEgreso}
                 variant="outline"
-                className="h-9 px-3.5 border-border hover:bg-muted text-foreground font-medium text-xs gap-1.5 rounded-md"
+                className="h-10 sm:h-9 px-3.5 border-border hover:bg-muted text-foreground font-medium text-xs gap-1.5 rounded-md justify-center"
               >
-                <ArrowUpCircle className="h-3.5 w-3.5 text-rose-600" />
+                <ArrowUpCircle className="h-3.5 w-3.5 text-muted-foreground" />
                 <span>Egreso</span>
               </Button>
 
@@ -134,7 +135,7 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
                 size="sm"
                 onClick={onOpenArqueo}
                 variant="outline"
-                className="h-9 px-3.5 border-border hover:bg-muted text-foreground font-medium text-xs gap-1.5 rounded-md"
+                className="h-10 sm:h-9 px-3.5 border-border hover:bg-muted text-foreground font-medium text-xs gap-1.5 rounded-md justify-center"
               >
                 <Calculator className="h-3.5 w-3.5 text-muted-foreground" />
                 <span>Contar dinero</span>
@@ -145,8 +146,7 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
                 type="button"
                 size="sm"
                 onClick={onOpenCierre}
-                variant="outline"
-                className="h-9 px-3.5 border-border hover:border-destructive/30 hover:bg-danger-soft hover:text-danger-text text-muted-foreground font-medium text-xs gap-1.5 rounded-md"
+                className="h-10 sm:h-9 px-3.5 font-medium text-xs gap-1.5 rounded-md justify-center"
               >
                 <LockKeyhole className="h-3.5 w-3.5" />
                 <span>Cerrar caja</span>
@@ -162,13 +162,13 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
         <Card className="border border-border/80 shadow-xs bg-card">
           <CardContent className="p-4 space-y-1">
             <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
+              <TrendingUp className="h-3.5 w-3.5 text-success" />
               Ventas en efectivo
             </span>
-            <div className="text-xl font-semibold text-emerald-700 tabular-nums">
+            <div className="text-xl font-semibold text-success-text tabular-nums">
               + {formatCurrency(estado.ventasEfectivo)}
             </div>
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               Total vendido por comprobantes en mano
             </span>
           </CardContent>
@@ -184,7 +184,7 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
             <div className="text-xl font-semibold text-foreground tabular-nums">
               + {formatCurrency(estado.otrosIngresosEfectivo)}
             </div>
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               Aportes de sencillo y cobranzas
             </span>
           </CardContent>
@@ -194,13 +194,13 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
         <Card className="border border-border/80 shadow-xs bg-card">
           <CardContent className="p-4 space-y-1">
             <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <ArrowUpCircle className="h-3.5 w-3.5 text-rose-600" />
+              <ArrowUpCircle className="h-3.5 w-3.5 text-destructive" />
               Egresos / Gastos
             </span>
-            <div className="text-xl font-semibold text-rose-600 tabular-nums">
+            <div className="text-xl font-semibold text-danger-text tabular-nums">
               - {formatCurrency(estado.egresosEfectivo)}
             </div>
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               Compras menores y pagos desde caja
             </span>
           </CardContent>
@@ -309,14 +309,14 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
               return (
                 <div
                   key={mov.id}
-                  className="py-2.5 flex items-center justify-between text-xs hover:bg-muted/20 px-2 rounded-lg transition-colors"
+                  className="py-2.5 flex items-center justify-between gap-3 text-xs hover:bg-muted/20 px-2 rounded-md transition-colors"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     <span
-                      className={`h-7 w-7 rounded-full flex items-center justify-center shrink-0 ${
+                      className={`h-7 w-7 rounded-md flex items-center justify-center shrink-0 border ${
                         esIngreso
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : 'bg-rose-50 text-rose-700'
+                          ? 'bg-success-soft text-success-text border-success/20'
+                          : 'bg-danger-soft text-danger-text border-destructive/20'
                       }`}
                     >
                       {esIngreso ? (
@@ -325,18 +325,18 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
                         <ArrowUpCircle className="h-4 w-4" />
                       )}
                     </span>
-                    <div>
-                      <div className="font-medium text-foreground line-clamp-1">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-foreground truncate">
                         {mov.concepto}
                       </div>
-                      <div className="text-[10px] text-muted-foreground flex items-center gap-2">
+                      <div className="text-xs text-muted-foreground flex items-center gap-2 truncate">
                         <span>{mov.hora || mov.fecha}</span>
                         <span>•</span>
                         <span>{mov.metodo}</span>
                         {mov.comprobanteRef && (
                           <>
                             <span>•</span>
-                            <span className="font-mono text-primary font-medium">
+                            <span className="font-mono text-primary font-medium truncate">
                               {mov.comprobanteRef}
                             </span>
                           </>
@@ -345,15 +345,15 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
                     </div>
                   </div>
 
-                  <div className="text-right">
+                  <div className="text-right shrink-0">
                     <span
-                      className={`font-semibold tabular-nums text-xs ${
-                        esIngreso ? 'text-emerald-700' : 'text-rose-600'
+                      className={`font-semibold tabular-nums text-xs font-mono block ${
+                        esIngreso ? 'text-success-text' : 'text-danger-text'
                       }`}
                     >
                       {esIngreso ? '+' : '-'} {formatCurrency(mov.monto)}
                     </span>
-                    <span className="block text-[10px] text-muted-foreground">
+                    <span className="block text-xs text-muted-foreground">
                       {mov.usuario}
                     </span>
                   </div>

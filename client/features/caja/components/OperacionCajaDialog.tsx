@@ -107,17 +107,17 @@ export const OperacionCajaDialog: React.FC<OperacionCajaDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-0 overflow-hidden">
-        <DialogHeader className="p-6 pb-4 border-b border-border/60 bg-muted/20">
+      <DialogContent className="w-[95vw] sm:max-w-md p-0 overflow-hidden max-h-[92vh] flex flex-col">
+        <DialogHeader className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-border/60 bg-muted/20 shrink-0">
           <div className="flex items-center gap-2 text-xs font-semibold">
             {tipo === 'INGRESO' ? (
-              <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                <ArrowDownCircle className="h-3.5 w-3.5" />
+              <span className="inline-flex items-center gap-1 text-success-text bg-success-soft px-2.5 py-0.5 rounded-md border border-success/30">
+                <ArrowDownCircle className="h-3.5 w-3.5 text-success" />
                 Ingreso manual
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
-                <ArrowUpCircle className="h-3.5 w-3.5" />
+              <span className="inline-flex items-center gap-1 text-danger-text bg-danger-soft px-2.5 py-0.5 rounded-md border border-destructive/30">
+                <ArrowUpCircle className="h-3.5 w-3.5 text-destructive" />
                 Egreso / Salida
               </span>
             )}
@@ -132,7 +132,7 @@ export const OperacionCajaDialog: React.FC<OperacionCajaDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 flex-1 overflow-y-auto">
           {/* Tipo y Método */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -185,7 +185,7 @@ export const OperacionCajaDialog: React.FC<OperacionCajaDialogProps> = ({
           {/* Concepto / Motivo */}
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-foreground">
-              Concepto / Motivo <span className="text-rose-500">*</span>
+              Concepto / Motivo <span className="text-danger-text">*</span>
             </Label>
             <Input
               value={concepto}
@@ -201,11 +201,11 @@ export const OperacionCajaDialog: React.FC<OperacionCajaDialogProps> = ({
           </div>
 
           {/* Monto con previsualización del saldo */}
-          <div className="space-y-2 p-3.5 rounded-xl bg-muted/40 border border-border">
+          <div className="space-y-2 p-3.5 rounded-md bg-muted/40 border border-border">
             <div className="flex justify-between items-center">
               <Label className="text-xs font-medium text-foreground">Monto (S/)</Label>
-              <span className="text-[11px] text-muted-foreground">
-                Saldo actual: <span className="tabular-nums font-medium text-foreground">{formatCurrency(saldoActual)}</span>
+              <span className="text-xs text-muted-foreground">
+                Saldo actual: <span className="tabular-nums font-mono font-medium text-foreground">{formatCurrency(saldoActual)}</span>
               </span>
             </div>
 
@@ -220,15 +220,15 @@ export const OperacionCajaDialog: React.FC<OperacionCajaDialogProps> = ({
                 value={monto}
                 onChange={(e) => setMonto(Number(e.target.value))}
                 required
-                className="h-9 pl-8 text-base font-semibold text-foreground tabular-nums"
+                className="h-9 pl-8 text-base font-semibold text-foreground font-mono tabular-nums"
               />
             </div>
 
-            <div className="flex justify-between items-center text-[11px] pt-1">
+            <div className="flex justify-between items-center text-xs pt-1">
               <span className="text-muted-foreground">Nuevo saldo proyectado:</span>
               <span
-                className={`font-medium tabular-nums ${
-                  tipo === 'INGRESO' ? 'text-emerald-700' : 'text-foreground'
+                className={`font-semibold tabular-nums font-mono ${
+                  tipo === 'INGRESO' ? 'text-success-text' : 'text-foreground'
                 }`}
               >
                 {formatCurrency(nuevoSaldoProyectado)}
@@ -238,11 +238,11 @@ export const OperacionCajaDialog: React.FC<OperacionCajaDialogProps> = ({
 
           {/* Advertencia si egreso supera umbral (regla 12) */}
           {requiereAutorizacion && (
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs">
-              <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2 p-3 rounded-md bg-warning-soft border border-warning/30 text-warning-text text-xs">
+              <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
               <div>
                 <span className="font-medium block">Este egreso requiere autorización.</span>
-                <span className="text-[11px] text-amber-800">
+                <span className="text-xs text-warning-text opacity-90">
                   El monto supera el límite operativo diario (S/ 250.00). El movimiento quedará registrado con alerta para auditoría de supervisión.
                 </span>
               </div>
@@ -274,12 +274,9 @@ export const OperacionCajaDialog: React.FC<OperacionCajaDialogProps> = ({
             <Button
               type="submit"
               size="sm"
+              variant={tipo === 'EGRESO' ? 'destructive' : 'default'}
               disabled={isSubmitting || !concepto.trim() || monto <= 0}
-              className={`h-9 text-xs font-medium ${
-                tipo === 'EGRESO'
-                  ? 'bg-rose-600 hover:bg-rose-700 text-white'
-                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-              }`}
+              className="h-9 text-xs font-medium"
             >
               {isSubmitting
                 ? 'Registrando...'

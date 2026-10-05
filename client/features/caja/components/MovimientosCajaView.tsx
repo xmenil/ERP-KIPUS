@@ -62,12 +62,12 @@ export const MovimientosCajaView: React.FC<MovimientosCajaViewProps> = ({
   const renderIconoMetodo = (metodo: string) => {
     switch (metodo) {
       case 'EFECTIVO':
-        return <Coins className="h-3.5 w-3.5 text-amber-600" />;
+        return <Coins className="h-3.5 w-3.5 text-primary" />;
       case 'YAPE':
       case 'PLIN':
-        return <Smartphone className="h-3.5 w-3.5 text-purple-600" />;
+        return <Smartphone className="h-3.5 w-3.5 text-primary" />;
       case 'TARJETA':
-        return <CreditCard className="h-3.5 w-3.5 text-blue-600" />;
+        return <CreditCard className="h-3.5 w-3.5 text-primary" />;
       default:
         return <Receipt className="h-3.5 w-3.5 text-muted-foreground" />;
     }
@@ -142,106 +142,179 @@ export const MovimientosCajaView: React.FC<MovimientosCajaViewProps> = ({
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="text-xs bg-muted/40">
-                    <TableHead className="w-20">Hora</TableHead>
-                    <TableHead>Concepto / Detalle</TableHead>
-                    <TableHead className="w-28">Tipo</TableHead>
-                    <TableHead className="w-28">Método</TableHead>
-                    <TableHead className="w-28 text-right">Monto</TableHead>
-                    <TableHead className="w-28">Cajero</TableHead>
-                    <TableHead className="w-16 text-center">Acción</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {movimientosFiltrados.map((mov) => {
-                    const esIngreso = mov.tipo === 'INGRESO';
-                    return (
-                      <TableRow
-                        key={mov.id}
-                        className="text-xs hover:bg-muted/30 cursor-pointer transition-colors"
-                        onClick={() => setMovimientoSeleccionado(mov)}
-                      >
-                        {/* Hora */}
-                        <TableCell className="font-mono text-muted-foreground whitespace-nowrap">
-                          {mov.hora || mov.fecha}
-                        </TableCell>
+            <>
+              {/* VISTA ESCRITORIO (>= md): Tabla completa con scroll horizontal seguro */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table className="w-full min-w-[760px]">
+                  <TableHeader>
+                    <TableRow className="text-xs bg-muted/40 border-b border-border">
+                      <TableHead className="w-20 whitespace-nowrap py-3 px-3">Hora</TableHead>
+                      <TableHead className="min-w-[200px] whitespace-nowrap py-3 px-3">Concepto / Detalle</TableHead>
+                      <TableHead className="w-28 whitespace-nowrap py-3 px-3">Tipo</TableHead>
+                      <TableHead className="w-28 whitespace-nowrap py-3 px-3">Método</TableHead>
+                      <TableHead className="w-28 whitespace-nowrap py-3 px-3 text-right">Monto</TableHead>
+                      <TableHead className="w-28 whitespace-nowrap py-3 px-3">Cajero</TableHead>
+                      <TableHead className="w-16 whitespace-nowrap py-3 px-3 text-center">Acción</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {movimientosFiltrados.map((mov) => {
+                      const esIngreso = mov.tipo === 'INGRESO';
+                      return (
+                        <TableRow
+                          key={mov.id}
+                          className="text-xs hover:bg-muted/30 cursor-pointer transition-colors border-b border-border/60"
+                          onClick={() => setMovimientoSeleccionado(mov)}
+                        >
+                          {/* Hora */}
+                          <TableCell className="font-mono text-muted-foreground whitespace-nowrap py-3 px-3">
+                            {mov.hora || mov.fecha}
+                          </TableCell>
 
-                        {/* Concepto */}
-                        <TableCell>
-                          <div className="font-medium text-foreground line-clamp-1">
-                            {mov.concepto}
-                          </div>
-                          {mov.comprobanteRef && (
-                            <span className="text-[10px] text-primary font-mono block">
-                              Ref: {mov.comprobanteRef}
-                            </span>
-                          )}
-                        </TableCell>
-
-                        {/* Tipo */}
-                        <TableCell>
-                          <span
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${
-                              esIngreso
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                : 'bg-rose-50 text-rose-700 border border-rose-200'
-                            }`}
-                          >
-                            {esIngreso ? (
-                              <ArrowDownCircle className="h-3 w-3" />
-                            ) : (
-                              <ArrowUpCircle className="h-3 w-3" />
+                          {/* Concepto */}
+                          <TableCell className="py-3 px-3">
+                            <div className="font-medium text-foreground line-clamp-1">
+                              {mov.concepto}
+                            </div>
+                            {mov.comprobanteRef && (
+                              <span className="text-[10px] text-primary font-mono block">
+                                Ref: {mov.comprobanteRef}
+                              </span>
                             )}
-                            {esIngreso ? 'Ingreso' : 'Egreso'}
-                          </span>
-                        </TableCell>
+                          </TableCell>
 
-                        {/* Método */}
-                        <TableCell>
-                          <span className="inline-flex items-center gap-1.5 text-xs text-foreground font-medium">
+                          {/* Tipo */}
+                          <TableCell className="py-3 px-3">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-medium border ${
+                                esIngreso
+                                  ? 'bg-success-soft text-success-text border-success/30'
+                                  : 'bg-danger-soft text-danger-text border-destructive/30'
+                              }`}
+                            >
+                              {esIngreso ? (
+                                <ArrowDownCircle className="h-3 w-3 text-success" />
+                              ) : (
+                                <ArrowUpCircle className="h-3 w-3 text-destructive" />
+                              )}
+                              {esIngreso ? 'Ingreso' : 'Egreso'}
+                            </span>
+                          </TableCell>
+
+                          {/* Método */}
+                          <TableCell className="py-3 px-3">
+                            <span className="inline-flex items-center gap-1.5 text-xs text-foreground font-medium whitespace-nowrap">
+                              {renderIconoMetodo(mov.metodo)}
+                              {mov.metodo}
+                            </span>
+                          </TableCell>
+
+                          {/* Monto (+ S/ en verde, - S/ en rojo con tabular-nums) */}
+                          <TableCell className="text-right py-3 px-3">
+                            <span
+                              className={`font-semibold tabular-nums text-xs font-mono whitespace-nowrap ${
+                                esIngreso ? 'text-success-text' : 'text-danger-text'
+                              }`}
+                            >
+                              {esIngreso ? '+' : '-'} {formatCurrency(mov.monto)}
+                            </span>
+                          </TableCell>
+
+                          {/* Usuario */}
+                          <TableCell className="text-muted-foreground text-xs py-3 px-3 whitespace-nowrap">
+                            {mov.usuario}
+                          </TableCell>
+
+                          {/* Acción */}
+                          <TableCell className="text-center py-3 px-3" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                              onClick={() => setMovimientoSeleccionado(mov)}
+                              title="Ver detalle del movimiento"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* VISTA MÓVIL (< md): Tarjetas ergonómicas con targets táctiles amplios */}
+              <div className="block md:hidden divide-y divide-border">
+                {movimientosFiltrados.map((mov) => {
+                  const esIngreso = mov.tipo === 'INGRESO';
+                  return (
+                    <div
+                      key={mov.id}
+                      onClick={() => setMovimientoSeleccionado(mov)}
+                      className="p-3.5 space-y-2 hover:bg-muted/10 active:bg-muted/20 transition-colors cursor-pointer"
+                    >
+                      {/* Cabecera de la tarjeta: Badge de Tipo y Hora */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-medium border ${
+                            esIngreso
+                              ? 'bg-success-soft text-success-text border-success/30'
+                              : 'bg-danger-soft text-danger-text border-destructive/30'
+                          }`}
+                        >
+                          {esIngreso ? (
+                            <ArrowDownCircle className="h-3 w-3 text-success" />
+                          ) : (
+                            <ArrowUpCircle className="h-3 w-3 text-destructive" />
+                          )}
+                          {esIngreso ? 'Ingreso' : 'Egreso'}
+                        </span>
+
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {mov.hora || mov.fecha}
+                        </span>
+                      </div>
+
+                      {/* Concepto y comprobante */}
+                      <div className="space-y-0.5">
+                        <div className="text-xs font-medium text-foreground leading-snug">
+                          {mov.concepto}
+                        </div>
+                        {mov.comprobanteRef && (
+                          <span className="text-[11px] font-mono text-primary block">
+                            Ref: {mov.comprobanteRef}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Método de pago, Cajero y Monto Final */}
+                      <div className="flex items-center justify-between pt-1 border-t border-border/50 text-xs">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <span className="inline-flex items-center gap-1 font-medium text-foreground">
                             {renderIconoMetodo(mov.metodo)}
                             {mov.metodo}
                           </span>
-                        </TableCell>
+                          <span>•</span>
+                          <span>{mov.usuario}</span>
+                        </div>
 
-                        {/* Monto (+ S/ en verde, - S/ en rojo con tabular-nums) */}
-                        <TableCell className="text-right">
+                        <div className="text-right">
                           <span
-                            className={`font-semibold tabular-nums text-xs ${
-                              esIngreso ? 'text-emerald-700' : 'text-rose-600'
+                            className={`font-semibold tabular-nums text-sm font-mono ${
+                              esIngreso ? 'text-success-text' : 'text-danger-text'
                             }`}
                           >
                             {esIngreso ? '+' : '-'} {formatCurrency(mov.monto)}
                           </span>
-                        </TableCell>
-
-                        {/* Usuario */}
-                        <TableCell className="text-muted-foreground text-[11px]">
-                          {mov.usuario}
-                        </TableCell>
-
-                        {/* Acción */}
-                        <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                            onClick={() => setMovimientoSeleccionado(mov)}
-                            title="Ver detalle del movimiento"
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

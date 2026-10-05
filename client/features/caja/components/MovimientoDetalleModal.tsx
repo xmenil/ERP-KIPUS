@@ -48,25 +48,25 @@ export const MovimientoDetalleModal: React.FC<MovimientoDetalleModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-0 overflow-hidden">
+      <DialogContent className="w-[95vw] sm:max-w-md p-0 overflow-hidden max-h-[92vh] flex flex-col">
         {/* Cabecera */}
-        <DialogHeader className="p-6 pb-4 border-b border-border/60 bg-muted/20">
+        <DialogHeader className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-border/60 bg-muted/20 shrink-0">
           <div className="flex items-center justify-between">
             <span
-              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-medium border ${
                 esIngreso
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                  : 'bg-rose-50 text-rose-700 border border-rose-200'
+                  ? 'bg-success-soft text-success-text border-success/30'
+                  : 'bg-danger-soft text-danger-text border-destructive/30'
               }`}
             >
               {esIngreso ? (
-                <ArrowDownCircle className="h-3.5 w-3.5" />
+                <ArrowDownCircle className="h-3.5 w-3.5 text-success" />
               ) : (
-                <ArrowUpCircle className="h-3.5 w-3.5" />
+                <ArrowUpCircle className="h-3.5 w-3.5 text-destructive" />
               )}
               {esIngreso ? 'Ingreso a caja' : 'Egreso / Salida de caja'}
             </span>
-            <span className="text-[11px] font-mono text-muted-foreground">
+            <span className="text-xs font-mono text-muted-foreground">
               {movimiento.id}
             </span>
           </div>
@@ -80,14 +80,14 @@ export const MovimientoDetalleModal: React.FC<MovimientoDetalleModalProps> = ({
         </DialogHeader>
 
         {/* Monto Destacado */}
-        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-          <div className="p-4 rounded-xl bg-card border border-border text-center space-y-1">
+        <div className="p-4 sm:p-6 space-y-4 flex-1 overflow-y-auto">
+          <div className="p-4 rounded-md bg-card border border-border text-center space-y-1">
             <span className="text-xs font-medium text-muted-foreground">
               Monto del movimiento
             </span>
             <div
-              className={`text-2xl font-semibold tabular-nums ${
-                esIngreso ? 'text-emerald-700' : 'text-rose-600'
+              className={`text-2xl font-semibold tabular-nums font-mono ${
+                esIngreso ? 'text-success-text' : 'text-danger-text'
               }`}
             >
               {esIngreso ? '+' : '-'} {formatCurrency(movimiento.monto)}

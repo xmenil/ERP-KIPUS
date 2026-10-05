@@ -104,28 +104,28 @@ export const AbrirCajaDialog: React.FC<AbrirCajaDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleCerrarModal}>
-      <DialogContent className="max-w-md p-0 overflow-hidden">
+      <DialogContent className="w-[95vw] sm:max-w-md p-0 overflow-hidden max-h-[92vh] flex flex-col">
         {exito ? (
           /* Pantalla de Éxito posterior a la apertura */
-          <div className="p-6 sm:p-8 space-y-6 text-center">
-            <div className="mx-auto w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-sm animate-in zoom-in-95">
-              <CheckCircle2 className="h-8 w-8 stroke-[2]" />
+          <div className="p-4 sm:p-8 space-y-5 sm:space-y-6 text-center flex-1 overflow-y-auto">
+            <div className="mx-auto w-14 h-14 rounded-lg bg-success-soft border border-success/30 flex items-center justify-center text-success-text shadow-xs animate-in zoom-in-95">
+              <CheckCircle2 className="h-7 w-7 stroke-[2]" />
             </div>
 
             <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
-                CAJA ABIERTA
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-success-soft text-success-text border border-success/30 text-xs font-semibold">
+                <span className="h-1.5 w-1.5 rounded-full bg-success" />
+                Caja abierta
               </div>
               <h3 className="text-lg font-semibold text-foreground">
-                ¡Tu caja está lista para operar!
+                Caja lista para operar
               </h3>
               <p className="text-xs text-muted-foreground">
                 Se ha registrado la apertura de turno correctamente.
               </p>
             </div>
 
-            <div className="bg-muted/40 border border-border/70 rounded-xl p-4 text-xs space-y-2.5 text-left">
+            <div className="bg-muted/40 border border-border/70 rounded-md p-4 text-xs space-y-2.5 text-left">
               <div className="flex justify-between items-center py-1 border-b border-border/50">
                 <span className="text-muted-foreground">Hora de apertura:</span>
                 <span className="font-medium text-foreground">{horaApertura}</span>
@@ -142,7 +142,7 @@ export const AbrirCajaDialog: React.FC<AbrirCajaDialogProps> = ({
               </div>
               <div className="flex justify-between items-center pt-1 font-semibold text-xs">
                 <span className="text-foreground">Sencillo inicial:</span>
-                <span className="text-emerald-700 tabular-nums">
+                <span className="text-success-text font-mono tabular-nums">
                   {formatCurrency(saldoInicial)}
                 </span>
               </div>
@@ -158,8 +158,8 @@ export const AbrirCajaDialog: React.FC<AbrirCajaDialogProps> = ({
           </div>
         ) : (
           /* Formulario de Apertura */
-          <form onSubmit={handleSubmit}>
-            <DialogHeader className="p-6 pb-4 border-b border-border/60 bg-muted/20">
+          <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+            <DialogHeader className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-border/60 bg-muted/20 shrink-0">
               <div className="flex items-center gap-2 text-primary font-medium text-xs">
                 <Store className="h-4 w-4" />
                 <span>KIPU'S ERP • Módulo Caja</span>
@@ -173,7 +173,7 @@ export const AbrirCajaDialog: React.FC<AbrirCajaDialogProps> = ({
               </DialogDescription>
             </DialogHeader>
 
-            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+            <div className="p-4 sm:p-6 space-y-4 flex-1 overflow-y-auto">
               {/* Sucursal y Caja */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">

@@ -185,9 +185,9 @@ export const ArqueoConteoDialog: React.FC<ArqueoConteoDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl p-0 overflow-hidden">
+      <DialogContent className="w-[95vw] sm:max-w-2xl p-0 overflow-hidden max-h-[92vh] flex flex-col">
         {/* Cabecera amigable sin jerga contable */}
-        <DialogHeader className="p-6 pb-4 border-b border-border/60 bg-muted/20">
+        <DialogHeader className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-border/60 bg-muted/20 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-primary font-medium text-xs">
               <Calculator className="h-4 w-4" />
@@ -205,9 +205,9 @@ export const ArqueoConteoDialog: React.FC<ArqueoConteoDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 flex-1 overflow-y-auto">
           {/* Tarjeta de Comparación Superior (Saldo Esperado vs Contado vs Diferencia) */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-xl bg-muted/30 border border-border">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 sm:p-4 rounded-lg bg-muted/30 border border-border">
             {/* Saldo Esperado */}
             <div className="space-y-1">
               <span className="text-xs font-medium text-muted-foreground block">
@@ -240,17 +240,17 @@ export const ArqueoConteoDialog: React.FC<ArqueoConteoDialogProps> = ({
                 Diferencia
               </span>
               <div
-                className={`text-lg font-semibold tabular-nums flex items-center gap-1 ${
+                className={`text-lg font-semibold tabular-nums font-mono flex items-center gap-1 ${
                   estaCuadrada
-                    ? 'text-emerald-700'
+                    ? 'text-success-text'
                     : diferencia > 0
-                    ? 'text-amber-600'
-                    : 'text-rose-600'
+                    ? 'text-warning-text'
+                    : 'text-danger-text'
                 }`}
               >
                 {estaCuadrada ? (
                   <>
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
                     <span>S/ 0.00</span>
                   </>
                 ) : (
@@ -263,12 +263,12 @@ export const ArqueoConteoDialog: React.FC<ArqueoConteoDialogProps> = ({
                 )}
               </div>
               <span
-                className={`text-[10px] font-medium ${
+                className={`text-xs font-medium ${
                   estaCuadrada
-                    ? 'text-emerald-700'
+                    ? 'text-success-text'
                     : diferencia > 0
-                    ? 'text-amber-700'
-                    : 'text-rose-700'
+                    ? 'text-warning-text'
+                    : 'text-danger-text'
                 }`}
               >
                 {estaCuadrada
@@ -281,27 +281,27 @@ export const ArqueoConteoDialog: React.FC<ArqueoConteoDialogProps> = ({
           </div>
 
           {/* Selector de Modo de Conteo */}
-          <div className="flex items-center justify-between border-b border-border pb-3">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 border-b border-border pb-3">
+            <div className="flex flex-wrap items-center gap-1.5">
               <Button
                 type="button"
                 variant={modoConteo === 'CALCULADORA' ? 'default' : 'outline'}
                 size="sm"
-                className="h-8 text-xs gap-1.5"
+                className="h-8 text-xs gap-1.5 flex-1 sm:flex-initial justify-center"
                 onClick={() => setModoConteo('CALCULADORA')}
               >
                 <Banknote className="h-3.5 w-3.5" />
-                Contar billetes y monedas
+                <span>Billetes y monedas</span>
               </Button>
               <Button
                 type="button"
                 variant={modoConteo === 'DIRECTO' ? 'default' : 'outline'}
                 size="sm"
-                className="h-8 text-xs gap-1.5"
+                className="h-8 text-xs gap-1.5 flex-1 sm:flex-initial justify-center"
                 onClick={() => setModoConteo('DIRECTO')}
               >
                 <Coins className="h-3.5 w-3.5" />
-                Ingresar total directo
+                <span>Total directo</span>
               </Button>
             </div>
 
@@ -309,11 +309,11 @@ export const ArqueoConteoDialog: React.FC<ArqueoConteoDialogProps> = ({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1"
+              className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1 justify-center sm:justify-start"
               onClick={handleLlenarEsperado}
             >
               <RefreshCw className="h-3 w-3" />
-              Rellenar esperado
+              <span>Rellenar esperado</span>
             </Button>
           </div>
 
