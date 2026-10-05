@@ -120,11 +120,11 @@ export const AppSidebar: React.FC = () => {
       <SidebarHeader className="border-b border-border p-3">
         {/* Vista expandida: Logo oficial Kipus + ERP PRO */}
         <div className="flex flex-col gap-1 items-center group-data-[collapsible=icon]:hidden">
-          <div className="flex items-center justify-center gap-2 whitespace-nowrap">
+          <div className="flex items-center justify-center gap-1 whitespace-nowrap">
             <img
               src="/kipus-logo.png"
               alt="Kipu's"
-              className="h-10 w-auto object-contain shrink-0 dark:brightness-110"
+              className="h-11 w-auto object-contain shrink-0 dark:brightness-110"
             />
 
             <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-bold">
