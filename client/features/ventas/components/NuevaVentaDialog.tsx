@@ -139,7 +139,7 @@ export const NuevaVentaDialog: React.FC<NuevaVentaDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5 text-primary" />
@@ -261,12 +261,12 @@ export const NuevaVentaDialog: React.FC<NuevaVentaDialogProps> = ({
                         min="1"
                         value={item.cantidad}
                         onChange={(e) => handleUpdateCantidad(idx, Number(e.target.value))}
-                        className="h-8 text-xs w-16 text-center font-bold"
+                        className="h-8 text-xs w-16 text-center font-semibold"
                       />
                     </div>
 
                     <div className="w-24 text-right">
-                      <span className="text-xs font-bold text-foreground">
+                      <span className="text-xs font-semibold text-foreground">
                         {formatCurrency(item.cantidad * item.precioUnitario)}
                       </span>
                     </div>
@@ -277,7 +277,7 @@ export const NuevaVentaDialog: React.FC<NuevaVentaDialogProps> = ({
                         variant="ghost"
                         size="icon"
                         onClick={() => handleRemoveItem(idx)}
-                        className="h-7 w-7 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                        className="h-7 w-7 text-danger-text hover:bg-danger-soft"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>

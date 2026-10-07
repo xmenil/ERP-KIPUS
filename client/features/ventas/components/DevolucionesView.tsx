@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Devolucion, Venta } from '../types/ventas.types';
-import { formatCurrency } from '@/utils/formatters';
+import { formatMoney } from '@/utils/formatters';
 import {
   RotateCcw,
   Search,
@@ -28,6 +28,8 @@ import {
   CheckCircle2,
   PackageCheck,
   Receipt,
+  User,
+  Package,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -118,10 +120,10 @@ export const DevolucionesView: React.FC<DevolucionesViewProps> = ({
     <div className="space-y-4">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
         {/* ========================================================================= */}
-        {/* FORMULARIO DE DEVOLUCIÓN (5 de 12 columnas)                               */}
+        {/* FORMULARIO DE DEVOLUCIÓN (5 de 12 columnas en escritorio)                 */}
         {/* ========================================================================= */}
         <div className="lg:col-span-5">
-          <Card className="border-border/80 shadow-xs">
+          <Card className="border-border/80 shadow-xs rounded-md">
             <CardContent className="p-4 space-y-3.5">
               <div className="space-y-1 border-b border-border/70 pb-2.5">
                 <span className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -137,40 +139,37 @@ export const DevolucionesView: React.FC<DevolucionesViewProps> = ({
                 {/* 1. Seleccionar Venta */}
                 <div className="space-y-1">
                   <Label className="text-xs font-medium">1. Seleccionar comprobante de venta</Label>
-                  <Select
-                    value={ventaId || ventas[0]?.id || ''}
-                    onValueChange={handleSelectVenta}
-                  >
-                    <SelectTrigger className="h-9 text-xs">
-                      <SelectValue placeholder="Elige un comprobante..." />
+                  <Select value={ventaId} onValueChange={handleSelectVenta}>
+                    <SelectTrigger className="h-9 sm:h-8 text-xs">
+                      <SelectValue placeholder="Selecciona una venta emitida..." />
                     </SelectTrigger>
                     <SelectContent>
                       {ventas
                         .filter((v) => v.estado === 'COMPLETADA')
                         .map((v) => (
                           <SelectItem key={v.id} value={v.id} className="text-xs">
-                            {v.serieCorrelativo} — {v.clienteNombre} ({formatCurrency(v.total)})
+                            <span className="font-mono font-semibold">{v.serieCorrelativo}</span> — {v.clienteNombre} ({formatMoney(v.total)})
                           </SelectItem>
                         ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* 2. Seleccionar Producto dentro de la venta */}
+                {/* 2. Seleccionar Producto */}
                 {ventaSeleccionada && (
                   <div className="space-y-1">
-                    <Label className="text-xs font-medium">2. Artículo que el cliente devuelve</Label>
+                    <Label className="text-xs font-medium">2. Producto a retornar</Label>
                     <Select
-                      value={productoId || productosEnVenta[0]?.productoId || ''}
+                      value={productoId || productosEnVenta[0]?.productoId}
                       onValueChange={setProductoId}
                     >
-                      <SelectTrigger className="h-9 text-xs">
+                      <SelectTrigger className="h-9 sm:h-8 text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {productosEnVenta.map((it) => (
-                          <SelectItem key={it.productoId} value={it.productoId} className="text-xs">
-                            {it.nombre} (Compró {it.cantidad} unid. a {formatCurrency(it.precioUnitario)})
+                        {productosEnVenta.map((item) => (
+                          <SelectItem key={item.productoId} value={item.productoId} className="text-xs">
+                            {item.nombre} (Vendidas: {item.cantidad} unid.)
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -178,45 +177,48 @@ export const DevolucionesView: React.FC<DevolucionesViewProps> = ({
                   </div>
                 )}
 
-                {/* 3. Cantidad a devolver */}
+                {/* 3. Cantidad y Reembolso */}
                 {productoSeleccionado && (
-                  <div className="grid grid-cols-2 gap-3 p-2.5 rounded bg-muted/30 border border-border">
+                  <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <Label className="text-[11px] text-muted-foreground">Cantidad devuelta</Label>
+                      <Label className="text-xs font-medium">
+                        Cantidad (Máx: {productoSeleccionado.cantidad})
+                      </Label>
                       <Input
                         type="number"
                         min="1"
                         max={productoSeleccionado.cantidad}
                         value={cantidad}
                         onChange={(e) => setCantidad(Number(e.target.value))}
-                        className="h-8 text-xs font-bold font-mono text-center bg-card"
+                        className="h-9 sm:h-8 font-semibold font-mono text-center text-xs"
                         required
                       />
                     </div>
-                    <div className="text-right flex flex-col justify-center">
-                      <span className="text-[10px] text-muted-foreground">Monto a reembolsar</span>
-                      <span className="text-base font-bold font-mono text-primary tabular-nums">
-                        {formatCurrency(cantidad * productoSeleccionado.precioUnitario)}
-                      </span>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs font-medium">Monto a Devolver</Label>
+                      <div className="h-9 sm:h-8 rounded-md border border-border bg-danger-soft flex items-center justify-center font-semibold font-mono text-xs text-danger-text tabular-nums">
+                        -{formatMoney(productoSeleccionado.precioUnitario * cantidad)}
+                      </div>
                     </div>
                   </div>
                 )}
 
                 {/* 4. Motivo */}
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium">3. Motivo de la devolución</Label>
+                  <Label className="text-xs font-medium">Motivo de la devolución</Label>
                   <Select value={motivo} onValueChange={setMotivo}>
-                    <SelectTrigger className="h-9 text-xs">
+                    <SelectTrigger className="h-9 sm:h-8 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Error de compra del cliente (cambio conforme)">
-                        Error de compra del cliente (producto en buen estado)
+                        Error de compra del cliente
                       </SelectItem>
-                      <SelectItem value="Falla de fábrica o deterioro">
-                        Falla de fábrica / Deterioro
+                      <SelectItem value="Producto defectuoso / empaque dañado">
+                        Producto defectuoso / empaque dañado
                       </SelectItem>
-                      <SelectItem value="Vencimiento o caducidad">
+                      <SelectItem value="Vencimiento de fecha">
                         Vencimiento de fecha
                       </SelectItem>
                       <SelectItem value="Despacho erróneo en mostrador">
@@ -265,73 +267,128 @@ export const DevolucionesView: React.FC<DevolucionesViewProps> = ({
         </div>
 
         {/* ========================================================================= */}
-        {/* HISTORIAL DE DEVOLUCIONES REGISTRADAS (7 de 12 columnas)                   */}
+        {/* HISTORIAL DE DEVOLUCIONES REGISTRADAS (7 de 12 columnas en escritorio)    */}
         {/* ========================================================================= */}
         <div className="lg:col-span-7 space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+            <div className="relative w-full sm:w-72 shrink-0">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 placeholder="Buscar por comprobante, artículo o motivo..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 h-9 text-xs"
+                className="pl-8 h-9 text-xs bg-card"
               />
             </div>
-            <span className="text-xs text-muted-foreground font-mono">
+            <span className="text-xs text-muted-foreground font-mono text-right">
               {devolucionesFiltradas.length} registradas
             </span>
           </div>
 
-          <div className="overflow-x-auto rounded border border-border bg-card shadow-2xs">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50 border-b border-border">
-                  <TableHead className="text-xs py-2.5">Fecha y Comprobante</TableHead>
-                  <TableHead className="text-xs py-2.5">Artículo Devuelto</TableHead>
-                  <TableHead className="text-xs py-2.5 text-center">Cant.</TableHead>
-                  <TableHead className="text-xs py-2.5 text-right">Reembolso</TableHead>
-                  <TableHead className="text-xs py-2.5">Motivo</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {devolucionesFiltradas.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-28 text-center text-xs text-muted-foreground">
-                      No hay devoluciones registradas con los filtros seleccionados.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  devolucionesFiltradas.map((dev) => (
-                    <TableRow key={dev.id} className="text-xs hover:bg-muted/20 border-b border-border/60">
-                      <TableCell className="py-2.5">
-                        <span className="font-mono font-bold text-foreground block">
+          {devolucionesFiltradas.length === 0 ? (
+            <Card className="rounded-md border-border bg-card">
+              <CardContent className="h-32 flex flex-col items-center justify-center text-center p-4">
+                <RotateCcw className="h-7 w-7 text-muted-foreground mb-1.5" />
+                <p className="text-xs font-semibold text-foreground">
+                  No hay devoluciones registradas
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Las devoluciones que registres desde comprobantes se listarán aquí.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {/* 1. Vista Desktop / Tablet (pantallas ≥ sm): Tabla Densa protegida */}
+              <div className="hidden sm:block overflow-x-auto rounded-md border border-border bg-card shadow-2xs">
+                <Table className="min-w-[680px]">
+                  <TableHeader>
+                    <TableRow className="bg-muted/50 border-b border-border">
+                      <TableHead className="text-xs py-2.5 whitespace-nowrap">Fecha y Comprobante</TableHead>
+                      <TableHead className="text-xs py-2.5 min-w-[160px] whitespace-nowrap">Artículo Devuelto</TableHead>
+                      <TableHead className="text-xs py-2.5 text-center whitespace-nowrap">Cant.</TableHead>
+                      <TableHead className="text-xs py-2.5 text-right whitespace-nowrap">Reembolso</TableHead>
+                      <TableHead className="text-xs py-2.5 min-w-[140px] whitespace-nowrap">Motivo</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {devolucionesFiltradas.map((dev) => (
+                      <TableRow key={dev.id} className="text-xs hover:bg-muted/20 border-b border-border/60">
+                        <TableCell className="py-2.5 whitespace-nowrap">
+                          <span className="font-mono font-semibold text-foreground block">
+                            {dev.serieCorrelativo}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground font-mono">{dev.fecha}</span>
+                        </TableCell>
+                        <TableCell className="py-2.5 min-w-[160px]">
+                          <span className="font-semibold text-foreground block">{dev.productoNombre}</span>
+                          <span className="text-[10px] text-muted-foreground font-mono">SKU: {dev.sku}</span>
+                        </TableCell>
+                        <TableCell className="py-2.5 text-center font-semibold font-mono text-sm tabular-nums whitespace-nowrap">
+                          {dev.cantidad}
+                        </TableCell>
+                        <TableCell className="py-2.5 text-right font-mono font-semibold text-danger-text tabular-nums whitespace-nowrap">
+                          -{formatMoney(dev.montoDevuelto)}
+                        </TableCell>
+                        <TableCell className="py-2.5 text-[11px] text-muted-foreground min-w-[140px]">
+                          <span className="truncate block" title={dev.motivo}>
+                            {dev.motivo}
+                          </span>
+                          <span className="text-[10px] text-foreground">Por: {dev.usuario}</span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* 2. Vista Móvil (pantallas < sm): Tarjetas Compactas Responsivas */}
+              <div className="sm:hidden space-y-2.5">
+                {devolucionesFiltradas.map((dev) => (
+                  <div
+                    key={dev.id}
+                    className="p-3.5 rounded-md border border-border bg-card space-y-2 shadow-2xs text-xs"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <span className="font-mono font-semibold text-primary block">
                           {dev.serieCorrelativo}
                         </span>
-                        <span className="text-[10px] text-muted-foreground font-mono">{dev.fecha}</span>
-                      </TableCell>
-                      <TableCell className="py-2.5">
-                        <span className="font-semibold text-foreground block">{dev.productoNombre}</span>
-                        <span className="text-[10px] text-muted-foreground font-mono">SKU: {dev.sku}</span>
-                      </TableCell>
-                      <TableCell className="py-2.5 text-center font-bold font-mono text-sm tabular-nums">
-                        {dev.cantidad}
-                      </TableCell>
-                      <TableCell className="py-2.5 text-right font-mono font-bold text-rose-600 tabular-nums">
-                        -{formatCurrency(dev.montoDevuelto)}
-                      </TableCell>
-                      <TableCell className="py-2.5 text-[11px] text-muted-foreground max-w-[150px]">
-                        <span className="truncate block" title={dev.motivo}>
-                          {dev.motivo}
+                        <h4 className="font-semibold text-foreground text-xs mt-0.5">
+                          {dev.productoNombre}
+                        </h4>
+                        <span className="text-[10px] text-muted-foreground font-mono block">
+                          SKU: {dev.sku}
                         </span>
-                        <span className="text-[10px] text-foreground">Por: {dev.usuario}</span>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-mono font-semibold text-danger-text text-sm tabular-nums block">
+                          -{formatMoney(dev.montoDevuelto)}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          {dev.cantidad} unid. devueltas
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span className="truncate max-w-[180px]">
+                        Motivo: {dev.motivo}
+                      </span>
+                      <span className="font-mono text-[10px]">{dev.fecha}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Conteo inferior */}
+              <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 px-0.5">
+                <span>
+                  Mostrando {devolucionesFiltradas.length} de {devoluciones.length} devoluciones
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

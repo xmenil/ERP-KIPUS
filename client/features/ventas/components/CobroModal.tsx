@@ -124,7 +124,7 @@ export const CobroModal: React.FC<CobroModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
         <DialogHeader className="pb-2 border-b border-border/70">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-base font-semibold text-foreground">
@@ -132,7 +132,7 @@ export const CobroModal: React.FC<CobroModalProps> = ({
             </DialogTitle>
             <div className="text-right">
               <span className="text-[11px] text-muted-foreground block">Total a Cobrar</span>
-              <span className="text-xl font-bold font-mono tabular-nums text-primary">
+              <span className="text-xl font-semibold font-mono tabular-nums text-primary">
                 {formatCurrency(total)}
               </span>
             </div>
@@ -170,7 +170,7 @@ export const CobroModal: React.FC<CobroModalProps> = ({
           {/* Selector visual de Métodos de Pago */}
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Seleccionar medio de pago</Label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {metodosConfig.map((m) => {
                 const Icon = m.icon;
                 const isSelected = metodoPago === m.id;
@@ -211,7 +211,7 @@ export const CobroModal: React.FC<CobroModalProps> = ({
                     min={total}
                     value={montoRecibido}
                     onChange={(e) => setMontoRecibido(Number(e.target.value))}
-                    className="h-10 text-base font-bold font-mono text-center tabular-nums bg-card"
+                    className="h-10 text-base font-semibold font-mono text-center tabular-nums bg-card"
                     required
                   />
                 </div>
@@ -220,7 +220,7 @@ export const CobroModal: React.FC<CobroModalProps> = ({
                   <span className="text-[10px] text-muted-foreground font-medium block">
                     Vuelto a entregar:
                   </span>
-                  <span className="text-xl font-bold font-mono text-emerald-700 dark:text-emerald-400 tabular-nums">
+                  <span className="text-xl font-semibold font-mono text-success-text tabular-nums">
                     {formatCurrency(vuelto)}
                   </span>
                 </div>

@@ -218,18 +218,18 @@ export const VentasPage: React.FC = () => {
 
       {/* Navegación por pestañas de ventas */}
       <Tabs value={tabActiva} onValueChange={setTabActiva} className="w-full space-y-3.5">
-        <TabsList className="bg-muted/70 p-1 flex flex-wrap h-auto gap-1 border border-border/60">
-          <TabsTrigger value="pos" className="text-xs font-semibold py-1.5 px-3 gap-1.5">
+        <TabsList className="bg-muted/70 p-1 flex overflow-x-auto flex-nowrap sm:flex-wrap h-auto gap-1 border border-border/60 max-w-full scrollbar-none justify-start">
+          <TabsTrigger value="pos" className="text-xs font-semibold py-1.5 px-3 gap-1.5 shrink-0">
             <ShoppingCart className="h-3.5 w-3.5" />
             <span>Punto de Venta (POS)</span>
           </TabsTrigger>
 
-          <TabsTrigger value="dashboard" className="text-xs font-medium py-1.5 px-3 gap-1.5">
+          <TabsTrigger value="dashboard" className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0">
             <LayoutDashboard className="h-3.5 w-3.5" />
             <span>Resumen del Día</span>
           </TabsTrigger>
 
-          <TabsTrigger value="historial" className="text-xs font-medium py-1.5 px-3 gap-1.5">
+          <TabsTrigger value="historial" className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0">
             <Receipt className="h-3.5 w-3.5" />
             <span>Historial de Comprobantes</span>
           </TabsTrigger>
@@ -237,12 +237,12 @@ export const VentasPage: React.FC = () => {
           {/* Pestañas habilitadas en Modo Comercio Mediano y Cadena */}
           {nivelNegocio !== 'TIENDA_PEQUENA' && (
             <>
-              <TabsTrigger value="pedidos" className="text-xs font-medium py-1.5 px-3 gap-1.5">
+              <TabsTrigger value="pedidos" className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0">
                 <ShoppingBag className="h-3.5 w-3.5" />
                 <span>Pedidos ({pedidos.filter((p) => p.estado !== 'ENTREGADO').length})</span>
               </TabsTrigger>
 
-              <TabsTrigger value="cotizaciones" className="text-xs font-medium py-1.5 px-3 gap-1.5">
+              <TabsTrigger value="cotizaciones" className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0">
                 <FileCheck className="h-3.5 w-3.5" />
                 <span>Cotizaciones / Proformas</span>
               </TabsTrigger>
@@ -251,7 +251,7 @@ export const VentasPage: React.FC = () => {
 
           {/* Pestaña habilitada en Modo Cadena Empresarial */}
           {nivelNegocio === 'CADENA_EMPRESARIAL' && (
-            <TabsTrigger value="devoluciones" className="text-xs font-medium py-1.5 px-3 gap-1.5">
+            <TabsTrigger value="devoluciones" className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0">
               <RotateCcw className="h-3.5 w-3.5" />
               <span>Devoluciones</span>
             </TabsTrigger>

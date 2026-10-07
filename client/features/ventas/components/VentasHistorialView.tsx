@@ -68,7 +68,7 @@ export const VentasHistorialView: React.FC<VentasHistorialViewProps> = ({
       <Card className="border-border/80">
         <CardContent className="p-3 space-y-2.5">
           <div className="flex flex-col md:flex-row gap-2.5 items-stretch md:items-center justify-between">
-            <div className="relative w-full md:w-80">
+            <div className="relative w-full md:w-80 shrink-0">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar por serie, cliente, DNI o RUC..."
@@ -129,18 +129,18 @@ export const VentasHistorialView: React.FC<VentasHistorialViewProps> = ({
         </CardContent>
       </Card>
 
-      {/* Tabla para Desktop */}
+      {/* Tabla para Desktop con min-w protegido contra deformación */}
       <div className="hidden sm:block overflow-x-auto rounded border border-border bg-card shadow-2xs">
-        <Table>
+        <Table className="min-w-[880px]">
           <TableHeader>
             <TableRow className="bg-muted/50 border-b border-border hover:bg-transparent">
-              <TableHead className="text-xs font-semibold py-2.5">Comprobante</TableHead>
-              <TableHead className="text-xs font-semibold py-2.5">Cliente / Documento</TableHead>
-              <TableHead className="text-xs font-semibold py-2.5">Fecha y Hora</TableHead>
-              <TableHead className="text-xs font-semibold py-2.5">Medio Pago</TableHead>
-              <TableHead className="text-xs font-semibold py-2.5">Estado</TableHead>
-              <TableHead className="text-xs font-semibold py-2.5 text-right">Total Cobrado</TableHead>
-              <TableHead className="text-xs font-semibold py-2.5 text-center w-28">Acciones</TableHead>
+              <TableHead className="text-xs font-semibold py-2.5 whitespace-nowrap">Comprobante</TableHead>
+              <TableHead className="text-xs font-semibold py-2.5 min-w-[180px] whitespace-nowrap">Cliente / Documento</TableHead>
+              <TableHead className="text-xs font-semibold py-2.5 whitespace-nowrap">Fecha y Hora</TableHead>
+              <TableHead className="text-xs font-semibold py-2.5 whitespace-nowrap">Medio Pago</TableHead>
+              <TableHead className="text-xs font-semibold py-2.5 whitespace-nowrap">Estado</TableHead>
+              <TableHead className="text-xs font-semibold py-2.5 text-right whitespace-nowrap">Total Cobrado</TableHead>
+              <TableHead className="text-xs font-semibold py-2.5 text-center w-28 whitespace-nowrap">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -162,8 +162,8 @@ export const VentasHistorialView: React.FC<VentasHistorialViewProps> = ({
                   key={venta.id}
                   className="text-xs hover:bg-muted/20 border-b border-border/70 transition-colors"
                 >
-                  <TableCell className="py-2.5">
-                    <span className="font-mono font-bold text-primary block text-[13px]">
+                  <TableCell className="py-2.5 whitespace-nowrap">
+                    <span className="font-mono font-semibold text-primary block text-[13px]">
                       {venta.serieCorrelativo}
                     </span>
                     <span className="text-[10px] text-muted-foreground font-medium">
@@ -171,7 +171,7 @@ export const VentasHistorialView: React.FC<VentasHistorialViewProps> = ({
                     </span>
                   </TableCell>
 
-                  <TableCell className="py-2.5">
+                  <TableCell className="py-2.5 min-w-[180px]">
                     <span className="font-semibold text-foreground block text-[13px]">
                       {venta.clienteNombre}
                     </span>
@@ -180,17 +180,17 @@ export const VentasHistorialView: React.FC<VentasHistorialViewProps> = ({
                     </span>
                   </TableCell>
 
-                  <TableCell className="text-muted-foreground py-2.5 font-mono text-[11px]">
+                  <TableCell className="text-muted-foreground py-2.5 font-mono text-[11px] whitespace-nowrap">
                     {venta.fecha}
                   </TableCell>
 
-                  <TableCell className="py-2.5">
+                  <TableCell className="py-2.5 whitespace-nowrap">
                     <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-muted border border-border/60">
                       {venta.metodoPago}
                     </span>
                   </TableCell>
 
-                  <TableCell className="py-2.5">
+                  <TableCell className="py-2.5 whitespace-nowrap">
                     <StatusBadge
                       status={venta.estado}
                       variant={
@@ -203,11 +203,11 @@ export const VentasHistorialView: React.FC<VentasHistorialViewProps> = ({
                     />
                   </TableCell>
 
-                  <TableCell className="text-right font-black font-mono text-foreground py-2.5 text-sm tabular-nums">
+                  <TableCell className="text-right font-semibold font-mono text-foreground py-2.5 text-sm tabular-nums whitespace-nowrap">
                     {formatCurrency(venta.total)}
                   </TableCell>
 
-                  <TableCell className="text-center py-2.5">
+                  <TableCell className="text-center py-2.5 whitespace-nowrap">
                     <div className="flex items-center justify-center gap-1">
                       <Button
                         variant="ghost"

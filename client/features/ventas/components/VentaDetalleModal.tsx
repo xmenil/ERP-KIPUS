@@ -130,29 +130,29 @@ export const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({
             <span className="font-semibold text-foreground block">
               Productos despachados ({venta.items.length})
             </span>
-            <div className="rounded border border-border overflow-hidden">
-              <Table>
+            <div className="rounded border border-border overflow-x-auto">
+              <Table className="min-w-[420px]">
                 <TableHeader>
                   <TableRow className="bg-muted/50 border-b border-border text-[11px]">
-                    <TableHead className="py-2">Producto</TableHead>
-                    <TableHead className="py-2 text-center w-16">Cant.</TableHead>
-                    <TableHead className="py-2 text-right w-24">Precio Unit.</TableHead>
-                    <TableHead className="py-2 text-right w-24">Subtotal</TableHead>
+                    <TableHead className="py-2 whitespace-nowrap min-w-[140px]">Producto</TableHead>
+                    <TableHead className="py-2 text-center w-16 whitespace-nowrap">Cant.</TableHead>
+                    <TableHead className="py-2 text-right w-24 whitespace-nowrap">Precio Unit.</TableHead>
+                    <TableHead className="py-2 text-right w-24 whitespace-nowrap">Subtotal</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {venta.items.map((it, idx) => (
                     <TableRow key={idx} className="border-b border-border/60 hover:bg-muted/20">
-                      <TableCell className="py-2">
+                      <TableCell className="py-2 min-w-[140px]">
                         <span className="font-medium text-foreground block">{it.nombre}</span>
                       </TableCell>
-                      <TableCell className="py-2 text-center font-mono font-bold tabular-nums">
+                      <TableCell className="py-2 text-center font-mono font-semibold tabular-nums whitespace-nowrap">
                         {it.cantidad}
                       </TableCell>
-                      <TableCell className="py-2 text-right font-mono tabular-nums text-muted-foreground">
+                      <TableCell className="py-2 text-right font-mono tabular-nums text-muted-foreground whitespace-nowrap">
                         {formatCurrency(it.precioUnitario)}
                       </TableCell>
-                      <TableCell className="py-2 text-right font-mono font-semibold tabular-nums text-foreground">
+                      <TableCell className="py-2 text-right font-mono font-semibold tabular-nums text-foreground whitespace-nowrap">
                         {formatCurrency(it.subtotal)}
                       </TableCell>
                     </TableRow>
@@ -267,7 +267,7 @@ export const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={() => setMostrarAnulacion(true)}
-                className="text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                className="text-xs text-danger-text hover:bg-danger-soft"
               >
                 Anular venta
               </Button>
