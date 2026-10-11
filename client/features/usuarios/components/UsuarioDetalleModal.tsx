@@ -118,17 +118,17 @@ export const UsuarioDetalleModal: React.FC<UsuarioDetalleModalProps> = ({
 
           {/* Datos de contacto y asignación */}
           <div className="space-y-2.5">
-            <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/50">
-              <span className="text-muted-foreground flex items-center gap-1.5">
+            <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/50 gap-2">
+              <span className="text-muted-foreground flex items-center gap-1.5 shrink-0">
                 <Mail className="h-3.5 w-3.5" />
                 Correo Electrónico
               </span>
-              <div className="flex items-center gap-1.5">
-                <span className="font-medium text-foreground">{usuario.email}</span>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="font-medium text-foreground truncate font-mono text-xs">{usuario.email}</span>
                 <button
                   type="button"
                   onClick={handleCopiarEmail}
-                  className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
+                  className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground shrink-0"
                   title="Copiar correo"
                 >
                   {copiado ? <Check className="h-3 w-3 text-success-text" /> : <Copy className="h-3 w-3" />}
@@ -137,31 +137,31 @@ export const UsuarioDetalleModal: React.FC<UsuarioDetalleModalProps> = ({
             </div>
 
             {usuario.telefono && (
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/50">
-                <span className="text-muted-foreground flex items-center gap-1.5">
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/50 gap-2">
+                <span className="text-muted-foreground flex items-center gap-1.5 shrink-0">
                   <Phone className="h-3.5 w-3.5" />
                   Teléfono
                 </span>
-                <span className="font-medium text-foreground">{usuario.telefono}</span>
+                <span className="font-medium text-foreground truncate">{usuario.telefono}</span>
               </div>
             )}
 
-            <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/50">
-              <span className="text-muted-foreground flex items-center gap-1.5">
+            <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/50 gap-2">
+              <span className="text-muted-foreground flex items-center gap-1.5 shrink-0">
                 <Building className="h-3.5 w-3.5" />
                 Sucursal Asignada
               </span>
-              <span className="font-medium text-foreground">{usuario.sucursal}</span>
+              <span className="font-medium text-foreground text-right truncate">{usuario.sucursal}</span>
             </div>
 
             <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/50">
-              <span className="text-muted-foreground flex items-center gap-1.5">
+              <span className="text-muted-foreground flex items-center gap-1.5 shrink-0">
                 <Shield className="h-3.5 w-3.5" />
                 Estado
               </span>
               <span
                 className={`inline-flex items-center gap-1 font-semibold ${
-                  usuario.estado === 'ACTIVO' ? 'text-emerald-600' : 'text-muted-foreground'
+                  usuario.estado === 'ACTIVO' ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'
                 }`}
               >
                 {usuario.estado === 'ACTIVO' ? (
@@ -179,7 +179,7 @@ export const UsuarioDetalleModal: React.FC<UsuarioDetalleModalProps> = ({
             </div>
 
             <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/50">
-              <span className="text-muted-foreground flex items-center gap-1.5">
+              <span className="text-muted-foreground flex items-center gap-1.5 shrink-0">
                 <Clock className="h-3.5 w-3.5" />
                 Último Acceso
               </span>
@@ -188,35 +188,35 @@ export const UsuarioDetalleModal: React.FC<UsuarioDetalleModalProps> = ({
           </div>
         </div>
 
-        {/* Acciones */}
-        <DialogFooter className="p-3 sm:p-4 border-t border-border bg-muted/10 shrink-0 flex items-center justify-between sm:justify-between gap-2">
+        {/* Acciones Responsivas */}
+        <DialogFooter className="p-3 sm:p-4 border-t border-border bg-muted/10 shrink-0 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2">
           {!esAdminPrincipal ? (
             <Button
               variant="outline"
               size="sm"
               onClick={() => onEliminarClick(usuario)}
-              className="h-8 text-xs gap-1 text-destructive hover:bg-danger-soft border-destructive/30"
+              className="h-8 text-xs gap-1 text-destructive hover:bg-danger-soft border-destructive/30 w-full sm:w-auto"
             >
               <Trash2 className="h-3.5 w-3.5" />
               <span>Eliminar Usuario</span>
             </Button>
           ) : (
-            <span className="text-[11px] text-muted-foreground italic">Cuenta Administrador Principal</span>
+            <span className="text-[11px] text-muted-foreground italic text-center sm:text-left">Cuenta Administrador Principal</span>
           )}
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-end gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => onOpenChange(false)}
-              className="h-8 text-xs"
+              className="h-8 text-xs flex-1 sm:flex-none"
             >
               Cerrar
             </Button>
             <Button
               size="sm"
               onClick={() => onEditarClick(usuario)}
-              className="h-8 text-xs gap-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+              className="h-8 text-xs gap-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold flex-1 sm:flex-none"
             >
               <Edit className="h-3.5 w-3.5" />
               <span>Editar Usuario</span>
