@@ -3,7 +3,8 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
+  /* Login uses the light palette locally, preserving the ERP theme preference. */
+  :root, .login-light {
     /* Superficies */
     --background: 216 20% 97%;            /* #F4F6F9 fondo general */
     --card: 0 0% 100%;                    /* #FFFFFF tarjetas y paneles */
