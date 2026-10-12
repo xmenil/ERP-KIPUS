@@ -19,6 +19,7 @@ import {
   Devolucion,
 } from '@/features/ventas/types/ventas.types';
 import { Producto, NuevoProductoPayload } from '@/features/productos/types/productos.types';
+import { validarCodigoUnico } from '@/features/productos/utils/codigosProducto';
 import {
   MovimientoKardex,
   NuevoMovimientoPayload,
@@ -1763,6 +1764,7 @@ export const erpStore = {
   // GESTIÓN DE CATÁLOGO DE PRODUCTOS
   // ==========================================
   crearProducto: (payload: NuevoProductoPayload): Producto => {
+    const codigoBarras = validarCodigoUnico(productos, payload.codigoBarras ?? '');
     const skuNormalizado = payload.sku.trim().toLowerCase();
     const skuExiste = productos.some((p) => p.sku.trim().toLowerCase() === skuNormalizado);
     if (skuExiste) {
@@ -1770,8 +1772,9 @@ export const erpStore = {
     }
 
     const nuevo: Producto = {
-      id: `prod-${Date.now()}`,
+      id: `prod-${crypto.randomUUID()}`,
       ...payload,
+      codigoBarras,
       activo: true,
     };
     productos = [nuevo, ...productos];
@@ -1780,6 +1783,9 @@ export const erpStore = {
   },
 
   actualizarProducto: (id: string, payload: Partial<NuevoProductoPayload>): Producto => {
+    const cambioCodigo = Object.prototype.hasOwnProperty.call(payload, 'codigoBarras')
+      ? { codigoBarras: validarCodigoUnico(productos, payload.codigoBarras ?? '', id) }
+      : {};
     const idx = productos.findIndex((p) => p.id === id);
     if (idx === -1) throw new Error('Producto no encontrado');
     if (payload.sku) {
@@ -1792,6 +1798,7 @@ export const erpStore = {
     productos[idx] = {
       ...productos[idx],
       ...payload,
+      ...cambioCodigo,
     };
     notify();
     return productos[idx];

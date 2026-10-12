@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { buscarProductoPorCodigo } from '@/features/productos/utils/codigosProducto';
+import { CameraCodeReader } from '@/features/productos/components/CameraCodeReader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -64,6 +66,9 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
 
   // Búsqueda y categoría
   const [searchTerm, setSearchTerm] = useState('');
+  const [codigoLectura, setCodigoLectura] = useState('');
+  const [errorLectura, setErrorLectura] = useState('');
+  const lectorRef = useRef<HTMLInputElement>(null);
   const [categoriaActiva, setCategoriaActiva] = useState<string>('TODAS');
 
   // Cliente
@@ -96,12 +101,17 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
     const matchCat = categoriaActiva === 'TODAS' || p.categoria === categoriaActiva;
     const matchSearch =
       p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.sku.toLowerCase().includes(searchTerm.toLowerCase());
+      p.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      Boolean(p.codigoBarras?.toLowerCase().includes(searchTerm.toLowerCase()));
     return matchCat && matchSearch;
   });
 
   // Agregar al carrito
   const handleAgregarProducto = (prod: Producto) => {
+    if (!prod.activo) {
+      toast.error(`"${prod.nombre}" está inactivo. Actívalo en Productos antes de vender.`);
+      return;
+    }
     if (prod.stock <= 0) {
       toast.error(`"${prod.nombre}" está agotado en inventario.`);
       return;
@@ -187,12 +197,21 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
   const subtotalNeto = tipoComprobante === 'NOTA_VENTA' ? total : +(total / 1.18).toFixed(2);
   const igv = +(total - subtotalNeto).toFixed(2);
 
-  // Escaneo simulado
-  const handleSimularEscaner = () => {
-    if (productos.length > 0) {
-      const prodAleatorio = productos[Math.floor(Math.random() * productos.length)];
-      handleAgregarProducto(prodAleatorio);
-      toast.success(`Escáner detectó SKU: ${prodAleatorio.sku}`);
+  const handleLeerCodigo = (lectura = codigoLectura) => {
+    try {
+      if (!lectura.trim()) throw new Error('Escanea o escribe el código del producto.');
+      const producto = buscarProductoPorCodigo(productos, lectura);
+      if (!producto) throw new Error('Código no registrado. Agrégalo en Productos o busca el artículo por nombre.');
+      if (!producto.activo) throw new Error('Producto inactivo. Actívalo en Productos antes de vender.');
+      const cantidad = carrito.find(item => item.productoId === producto.id)?.cantidad ?? 0;
+      if (producto.stock - cantidad < 1) throw new Error('No hay stock disponible para agregar otra unidad.');
+      handleAgregarProducto(producto);
+      setErrorLectura('');
+    } catch (error) {
+      setErrorLectura(error instanceof Error ? error.message : 'Revisa el código del producto.');
+    } finally {
+      setCodigoLectura('');
+      lectorRef.current?.focus();
     }
   };
 
@@ -292,9 +311,9 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={handleSimularEscaner}
+            onClick={() => { lectorRef.current?.focus(); lectorRef.current?.select(); }}
             className="inline-flex items-center gap-1 rounded border border-border bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer"
-            title="Simular lectura de escáner láser de código de barras"
+            title="Enfocar el campo de lectura de código de barras o QR"
           >
             <Barcode className="h-3.5 w-3.5" />
             <span>Lector Código</span>
@@ -354,6 +373,20 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
         {/* COLUMNA IZQUIERDA: CATÁLOGO Y BÚSQUEDA (7 de 12 columnas)                 */}
         {/* ========================================================================= */}
         <div className="lg:col-span-7 space-y-3">
+          <div className="space-y-2">
+            <Label htmlFor="pos-codigo">Código de barras / QR</Label>
+            <div className="flex gap-2">
+              <Input id="pos-codigo" ref={lectorRef} value={codigoLectura} className="font-mono text-base md:text-sm"
+                aria-invalid={Boolean(errorLectura)} aria-describedby="pos-codigo-ayuda pos-codigo-error"
+                onChange={(e) => { setCodigoLectura(e.target.value); setErrorLectura(''); }}
+                onFocus={(e) => e.currentTarget.select()}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleLeerCodigo(); } }} />
+              <Button type="button" variant="outline" onClick={() => handleLeerCodigo()}>Agregar por código</Button>
+            </div>
+            <p id="pos-codigo-ayuda" className="text-xs text-muted-foreground">Escanea y presiona Enter para agregar una unidad.</p>
+            <CameraCodeReader disabled={openCobroModal || openCompletadaModal} onRead={code => handleLeerCodigo(code)} />
+            <p id="pos-codigo-error" role={errorLectura ? 'alert' : undefined} className="text-sm text-danger-text">{errorLectura}</p>
+          </div>
           {/* Barra de búsqueda amplia */}
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />

@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { productosService } from '../services/productosService';
+import { normalizarCodigo } from '../utils/codigosProducto';
+import { CameraCodeReader } from './CameraCodeReader';
 import {
   Dialog,
   DialogContent,
@@ -38,6 +41,7 @@ interface ProductoFormDialogProps {
   onGuardar: (payload: NuevoProductoPayload, id?: string) => Promise<void>;
   productoAEditar?: Producto | null;
   categoriasExistentes?: string[];
+  onEditarCoincidencia?: (producto: Producto) => void;
 }
 
 const CATEGORIAS_PREDEFINIDAS = [
@@ -70,11 +74,19 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
   onGuardar,
   productoAEditar,
   categoriasExistentes = [],
+  onEditarCoincidencia,
 }) => {
   const esEdicion = Boolean(productoAEditar);
 
   // Estados del formulario
   const [sku, setSku] = useState('');
+  const [codigoBarras, setCodigoBarras] = useState('');
+  const [errorCodigo, setErrorCodigo] = useState('');
+  const [errorGuardar, setErrorGuardar] = useState('');
+  const [codigoDisponible, setCodigoDisponible] = useState(false);
+  const [coincidencia, setCoincidencia] = useState<Producto>();
+  const codigoRef = useRef<HTMLInputElement>(null);
+  const enviandoRef = useRef(false);
   const [nombre, setNombre] = useState('');
   const [categoria, setCategoria] = useState(CATEGORIAS_PREDEFINIDAS[0]);
   const [precioCompra, setPrecioCompra] = useState<number | string>(0);
@@ -91,6 +103,11 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
   );
 
   useEffect(() => {
+    setCodigoBarras(productoAEditar?.codigoBarras ?? '');
+    setErrorCodigo('');
+    setErrorGuardar('');
+    setCoincidencia(undefined);
+    setCodigoDisponible(false);
     if (productoAEditar) {
       setSku(productoAEditar.sku || '');
       setNombre(productoAEditar.nombre || '');
@@ -108,12 +125,36 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
       setCategoria(CATEGORIAS_PREDEFINIDAS[0]);
       setPrecioCompra(0);
       setPrecioVenta(0);
-      setStock(10);
+      setStock(0);
       setStockMinimo(5);
       setUnidadMedida('UNIDAD');
       setUbicacion('');
     }
   }, [productoAEditar, open]);
+
+  const comprobarCodigo = (moverFoco = false, lectura = codigoBarras): boolean => {
+    try {
+      const codigo = normalizarCodigo(lectura);
+      setCodigoBarras(codigo);
+      const existente = productosService.buscarPorCodigo(codigo);
+      const conflicto = existente && existente.id !== productoAEditar?.id ? existente : undefined;
+      setCoincidencia(conflicto);
+      setErrorCodigo(conflicto ? 'Este código ya está registrado. Edita el producto existente o usa otro código.' : '');
+      setCodigoDisponible(Boolean(codigo) && !conflicto);
+      if (!codigo && moverFoco) {
+        setErrorCodigo('Escanea o escribe un código para buscar.');
+        return false;
+      }
+      if (conflicto) return false;
+      if (moverFoco) document.getElementById('nombre')?.focus();
+      return true;
+    } catch (error) {
+      setErrorCodigo(error instanceof Error ? error.message : 'Revisa el código ingresado.');
+      setCoincidencia(undefined);
+      setCodigoDisponible(false);
+      return false;
+    }
+  };
 
   // Cálculos financieros en tiempo real
   const numCompra = Number(precioCompra) || 0;
@@ -124,6 +165,12 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (enviandoRef.current) return;
+    setErrorGuardar('');
+    if (!comprobarCodigo()) {
+      codigoRef.current?.focus();
+      return;
+    }
 
     if (!nombre.trim() || nombre.trim().length < 2) {
       toast.error('Ingresa una descripción clara para el producto');
@@ -141,9 +188,11 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
     }
 
     setIsSubmitting(true);
+    enviandoRef.current = true;
     try {
       const payload: NuevoProductoPayload = {
         sku: sku.trim() || `SKU-${Math.floor(10000 + Math.random() * 90000)}`,
+        codigoBarras: normalizarCodigo(codigoBarras) || undefined,
         nombre: nombre.trim(),
         categoria,
         precioCompra: numCompra,
@@ -156,16 +205,18 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
 
       await onGuardar(payload, productoAEditar?.id);
       onOpenChange(false);
-    } catch {
+    } catch (error) {
+      setErrorGuardar(error instanceof Error ? error.message : 'No se pudo guardar. Revisa los datos e inténtalo de nuevo.');
       // El error lo maneja la función padre
     } finally {
       setIsSubmitting(false);
+      enviandoRef.current = false;
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[92vh] flex flex-col p-0 overflow-hidden rounded-xl">
+    <Dialog open={open} onOpenChange={(next) => { if (!enviandoRef.current) onOpenChange(next); }}>
+      <DialogContent onOpenAutoFocus={(event) => { if (!esEdicion) { event.preventDefault(); codigoRef.current?.focus(); } }} className="w-[95vw] sm:max-w-2xl max-h-[92vh] flex flex-col p-0 overflow-hidden rounded-lg">
         <DialogHeader className="p-4 sm:p-6 pb-3 border-b border-border bg-muted/20 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="h-9 w-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
@@ -184,7 +235,30 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+        <form id="producto-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6">
+          <fieldset disabled={isSubmitting} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="codigoBarras">Código de barras / QR (opcional)</Label>
+            <div className="flex gap-2">
+              <Input ref={codigoRef} id="codigoBarras" value={codigoBarras} disabled={isSubmitting}
+                className="font-mono text-base md:text-sm" aria-invalid={Boolean(errorCodigo)} aria-describedby="codigo-ayuda codigo-estado"
+                onFocus={(e) => e.currentTarget.select()}
+                onChange={(e) => { setCodigoBarras(e.target.value); setErrorCodigo(''); setCoincidencia(undefined); setCodigoDisponible(false); }}
+                onBlur={() => { if (codigoBarras) comprobarCodigo(); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); comprobarCodigo(true); } }} />
+              <Button type="button" variant="outline" disabled={isSubmitting} onClick={() => comprobarCodigo(true)}>Buscar código</Button>
+            </div>
+            <p id="codigo-ayuda" className="text-xs text-muted-foreground">Escanea el producto o escribe su código y presiona Enter. La lectura no guarda el producto.</p>
+            {open && <CameraCodeReader disabled={isSubmitting} key={productoAEditar?.id ?? 'nuevo'} onRead={code => { setCodigoBarras(code); comprobarCodigo(false, code); }} />}
+            <div id="codigo-estado" aria-live="polite" className="text-sm">
+              {errorCodigo && <p role="alert" className="text-danger-text">{errorCodigo}</p>}
+              {codigoDisponible && <p className="text-muted-foreground">Código disponible. Completa los datos del producto.</p>}
+              {coincidencia && <div className="space-y-2">
+                <p>{coincidencia.nombre} · <span className="font-mono">{coincidencia.sku}</span> · {coincidencia.activo ? 'Activo' : 'Inactivo'}</p>
+                {onEditarCoincidencia && <Button type="button" variant="outline" onClick={() => onEditarCoincidencia(coincidencia)}>Editar producto registrado (reemplaza el borrador)</Button>}
+              </div>}
+            </div>
+          </div>
           {/* Fila 1: Código SKU y Descripción */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1.5">
@@ -387,6 +461,8 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
               />
             </div>
           </div>
+          {errorGuardar && <p role="alert" className="text-sm text-danger-text">{errorGuardar}</p>}
+          </fieldset>
         </form>
 
         <DialogFooter className="p-4 sm:p-6 pt-3 border-t border-border bg-muted/10 shrink-0 gap-2">
@@ -400,8 +476,9 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
             Cancelar
           </Button>
           <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
+            type="submit"
+            form="producto-form"
+            disabled={isSubmitting || Boolean(coincidencia)}
             className="h-9 text-xs bg-primary text-primary-foreground font-semibold min-w-32 shadow-xs"
           >
             {isSubmitting ? (

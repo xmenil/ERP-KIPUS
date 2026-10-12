@@ -39,6 +39,8 @@ Estimaciones para una persona familiarizada con el proyecto, incluyendo validaci
 
 ## 2. Alta de productos con lector
 
+**Plan revisado:** consultar `03_plan_lector_productos.md`. Etapas 1 y 2 implementadas: alta/edición con código independiente del SKU, control de duplicados, búsqueda en catálogo y lectura exacta en POS. Se añadió lectura con cámara de celular/webcam en ambos flujos; cada apertura entrega una sola lectura y libera el dispositivo. El usuario confirmó la lectura manual con teclado. Pendiente: validación manual de cámara y lector físico. El catálogo externo queda para una ampliación. La situación y pasos originales que siguen describen la propuesta previa.
+
 **Situación actual:** `Producto` y `NuevoProductoPayload` tienen `sku`, pero no un campo separado para código de barras. El lector del POS en `PosTerminalView.tsx` agrega un producto aleatorio mediante `handleSimularEscaner`.
 
 **Alcance inicial recomendado:** lector físico configurado como teclado, que escriba el código en un campo y termine con Enter. Confirmar si el equipo lee QR, códigos de barras o ambos. Agregar lectura por cámara en una segunda etapa.
