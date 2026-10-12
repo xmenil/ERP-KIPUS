@@ -12,6 +12,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ProductoFormDialog } from '../components/ProductoFormDialog';
+import { EscanerProductoModal } from '../components/EscanerProductoModal';
 import { ProductoDetalleModal } from '../components/ProductoDetalleModal';
 import { productosService } from '../services/productosService';
 import { Producto, NuevoProductoPayload } from '../types/productos.types';
@@ -19,6 +20,7 @@ import { subscribeToErp } from '@/services/erp/erpStore';
 import { formatCurrency, formatNumber, formatPercentage, pluralizeUnit } from '@/utils/formatters';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { cn } from '@/lib/utils';
+import { useVoiceSearch } from '@/features/ventas/hooks/useVoiceSearch';
 import {
   Plus,
   Search,
@@ -33,6 +35,9 @@ import {
   Trash2,
   Filter,
   Package,
+  ScanBarcode,
+  Mic,
+  MicOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -56,10 +61,20 @@ export const ProductosPage: React.FC = () => {
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Búsqueda por voz con micrófono
+  const { isListening, toggleListening } = useVoiceSearch({
+    lang: 'es-PE',
+    onTranscript: (texto) => {
+      setSearchTerm(texto);
+    },
+  });
   
-  // Modales de CRUD y Detalle
+  // Modales de CRUD, Escáner y Detalle
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [productoAEditar, setProductoAEditar] = useState<Producto | null>(null);
+  const [valoresInicialesForm, setValoresInicialesForm] = useState<Partial<NuevoProductoPayload> | null>(null);
+  const [escanerModalOpen, setEscanerModalOpen] = useState(false);
   const [detalleModalOpen, setDetalleModalOpen] = useState(false);
   const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null);
 
@@ -126,6 +141,7 @@ export const ProductosPage: React.FC = () => {
   // Abrir modal de nuevo producto
   const handleNuevoProducto = () => {
     setProductoAEditar(null);
+    setValoresInicialesForm(null);
     setFormModalOpen(true);
   };
 
@@ -271,13 +287,25 @@ export const ProductosPage: React.FC = () => {
             Catálogo de artículos, precios de venta y control de existencias.
           </p>
         </div>
-        <Button
-          onClick={handleNuevoProducto}
-          className="h-9 gap-1.5 self-start sm:self-auto bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Nuevo producto</span>
-        </Button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setEscanerModalOpen(true)}
+            className="h-9 gap-1.5 border-primary/30 text-primary hover:bg-primary-soft hover:text-primary shadow-xs text-xs font-semibold"
+          >
+            <ScanBarcode className="h-4 w-4" />
+            <span>Escáner rápido</span>
+          </Button>
+
+          <Button
+            onClick={handleNuevoProducto}
+            className="h-9 gap-1.5 bg-primary hover:bg-primary-hover text-primary-foreground shadow-xs text-xs font-semibold"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Nuevo producto</span>
+          </Button>
+        </div>
       </div>
 
       {/* Resumen métrico operativo */}
@@ -384,25 +412,49 @@ export const ProductosPage: React.FC = () => {
         <CardContent className="p-4 space-y-4">
           {/* Barra de Filtros */}
           <div className="space-y-3">
-            {/* Buscador */}
+            {/* Buscador con micrófono */}
             <div className="relative w-full max-w-md">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
-                placeholder="Buscar por SKU o descripción..."
+                placeholder={
+                  isListening
+                    ? 'Escuchando tu voz... Di el producto'
+                    : 'Buscar por SKU o descripción...'
+                }
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 pr-8 h-9 text-base md:text-sm w-full"
+                className={cn(
+                  'pl-9 pr-16 h-9 text-base md:text-sm w-full transition-all',
+                  isListening &&
+                    'border-rose-400 ring-2 ring-rose-300/40 bg-rose-50/20 placeholder:text-rose-600 font-semibold'
+                )}
               />
-              {searchTerm && (
+              <div className="absolute right-2 top-1.5 flex items-center gap-1">
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm('')}
+                    aria-label="Limpiar búsqueda"
+                    className="p-1 text-muted-foreground hover:text-foreground rounded transition-colors"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => setSearchTerm('')}
-                  aria-label="Limpiar búsqueda"
-                  className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                  onClick={toggleListening}
+                  className={cn(
+                    'p-1 rounded-md transition-all flex items-center justify-center cursor-pointer',
+                    isListening
+                      ? 'bg-rose-600 text-white animate-pulse shadow-xs ring-2 ring-rose-300'
+                      : 'text-muted-foreground hover:text-primary hover:bg-primary-soft'
+                  )}
+                  title={isListening ? 'Detener micrófono' : 'Buscar con micrófono / voz'}
+                  aria-label="Buscar con micrófono"
                 >
-                  <X className="h-4 w-4" />
+                  {isListening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
                 </button>
-              )}
+              </div>
             </div>
 
             {/* Fila de Filtros: Estados y Selector Limpio de Categorías */}
@@ -965,6 +1017,22 @@ export const ProductosPage: React.FC = () => {
         </CardContent>
       </Card>
 
+      {/* Modal Escáner Rápido de Productos */}
+      <EscanerProductoModal
+        open={escanerModalOpen}
+        onOpenChange={setEscanerModalOpen}
+        productosExistentes={productos}
+        onEditarProducto={handleEditarProducto}
+        onGuardarProducto={async (payload) => {
+          await handleGuardarProducto(payload);
+        }}
+        onAbrirFormularioCompleto={(datos) => {
+          setValoresInicialesForm(datos);
+          setProductoAEditar(null);
+          setFormModalOpen(true);
+        }}
+      />
+
       {/* Modal Formulario de Producto (Crear o Editar) */}
       <ProductoFormDialog
         open={formModalOpen}
@@ -973,6 +1041,8 @@ export const ProductosPage: React.FC = () => {
         productoAEditar={productoAEditar}
         onEditarCoincidencia={handleEditarProducto}
         categoriasExistentes={categorias}
+        productosExistentes={productos}
+        valoresIniciales={valoresInicialesForm}
       />
 
       {/* Modal Detalle de Producto */}

@@ -25,10 +25,14 @@ import { Cliente } from '@/features/clientes/types/clientes.types';
 import { CobroModal } from './CobroModal';
 import { VentaCompletadaModal } from './VentaCompletadaModal';
 import { formatCurrency } from '@/utils/formatters';
+import { useVoiceSearch } from '../hooks/useVoiceSearch';
+import { cn } from '@/lib/utils';
 import {
   Search,
   Barcode,
   Mic,
+  MicOff,
+  X,
   Plus,
   Minus,
   Trash2,
@@ -41,6 +45,7 @@ import {
   Building2,
   RotateCcw,
   Sparkles,
+  Volume2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -92,6 +97,19 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
   // Asistente por voz interactivo
   const [modoVozActivo, setModoVozActivo] = useState(false);
   const [fraseVoz, setFraseVoz] = useState('');
+
+  // Búsqueda por voz con micrófono
+  const {
+    isListening,
+    transcript,
+    stopListening,
+    toggleListening,
+  } = useVoiceSearch({
+    lang: 'es-PE',
+    onTranscript: (texto) => {
+      setSearchTerm(texto);
+    },
+  });
 
   // Categorías únicas
   const categorias = ['TODAS', ...Array.from(new Set(productos.map((p) => p.categoria)))];
@@ -321,15 +339,25 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
 
           <button
             type="button"
-            onClick={() => setModoVozActivo(!modoVozActivo)}
+            onClick={toggleListening}
             className={`inline-flex items-center gap-1 rounded border px-2.5 py-1 text-xs font-medium cursor-pointer transition-colors ${
-              modoVozActivo
-                ? 'border-primary bg-primary-soft text-primary font-semibold'
+              isListening
+                ? 'border-rose-500 bg-rose-50 text-rose-700 font-semibold animate-pulse dark:bg-rose-950/40 dark:text-rose-300'
                 : 'border-border bg-background text-muted-foreground hover:bg-muted'
             }`}
+            title="Activar micrófono para buscar productos por voz"
           >
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
-            <span>Voz KIPU'S IA</span>
+            {isListening ? (
+              <>
+                <MicOff className="h-3.5 w-3.5 text-rose-600" />
+                <span>Escuchando...</span>
+              </>
+            ) : (
+              <>
+                <Mic className="h-3.5 w-3.5 text-primary" />
+                <span>Voz KIPU&apos;S</span>
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -340,10 +368,10 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
           <div className="flex items-center justify-between text-xs">
             <span className="font-semibold text-primary flex items-center gap-1.5">
               <Mic className="h-4 w-4" />
-              Dictado rápido por voz (KIPU'S IA):
+              Dictado rápido por voz (KIPU&apos;S IA):
             </span>
             <span className="text-[11px] text-muted-foreground">
-              Ej: "Agregar 2 Aceites y 1 Batería"
+              Ej: &quot;Agregar 2 Aceites y 1 Batería&quot;
             </span>
           </div>
           <div className="flex gap-2">
@@ -387,23 +415,103 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
             <CameraCodeReader disabled={openCobroModal || openCompletadaModal} onRead={code => handleLeerCodigo(code)} />
             <p id="pos-codigo-error" role={errorLectura ? 'alert' : undefined} className="text-sm text-danger-text">{errorLectura}</p>
           </div>
-          {/* Barra de búsqueda amplia */}
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar producto por nombre, SKU o código de barras..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 h-10 text-xs sm:text-sm bg-card shadow-2xs font-medium"
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-2.5 text-xs text-muted-foreground hover:text-foreground"
-              >
-                Limpiar
-              </button>
+          {/* Barra de búsqueda amplia con botón de micrófono */}
+          <div className="space-y-2">
+            <div className="relative flex items-center">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder={
+                  isListening
+                    ? 'Escuchando tu voz... Di el producto (ej: Arroz, Leche Gloria, Inca Kola)'
+                    : 'Buscar producto por nombre, SKU o código de barras...'
+                }
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={cn(
+                  'pl-9 pr-20 h-10 text-xs sm:text-sm bg-card shadow-2xs font-medium transition-all',
+                  isListening &&
+                    'border-rose-400 ring-2 ring-rose-300/40 bg-rose-50/30 dark:bg-rose-950/20 placeholder:text-rose-600 font-semibold'
+                )}
+              />
+              <div className="absolute right-2.5 top-2 flex items-center gap-1">
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm('')}
+                    className="p-1 text-xs text-muted-foreground hover:text-foreground rounded transition-colors"
+                    title="Limpiar búsqueda"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={toggleListening}
+                  className={cn(
+                    'p-1.5 rounded-md transition-all flex items-center justify-center cursor-pointer',
+                    isListening
+                      ? 'bg-rose-600 text-white animate-pulse shadow-xs ring-2 ring-rose-300'
+                      : 'text-muted-foreground hover:text-primary hover:bg-primary-soft'
+                  )}
+                  title={isListening ? 'Detener micrófono' : 'Buscar por voz (Hablar al micrófono)'}
+                  aria-label="Buscar con micrófono"
+                >
+                  {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Panel dinámico cuando el micrófono está activo */}
+            {isListening && (
+              <div className="rounded-lg border border-rose-300 dark:border-rose-800 bg-rose-50/70 dark:bg-rose-950/30 p-2.5 space-y-2 animate-in fade-in-50 duration-150 shadow-2xs">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600"></span>
+                    </span>
+                    <span className="font-semibold text-rose-700 dark:text-rose-300 text-[11px]">
+                      Micrófono activo: habla claro cerca del dispositivo...
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={stopListening}
+                    className="h-6 px-2 text-[11px] text-rose-700 hover:text-rose-800 hover:bg-rose-100 dark:text-rose-300"
+                  >
+                    Listo
+                  </Button>
+                </div>
+
+                {transcript && (
+                  <div className="text-xs font-mono font-bold text-foreground bg-card p-1.5 rounded border border-border/60">
+                    Escuchado: &quot;{transcript}&quot;
+                  </div>
+                )}
+
+                {/* Chips de prueba rápida */}
+                <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-rose-200 dark:border-rose-900/60">
+                  <span className="text-[10px] text-muted-foreground">Prueba rápida:</span>
+                  {['Arroz Costeño', 'Leche Gloria', 'Inca Kola', 'Aceite Primor', 'Papas Lay\'s'].map(
+                    (demo) => (
+                      <button
+                        key={demo}
+                        type="button"
+                        onClick={() => {
+                          setSearchTerm(demo);
+                          stopListening();
+                        }}
+                        className="px-2 py-0.5 rounded text-[10px] font-medium bg-card border border-border hover:bg-primary-soft hover:text-primary transition-colors cursor-pointer"
+                      >
+                        {demo}
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+
             )}
           </div>
 

@@ -14,8 +14,10 @@ import {
 import { MetricCard } from '@/components/common/MetricCard';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { NuevaCompraDialog } from '../components/NuevaCompraDialog';
+import { RecomendacionComprasModal } from '../components/RecomendacionComprasModal';
 import { comprasService } from '../services/comprasService';
-import { Compra, NuevaCompraPayload } from '../types/compras.types';
+import { sugerenciaComprasService, ResumenSugerenciaCompras } from '../services/sugerenciaComprasService';
+import { Compra, NuevaCompraPayload, CompraItemDetalle } from '../types/compras.types';
 import { subscribeToErp } from '@/services/erp/erpStore';
 import { formatCurrency, formatDate, pluralizeUnit } from '@/utils/formatters';
 import {
@@ -27,6 +29,8 @@ import {
   FileSpreadsheet,
   Building2,
   Receipt,
+  Sparkles,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -45,11 +49,27 @@ export const ComprasPage: React.FC = () => {
   const [estadoFiltro, setEstadoFiltro] = useState<string>('TODAS');
   const [openModal, setOpenModal] = useState(false);
 
+  // Estados para Recomendación Inteligente de Compra
+  const [modalRecomendacionOpen, setModalRecomendacionOpen] = useState(false);
+  const [itemsParaOrden, setItemsParaOrden] = useState<CompraItemDetalle[] | null>(null);
+  const [proveedorParaOrden, setProveedorParaOrden] = useState<{ razonSocial: string; ruc: string } | null>(null);
+  const [sugerencias, setSugerencias] = useState<ResumenSugerenciaCompras>({
+    items: [],
+    totalProductosSugeridos: 0,
+    totalUnidadesSugeridas: 0,
+    inversionTotalEstimada: 0,
+    conteoAgotados: 0,
+    conteoCriticos: 0,
+    conteoAltaRotacion: 0,
+  });
+
   const fetchCompras = async () => {
     setLoading(true);
     try {
       const data = await comprasService.getCompras();
       setCompras(data);
+      const sug = sugerenciaComprasService.obtenerSugerencias();
+      setSugerencias(sug);
     } catch {
       toast.error('Error al cargar la lista de compras.');
     } finally {
@@ -65,14 +85,25 @@ export const ComprasPage: React.FC = () => {
     return unsubscribe;
   }, []);
 
-  const handleCrearCompra = async (payload: NuevaCompraPayload & { productoId?: string }) => {
+  const handleCrearCompra = async (payload: NuevaCompraPayload) => {
     try {
       const nueva = await comprasService.registrarCompra(payload);
       setCompras((prev) => [nueva, ...prev]);
+      const sug = sugerenciaComprasService.obtenerSugerencias();
+      setSugerencias(sug);
       toast.success(`Compra con factura ${nueva.serieFactura} registrada correctamente.`);
     } catch {
       toast.error('No se pudo registrar la compra.');
     }
+  };
+
+  const handleProcederOrden = (
+    items: CompraItemDetalle[],
+    prov?: { razonSocial: string; ruc: string }
+  ) => {
+    setItemsParaOrden(items);
+    setProveedorParaOrden(prov || null);
+    setOpenModal(true);
   };
 
   const filteredCompras = useMemo(() => {
@@ -106,15 +137,67 @@ export const ComprasPage: React.FC = () => {
         description="Recepción de facturas de proveedores, órdenes de compra y control de cuentas por pagar"
         badge="Recepción Mercadería"
       >
-        <Button
-          size="sm"
-          onClick={() => setOpenModal(true)}
-          className="h-9 gap-2 bg-primary text-primary-foreground font-semibold shadow-2xs w-full sm:w-auto"
-        >
-          <PlusCircle className="h-4 w-4" />
-          <span>Nueva orden de compra</span>
-        </Button>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setModalRecomendacionOpen(true)}
+            className="h-9 gap-1.5 border-primary/30 text-primary hover:bg-primary-soft shadow-2xs font-semibold text-xs"
+          >
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span>Sugerencia de compra</span>
+            {sugerencias.totalProductosSugeridos > 0 && (
+              <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-danger-soft text-danger-text text-[10px] font-bold">
+                {sugerencias.totalProductosSugeridos}
+              </span>
+            )}
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={() => {
+              setItemsParaOrden(null);
+              setProveedorParaOrden(null);
+              setOpenModal(true);
+            }}
+            className="h-9 gap-2 bg-primary text-primary-foreground font-semibold shadow-2xs"
+          >
+            <PlusCircle className="h-4 w-4" />
+            <span>Nueva orden de compra</span>
+          </Button>
+        </div>
       </PageHeader>
+
+      {/* Banner de Abastecimiento Inteligente si hay productos críticos o de alta rotación */}
+      {sugerencias.totalProductosSugeridos > 0 && (
+        <div className="rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50/70 dark:bg-amber-950/20 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-start gap-3">
+            <div className="h-8 w-8 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+              <AlertTriangle className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-foreground flex items-center gap-2">
+                <span>Recomendación de Reposición por Ventas y Stock</span>
+                <span className="text-[10px] font-semibold bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300 px-1.5 py-0.2 rounded">
+                  {sugerencias.conteoAgotados} agotados · {sugerencias.conteoCriticos} en alerta mínima
+                </span>
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Hay {sugerencias.totalProductosSugeridos} productos que están por agotarse o tienen alta rotación de venta. Genera la orden sugerida para evitar quiebres de mostrador.
+              </p>
+            </div>
+          </div>
+
+          <Button
+            size="sm"
+            onClick={() => setModalRecomendacionOpen(true)}
+            className="h-8 text-xs bg-primary text-primary-foreground font-semibold hover:bg-primary-hover shrink-0 gap-1.5 shadow-xs"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>Ver sugerencias ({formatCurrency(sugerencias.inversionTotalEstimada)})</span>
+          </Button>
+        </div>
+      )}
 
       {/* Tarjetas KPI de Resumen */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -339,11 +422,25 @@ export const ComprasPage: React.FC = () => {
         </CardContent>
       </Card>
 
+      {/* Modal de Recomendación Inteligente de Compra */}
+      <RecomendacionComprasModal
+        open={modalRecomendacionOpen}
+        onOpenChange={setModalRecomendacionOpen}
+        sugerencias={sugerencias}
+        onProcederOrden={handleProcederOrden}
+      />
+
       {/* Modal de Registro de Compra */}
       <NuevaCompraDialog
         open={openModal}
         onOpenChange={setOpenModal}
         onCompraRegistrada={handleCrearCompra}
+        itemsIniciales={itemsParaOrden}
+        proveedorInicial={proveedorParaOrden}
+        onAbrirRecomendacion={() => {
+          setOpenModal(false);
+          setModalRecomendacionOpen(true);
+        }}
       />
     </div>
   );

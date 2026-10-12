@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { productosService } from '../services/productosService';
 import { normalizarCodigo } from '../utils/codigosProducto';
 import { CameraCodeReader } from './CameraCodeReader';
@@ -42,6 +42,8 @@ interface ProductoFormDialogProps {
   productoAEditar?: Producto | null;
   categoriasExistentes?: string[];
   onEditarCoincidencia?: (producto: Producto) => void;
+  productosExistentes?: Producto[];
+  valoresIniciales?: Partial<NuevoProductoPayload> | null;
 }
 
 const CATEGORIAS_PREDEFINIDAS = [
@@ -75,6 +77,7 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
   productoAEditar,
   categoriasExistentes = [],
   onEditarCoincidencia,
+  valoresIniciales,
 }) => {
   const esEdicion = Boolean(productoAEditar);
 
@@ -103,7 +106,7 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
   );
 
   useEffect(() => {
-    setCodigoBarras(productoAEditar?.codigoBarras ?? '');
+    setCodigoBarras(productoAEditar ? productoAEditar.codigoBarras ?? '' : valoresIniciales?.codigoBarras ?? '');
     setErrorCodigo('');
     setErrorGuardar('');
     setCoincidencia(undefined);
@@ -118,6 +121,16 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
       setStockMinimo(productoAEditar.stockMinimo ?? 5);
       setUnidadMedida(productoAEditar.unidadMedida || 'UNIDAD');
       setUbicacion(productoAEditar.ubicacion || '');
+    } else if (valoresIniciales) {
+      setSku(valoresIniciales.sku || `SKU-${Math.floor(10000 + Math.random() * 90000)}`);
+      setNombre(valoresIniciales.nombre ?? '');
+      setCategoria(valoresIniciales.categoria ?? CATEGORIAS_PREDEFINIDAS[0]);
+      setPrecioCompra(valoresIniciales.precioCompra ?? 0);
+      setPrecioVenta(valoresIniciales.precioVenta ?? 0);
+      setStock(valoresIniciales.stock ?? 0);
+      setStockMinimo(valoresIniciales.stockMinimo ?? 5);
+      setUnidadMedida(valoresIniciales.unidadMedida ?? 'UNIDAD');
+      setUbicacion(valoresIniciales.ubicacion ?? '');
     } else {
       // Valores por defecto para nuevo producto
       setSku(`SKU-${Math.floor(10000 + Math.random() * 90000)}`);
@@ -130,7 +143,7 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
       setUnidadMedida('UNIDAD');
       setUbicacion('');
     }
-  }, [productoAEditar, open]);
+  }, [productoAEditar, valoresIniciales, open]);
 
   const comprobarCodigo = (moverFoco = false, lectura = codigoBarras): boolean => {
     try {

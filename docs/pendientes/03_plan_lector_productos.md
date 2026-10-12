@@ -2,6 +2,16 @@
 
 Estado: etapas 1 y 2 implementadas, ampliadas con cámara por solicitud del usuario. Incluye campo de código en alta/edición, búsqueda exacta, validación de unicidad al guardar, consulta por código en catálogo/detalle y lectura real en el POS. El usuario confirmó el flujo manual con teclado. Pendiente: verificar cámara y lector físico en dispositivos reales; autocompletado externo sigue fuera de esta entrega.
 
+## Integración con el trabajo compartido
+
+El usuario confirmó posteriormente que la lectura funciona en su teléfono. Se integró `origin/main` (`e02e44e`) en la rama `feature/integracion-lector-productos`, conservando los cambios de voz y compras del colaborador. Los conflictos del formulario de productos y POS se resolvieron manteniendo la lectura exacta y las validaciones del código.
+
+El escáner rápido del colaborador conserva la presentación de cámara/manual y la guía de encuadre, ahora conectadas a ZXing mediante un componente de cámara compartido con Productos y POS. Se sustituyó la dependencia exclusiva de `BarcodeDetector`. La lectura se detiene tras un código; una nueva apertura permite continuar.
+
+El alta rápida guarda `codigoBarras` independiente del SKU y permite editar una coincidencia existente. El paso al formulario completo conserva el código. Las sugerencias del catálogo de ejemplo no asignan precios ni stock del negocio; se retiraron coincidencias por fragmentos. Se conserva la consulta externa del colaborador para sugerir datos descriptivos, con revisión antes de guardar.
+
+Validación de integración: 46 pruebas automatizadas aprobadas, incluidas pruebas de coincidencias exactas del catálogo. Pendiente: repetir la prueba manual con el diseño integrado y verificar el lector físico.
+
 ## Ampliación implementada: celular y webcam
 
 - Botón «Leer con cámara» tanto en el formulario de productos como en el POS. El lector físico y el ingreso manual siguen disponibles.
