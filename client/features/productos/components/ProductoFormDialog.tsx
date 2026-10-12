@@ -29,7 +29,13 @@ import {
   Scale,
   MapPin,
   DollarSign,
+  ScanBarcode,
+  Camera,
+  CheckCircle2,
+  Sparkles,
 } from 'lucide-react';
+import { BarcodeCameraScanner } from './BarcodeCameraScanner';
+import { buscarProductoPorCodigo } from '../services/barcodeCatalogService';
 import { toast } from 'sonner';
 
 interface ProductoFormDialogProps {
@@ -38,6 +44,8 @@ interface ProductoFormDialogProps {
   onGuardar: (payload: NuevoProductoPayload, id?: string) => Promise<void>;
   productoAEditar?: Producto | null;
   categoriasExistentes?: string[];
+  productosExistentes?: Producto[];
+  valoresIniciales?: Partial<NuevoProductoPayload> | null;
 }
 
 const CATEGORIAS_PREDEFINIDAS = [
@@ -70,6 +78,8 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
   onGuardar,
   productoAEditar,
   categoriasExistentes = [],
+  productosExistentes = [],
+  valoresIniciales = null,
 }) => {
   const esEdicion = Boolean(productoAEditar);
 
@@ -84,6 +94,11 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
   const [unidadMedida, setUnidadMedida] = useState('UNIDAD');
   const [ubicacion, setUbicacion] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Estado del escáner en línea
+  const [mostrarEscaner, setMostrarEscaner] = useState(false);
+  const [isBuscandoCodigo, setIsBuscandoCodigo] = useState(false);
+  const [ultimoEscaneoExitoso, setUltimoEscaneoExitoso] = useState<string | null>(null);
 
   // Combinar categorías existentes y predefinidas sin duplicados
   const listaCategorias = Array.from(
@@ -101,6 +116,20 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
       setStockMinimo(productoAEditar.stockMinimo ?? 5);
       setUnidadMedida(productoAEditar.unidadMedida || 'UNIDAD');
       setUbicacion(productoAEditar.ubicacion || '');
+      setMostrarEscaner(false);
+      setUltimoEscaneoExitoso(null);
+    } else if (valoresIniciales) {
+      setSku(valoresIniciales.sku || `SKU-${Math.floor(10000 + Math.random() * 90000)}`);
+      setNombre(valoresIniciales.nombre || '');
+      setCategoria(valoresIniciales.categoria || CATEGORIAS_PREDEFINIDAS[0]);
+      setPrecioCompra(valoresIniciales.precioCompra ?? 0);
+      setPrecioVenta(valoresIniciales.precioVenta ?? 0);
+      setStock(valoresIniciales.stock ?? 10);
+      setStockMinimo(valoresIniciales.stockMinimo ?? 5);
+      setUnidadMedida(valoresIniciales.unidadMedida || 'UNIDAD');
+      setUbicacion(valoresIniciales.ubicacion || '');
+      setMostrarEscaner(false);
+      setUltimoEscaneoExitoso(null);
     } else {
       // Valores por defecto para nuevo producto
       setSku(`SKU-${Math.floor(10000 + Math.random() * 90000)}`);
@@ -112,8 +141,52 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
       setStockMinimo(5);
       setUnidadMedida('UNIDAD');
       setUbicacion('');
+      setMostrarEscaner(false);
+      setUltimoEscaneoExitoso(null);
     }
-  }, [productoAEditar, open]);
+  }, [productoAEditar, valoresIniciales, open]);
+
+  // Manejar el escaneo de un código de barras
+  const handleCodigoEscaneado = async (codigo: string) => {
+    setIsBuscandoCodigo(true);
+    try {
+      const res = await buscarProductoPorCodigo(codigo, productosExistentes);
+
+      if (res.status === 'existente_en_catalogo') {
+        setSku(res.producto.sku);
+        setNombre(res.producto.nombre);
+        setCategoria(res.producto.categoria);
+        setUnidadMedida(res.producto.unidadMedida);
+        setPrecioCompra(res.producto.precioCompra);
+        setPrecioVenta(res.producto.precioVenta);
+        setStock(res.producto.stock);
+        setUltimoEscaneoExitoso(`Producto ya existente: ${res.producto.nombre}`);
+        toast.info(`El producto "${res.producto.nombre}" ya existe en el catálogo.`);
+        setMostrarEscaner(false);
+      } else if (res.status === 'encontrado') {
+        setSku(res.datos.sku);
+        setNombre(res.datos.nombre);
+        setCategoria(res.datos.categoria);
+        setUnidadMedida(res.datos.unidadMedida);
+        setPrecioCompra(res.datos.precioCompra);
+        setPrecioVenta(res.datos.precioVenta);
+        setStock(res.datos.stockSugerido);
+        setStockMinimo(res.datos.stockMinimoSugerido);
+        setUltimoEscaneoExitoso(`Datos autocompletados: ${res.datos.nombre}`);
+        toast.success(`Producto detectado: ${res.datos.nombre}`);
+        setMostrarEscaner(false);
+      } else {
+        setSku(res.datos.sku);
+        setUltimoEscaneoExitoso(`Código nuevo asignado: ${res.datos.sku}`);
+        toast.info('Código asignado como SKU. Completa los datos del producto.');
+        setMostrarEscaner(false);
+      }
+    } catch {
+      toast.error('Error al consultar el código');
+    } finally {
+      setIsBuscandoCodigo(false);
+    }
+  };
 
   // Cálculos financieros en tiempo real
   const numCompra = Number(precioCompra) || 0;
@@ -185,21 +258,104 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+          {/* Banner de escáner rápido (Solo al crear nuevo producto) */}
+          {!esEdicion && (
+            <div className="rounded-lg border border-primary/25 bg-primary-soft/40 p-3 space-y-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+                    <ScanBarcode className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <span>¿Tienes el producto en mano?</span>
+                      <span className="text-[10px] font-normal bg-primary-soft text-primary px-1.5 py-0.2 rounded border border-primary/20">
+                        Autocompletado
+                      </span>
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Escanea el código de barras para autocompletar su nombre, categoría y precios al instante.
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant={mostrarEscaner ? 'secondary' : 'default'}
+                  size="sm"
+                  onClick={() => setMostrarEscaner(!mostrarEscaner)}
+                  className="h-8 text-xs gap-1.5 shrink-0 self-start sm:self-auto bg-primary text-primary-foreground font-semibold hover:bg-primary-hover shadow-xs"
+                >
+                  <Camera className="h-3.5 w-3.5" />
+                  <span>{mostrarEscaner ? 'Cerrar escáner' : 'Escanear producto'}</span>
+                </Button>
+              </div>
+
+              {/* Panel de escáner en vivo desplegable */}
+              {mostrarEscaner && (
+                <div className="pt-2 border-t border-border/60">
+                  <BarcodeCameraScanner
+                    onScan={handleCodigoEscaneado}
+                    isScanning={mostrarEscaner}
+                  />
+                  {isBuscandoCodigo && (
+                    <div className="flex items-center justify-center p-3 text-xs text-muted-foreground gap-2">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                      <span>Extrayendo datos del producto…</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Aviso de escaneo exitoso */}
+              {ultimoEscaneoExitoso && !mostrarEscaner && (
+                <div className="flex items-center gap-2 p-2 rounded bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 text-[11px] font-medium border border-emerald-200 dark:border-emerald-800">
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                  <span className="truncate">{ultimoEscaneoExitoso}</span>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Fila 1: Código SKU y Descripción */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="sku" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Hash className="h-3.5 w-3.5 text-muted-foreground" />
-                Código SKU
-              </Label>
-              <Input
-                id="sku"
-                value={sku}
-                onChange={(e) => setSku(e.target.value)}
-                placeholder="ej. SKU-001"
-                className="h-9 text-xs font-mono font-bold bg-background"
-                required
-              />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="sku" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <Hash className="h-3.5 w-3.5 text-muted-foreground" />
+                  Código SKU / Barras
+                </Label>
+                {!esEdicion && !mostrarEscaner && (
+                  <button
+                    type="button"
+                    onClick={() => setMostrarEscaner(true)}
+                    className="text-[11px] text-primary hover:underline font-medium inline-flex items-center gap-1"
+                  >
+                    <ScanBarcode className="h-3 w-3" />
+                    <span>Escanear</span>
+                  </button>
+                )}
+              </div>
+              <div className="relative">
+                <Input
+                  id="sku"
+                  value={sku}
+                  onChange={(e) => setSku(e.target.value)}
+                  placeholder="ej. 7750106001234"
+                  className="h-9 text-xs font-mono font-bold bg-background pr-8"
+                  required
+                />
+                {!esEdicion && (
+                  <button
+                    type="button"
+                    onClick={() => setMostrarEscaner(true)}
+                    className="absolute right-2 top-2 text-muted-foreground hover:text-primary transition-colors"
+                    title="Abrir escáner de código"
+                  >
+                    <ScanBarcode className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="space-y-1.5 sm:col-span-2">
@@ -402,7 +558,7 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="h-9 text-xs bg-primary text-primary-foreground font-semibold min-w-32 shadow-xs"
+            className="h-9 text-xs bg-primary text-primary-foreground font-semibold min-w-32 shadow-xs hover:bg-primary-hover"
           >
             {isSubmitting ? (
               <span className="flex items-center gap-2">

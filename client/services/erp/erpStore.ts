@@ -123,7 +123,7 @@ export const DEFAULT_PRODUCTOS: Producto[] = [
     categoria: 'Abarrotes y Granos',
     precioCompra: 7.20,
     precioVenta: 9.50,
-    stock: 22,
+    stock: 4,
     stockMinimo: 10,
     unidadMedida: 'BOTELLA',
     activo: true,
@@ -149,7 +149,7 @@ export const DEFAULT_PRODUCTOS: Producto[] = [
     categoria: 'Abarrotes y Granos',
     precioCompra: 4.50,
     precioVenta: 6.20,
-    stock: 28,
+    stock: 0,
     stockMinimo: 12,
     unidadMedida: 'LATA',
     activo: true,
@@ -1565,25 +1565,49 @@ export const erpStore = {
 
     compras = [nuevaCompra, ...compras];
 
-    // Aumentar stock del producto seleccionado o el primero
-    const prod = productos.find((p) => p.id === payload.productoId) || productos[0];
-    if (prod) {
-      prod.stock += payload.itemsCount;
-      const movKardex: MovimientoKardex = {
-        id: `k-${Date.now()}`,
-        fecha: ahora,
-        tipo: 'ENTRADA',
-        motivo: 'COMPRA',
-        productoNombre: prod.nombre,
-        sku: prod.sku,
-        almacen: 'Almacén Principal',
-        cantidad: payload.itemsCount,
-        stockResultante: prod.stock,
-        referencia: `Factura Proveedor ${payload.serieFactura}`,
-        usuario: 'Carlos Vega',
-        origen: 'Compra',
-      };
-      movimientosKardex = [movKardex, ...movimientosKardex];
+    // Aumentar stock de los productos ingresados en la compra
+    if (payload.items && payload.items.length > 0) {
+      payload.items.forEach((item, index) => {
+        const prod = productos.find((p) => p.id === item.productoId || p.sku === item.sku);
+        if (prod) {
+          prod.stock += item.cantidad;
+          const movKardex: MovimientoKardex = {
+            id: `k-${Date.now()}-${index}`,
+            fecha: ahora,
+            tipo: 'ENTRADA',
+            motivo: 'COMPRA',
+            productoNombre: prod.nombre,
+            sku: prod.sku,
+            almacen: 'Almacén Principal',
+            cantidad: item.cantidad,
+            stockResultante: prod.stock,
+            referencia: `Factura Proveedor ${payload.serieFactura}`,
+            usuario: 'Carlos Vega',
+            origen: 'Compra',
+          };
+          movimientosKardex = [movKardex, ...movimientosKardex];
+        }
+      });
+    } else {
+      const prod = productos.find((p) => p.id === payload.productoId) || productos[0];
+      if (prod) {
+        prod.stock += payload.itemsCount;
+        const movKardex: MovimientoKardex = {
+          id: `k-${Date.now()}`,
+          fecha: ahora,
+          tipo: 'ENTRADA',
+          motivo: 'COMPRA',
+          productoNombre: prod.nombre,
+          sku: prod.sku,
+          almacen: 'Almacén Principal',
+          cantidad: payload.itemsCount,
+          stockResultante: prod.stock,
+          referencia: `Factura Proveedor ${payload.serieFactura}`,
+          usuario: 'Carlos Vega',
+          origen: 'Compra',
+        };
+        movimientosKardex = [movKardex, ...movimientosKardex];
+      }
     }
 
     // Si se pagó en efectivo, egreso de caja
