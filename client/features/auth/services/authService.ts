@@ -1,7 +1,6 @@
 import { AuthUser, LoginCredentials } from '../types/auth.types';
+import { SessionStore } from './sessionStore';
 
-const STORAGE_KEY = 'kipus_erp_auth_user';
-const TOKEN_KEY = 'kipus_erp_auth_token';
 
 // Usuarios predefinidos de prueba alineados con el proyecto de innovación
 export const DEMO_USERS: (AuthUser & { password: string; descripcion: string })[] = [
@@ -40,30 +39,28 @@ export const DEMO_USERS: (AuthUser & { password: string; descripcion: string })[
   },
 ];
 
-class AuthService {
+export class AuthService {
+  private session: SessionStore | null = null;
   private currentUser: AuthUser | null = null;
 
   constructor() {
-    this.loadFromStorage();
-  }
-
-  private loadFromStorage(): void {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        this.currentUser = JSON.parse(stored);
-      }
+      this.session = new SessionStore(localStorage, sessionStorage);
     } catch {
-      this.currentUser = null;
+      // No persistent authentication when browser storage is unavailable.
     }
   }
 
   public getCurrentUser(): AuthUser | null {
-    if (!this.currentUser) {
-      this.loadFromStorage();
-    }
+    this.currentUser = this.session?.read() ?? null;
     return this.currentUser;
   }
+
+  public get sessionExpired(): boolean { return this.session?.expired ?? false; }
+
+  public registerActivity(): AuthUser | null { return this.session?.touch() ?? null; }
+
+  public remainingIdleTime(): number { return this.session?.remaining() ?? 0; }
 
   public async login(credentials: LoginCredentials): Promise<AuthUser> {
     // Simulación de latencia de red para experiencia realista
@@ -120,28 +117,14 @@ class AuthService {
 
   public logout(): void {
     this.currentUser = null;
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem(TOKEN_KEY);
-      sessionStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // Ignore
-    }
+    this.session?.clear();
   }
 
   private saveSession(user: AuthUser, recordar: boolean = true): void {
     this.currentUser = user;
     const dummyToken = `kipus-token-${Date.now()}-${Math.random().toString(36).substring(2)}`;
-    try {
-      if (recordar) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-        localStorage.setItem(TOKEN_KEY, dummyToken);
-      } else {
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-      }
-    } catch {
-      // storage errors handled
-    }
+    if (!this.session) throw new Error('Permite el almacenamiento del navegador para iniciar sesión.');
+    this.session.save(user, recordar, dummyToken);
   }
 
   public getDemoUsers() {

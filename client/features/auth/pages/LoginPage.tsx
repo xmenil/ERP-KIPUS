@@ -25,51 +25,49 @@ import letterS from '@/assets/letters/s.png';
 import kipusLogoFull from '@/assets/kipus-logo.png';
 
 export const LoginPage: React.FC = () => {
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, sessionExpired } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [identifier, setIdentifier] = useState('admin');
-  const [password, setPassword] = useState('admin123');
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [recordar, setRecordar] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // La intro se ejecuta una sola vez al abrir la aplicación (3 segundos)
-  const [introState, setIntroState] = useState<'showing' | 'fading' | 'revealed'>(() => {
-    if (typeof window !== 'undefined') {
-      const alreadyPlayed = sessionStorage.getItem('kipus_intro_seen');
-      if (alreadyPlayed) return 'revealed';
-    }
-    return 'showing';
-  });
+  // Mostrar la introducción en cada acceso al login, también tras expirar la sesión.
+  const [introState, setIntroState] = useState<'showing' | 'fading' | 'revealed'>('showing');
+  const [pageVisible, setPageVisible] = useState(() => document.visibilityState === 'visible');
+
+  useEffect(() => {
+    if (sessionExpired) setIntroState('showing');
+  }, [sessionExpired]);
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      const visible = document.visibilityState === 'visible';
+      setPageVisible(visible);
+      // If login was reached in the background, show the full intro on return.
+      if (visible) setIntroState(current => current === 'revealed' ? current : 'showing');
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, []);
 
   // Efecto de temporizador de 3 segundos para la animación oscura
   useEffect(() => {
-    if (introState === 'revealed') return;
+    if (introState === 'revealed' || !pageVisible) return;
 
-    const fadeTimer = setTimeout(() => {
-      setIntroState('fading');
-    }, 3000);
+    const timer = setTimeout(() => {
+      setIntroState(introState === 'showing' ? 'fading' : 'revealed');
+    }, introState === 'showing' ? 3000 : 700);
 
-    const revealTimer = setTimeout(() => {
-      setIntroState('revealed');
-      sessionStorage.setItem('kipus_intro_seen', 'true');
-    }, 3700);
-
-    return () => {
-      clearTimeout(fadeTimer);
-      clearTimeout(revealTimer);
-    };
-  }, [introState]);
+    return () => clearTimeout(timer);
+  }, [introState, pageVisible]);
 
   const skipIntro = () => {
     setIntroState('fading');
-    setTimeout(() => {
-      setIntroState('revealed');
-      sessionStorage.setItem('kipus_intro_seen', 'true');
-    }, 300);
   };
 
   useEffect(() => {
@@ -140,7 +138,7 @@ export const LoginPage: React.FC = () => {
   const words = ['GESTIONA', 'TU', 'NEGOCIO'];
 
   return (
-    <div className="min-h-screen w-full relative overflow-x-hidden bg-[#FAF6FD] selection:bg-[#5B1C8A]/20 selection:text-[#5B1C8A]">
+    <div className="login-light min-h-screen w-full relative overflow-x-hidden bg-[#FAF6FD] text-foreground selection:bg-[#5B1C8A]/20 selection:text-[#5B1C8A]">
       {/* Estilos CSS para el salto de letras y palabras en la intro */}
       <style>{`
         @keyframes kipusLetterWave {
@@ -180,8 +178,7 @@ export const LoginPage: React.FC = () => {
       */}
       {introState !== 'revealed' && (
         <div
-          onClick={skipIntro}
-          className={`fixed inset-0 z-50 flex flex-col items-center justify-center cursor-pointer transition-all duration-700 ease-in-out ${
+          className={`fixed inset-0 z-50 flex flex-col items-center justify-center transition-all duration-700 ease-in-out ${
             introState === 'fading'
               ? 'opacity-0 pointer-events-none scale-105'
               : 'opacity-100 scale-100'
@@ -190,7 +187,6 @@ export const LoginPage: React.FC = () => {
             background:
               'radial-gradient(circle at 50% 48%, #16082B 0%, #0D051B 55%, #050209 100%)',
           }}
-          title="Haz clic para omitir la animación"
         >
           {/* Botón flotante para omitir la intro */}
           <button
@@ -341,6 +337,12 @@ export const LoginPage: React.FC = () => {
               </div>
 
               {/* Mensaje de error si falla la autenticación */}
+              {sessionExpired && (
+                <div role="status" className="flex items-start gap-2 rounded-md border border-border bg-warning-soft p-3 text-sm text-warning-text">
+                  <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <p>Tu sesión se cerró por inactividad. Ingresa tus credenciales para continuar.</p>
+                </div>
+              )}
               {errorMessage && (
                 <div
                   role="alert"
