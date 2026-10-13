@@ -129,7 +129,7 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
                 <span>Egreso</span>
               </Button>
 
-              {/* Contar dinero / Arquear */}
+              {/* Cuadre de caja (Conteo físico) */}
               <Button
                 type="button"
                 size="sm"
@@ -138,7 +138,7 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
                 className="h-10 sm:h-9 px-3.5 border-border hover:bg-muted text-foreground font-medium text-xs gap-1.5 rounded-md justify-center"
               >
                 <Calculator className="h-3.5 w-3.5 text-muted-foreground" />
-                <span>Contar dinero</span>
+                <span>Cuadre de caja</span>
               </Button>
 
               {/* Cerrar caja */}

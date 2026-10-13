@@ -94,7 +94,7 @@ export const DashboardKpiCards: React.FC<DashboardKpiCardsProps> = ({
                 to={APP_ROUTES.CAJA}
                 className="text-primary hover:underline font-medium inline-flex items-center gap-0.5"
               >
-                Arqueo
+                Cuadre de caja
                 <ArrowUpRight className="h-3 w-3" />
               </Link>
             </div>

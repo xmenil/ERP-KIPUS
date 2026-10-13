@@ -40,7 +40,7 @@ export const DashboardPage: React.FC = () => {
           className="h-9 px-3 gap-1.5 text-xs font-medium rounded-md"
         >
           <DollarSign className="h-3.5 w-3.5" />
-          <span>Arqueo de caja</span>
+          <span>Cuadre de caja</span>
         </Button>
 
         <Button

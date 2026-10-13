@@ -181,14 +181,14 @@ export const CajaPage: React.FC = () => {
       return [
         { id: 'MI_CAJA', label: 'Mi caja', icon: Coins },
         { id: 'MOVIMIENTOS', label: 'Movimientos', icon: RefreshCw },
-        { id: 'ARQUEO', label: 'Contar dinero', icon: Calculator },
+        { id: 'ARQUEO', label: 'Cuadre de caja', icon: Calculator },
       ];
     }
     if (nivel === 'MEDIANO') {
       return [
         { id: 'MI_CAJA', label: 'Mi caja', icon: Coins },
         { id: 'MOVIMIENTOS', label: 'Movimientos', icon: RefreshCw },
-        { id: 'ARQUEO', label: 'Arqueo', icon: Calculator },
+        { id: 'ARQUEO', label: 'Cuadre de caja', icon: Calculator },
         { id: 'CIERRES', label: 'Historial de Cierres', icon: History },
       ];
     }
@@ -196,7 +196,7 @@ export const CajaPage: React.FC = () => {
     return [
       { id: 'MI_CAJA', label: 'Mi caja', icon: Coins },
       { id: 'MOVIMIENTOS', label: 'Movimientos', icon: RefreshCw },
-      { id: 'ARQUEO', label: 'Arqueo', icon: Calculator },
+      { id: 'ARQUEO', label: 'Cuadre de caja', icon: Calculator },
       { id: 'CIERRES', label: 'Historial Cierres', icon: History },
       { id: 'CAJAS', label: 'Todas las Cajas', icon: Store },
       { id: 'AUDITORIA', label: 'Auditoría', icon: ShieldCheck },
@@ -369,7 +369,7 @@ export const CajaPage: React.FC = () => {
           />
         )}
 
-        {/* TAB 3: CONTAR DINERO / ARQUEO */}
+        {/* TAB 3: CUADRE DE CAJA / CONTEO DE EFECTIVO */}
         {activeTab === 'ARQUEO' && (
           <Card className="border border-border/80 shadow-xs bg-card p-6 text-center space-y-4 max-w-lg mx-auto">
             <div className="mx-auto w-12 h-12 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
@@ -377,10 +377,10 @@ export const CajaPage: React.FC = () => {
             </div>
             <div className="space-y-1">
               <h3 className="text-base font-semibold text-foreground">
-                Conteo y Arqueo de Caja
+                Cuadre y Conteo de Caja
               </h3>
               <p className="text-xs text-muted-foreground">
-                Cuenta los billetes y monedas físicos de tu gaveta para comprobar que no existan sobrantes ni faltantes en tu turno.
+                Cuenta los billetes y monedas físicos de tu gaveta para comprobar que el dinero físico coincida con el sistema (sin faltantes ni sobrantes).
               </p>
             </div>
             <div className="pt-2">
@@ -390,7 +390,7 @@ export const CajaPage: React.FC = () => {
                 disabled={!cajaEstaAbierta}
               >
                 <Calculator className="h-4 w-4" />
-                {cajaEstaAbierta ? 'Abrir calculadora de conteo' : 'Abre tu caja primero para arquear'}
+                {cajaEstaAbierta ? 'Abrir calculadora de cuadre de caja' : 'Abre tu caja primero para cuadrar'}
               </Button>
             </div>
           </Card>

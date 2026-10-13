@@ -191,17 +191,17 @@ export const ArqueoConteoDialog: React.FC<ArqueoConteoDialogProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-primary font-medium text-xs">
               <Calculator className="h-4 w-4" />
-              <span>Arqueo y control de efectivo</span>
+              <span>Cuadre y control de efectivo</span>
             </div>
             <span className="text-[11px] font-semibold text-muted-foreground">
               {estadoCaja.nombre}
             </span>
           </div>
           <DialogTitle className="text-lg font-semibold pt-1">
-            Contar dinero en caja
+            Cuadre de caja (Conteo de efectivo)
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Comprueba cuánto efectivo físico tienes en tu gaveta comparándolo con lo que el sistema espera.
+            Comprueba cuánto efectivo físico tienes en tu gaveta comparándolo con lo que el sistema espera para asegurar que la caja cuadre.
           </DialogDescription>
         </DialogHeader>
 
@@ -574,7 +574,7 @@ export const ArqueoConteoDialog: React.FC<ArqueoConteoDialogProps> = ({
               disabled={isSubmitting}
               className="w-full sm:w-auto text-xs font-medium h-9"
             >
-              Guardar arqueo
+              Guardar cuadre de caja
             </Button>
 
             {onProcederCierre && (
