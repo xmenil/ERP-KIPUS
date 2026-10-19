@@ -1258,7 +1258,7 @@ function loadStateFromStorage(): boolean {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return false;
     const parsed = JSON.parse(raw);
-    if (parsed && Array.isArray(parsed.productos) && parsed.productos.length > 0) {
+    if (parsed && Array.isArray(parsed.productos)) {
       productos = parsed.productos;
       ventas = parsed.ventas || [];
       pedidos = parsed.pedidos || [];
@@ -1819,6 +1819,24 @@ export const erpStore = {
     };
     notify();
     return productos[idx];
+  },
+
+  upsertProducto: (payload: NuevoProductoPayload, id?: string): { producto: Producto; esNuevo: boolean } => {
+    if (id) {
+      const idx = productos.findIndex((p) => p.id === id);
+      if (idx !== -1) {
+        const prod = erpStore.actualizarProducto(id, payload);
+        return { producto: prod, esNuevo: false };
+      }
+    }
+    const skuNormalizado = payload.sku.trim().toLowerCase();
+    const existente = productos.find((p) => p.sku.trim().toLowerCase() === skuNormalizado);
+    if (existente) {
+      const prod = erpStore.actualizarProducto(existente.id, payload);
+      return { producto: prod, esNuevo: false };
+    }
+    const nuevo = erpStore.crearProducto(payload);
+    return { producto: nuevo, esNuevo: true };
   },
 
   eliminarProducto: (id: string): boolean => {

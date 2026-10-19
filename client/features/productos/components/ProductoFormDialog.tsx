@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select';
 import { Producto, NuevoProductoPayload } from '../types/productos.types';
 import { formatCurrency } from '@/utils/formatters';
+import { cn } from '@/lib/utils';
 import {
   Package,
   AlertTriangle,
@@ -95,10 +96,27 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
   const [ubicacion, setUbicacion] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Errores de validación visibles
+  const [errores, setErrores] = useState<{
+    nombre?: string;
+    precioVenta?: string;
+    precioCompra?: string;
+    general?: string;
+  }>({});
+
   // Estado del escáner en línea
   const [mostrarEscaner, setMostrarEscaner] = useState(false);
   const [isBuscandoCodigo, setIsBuscandoCodigo] = useState(false);
   const [ultimoEscaneoExitoso, setUltimoEscaneoExitoso] = useState<string | null>(null);
+
+  // Detectar si el SKU ingresado ya pertenece a otro producto del catálogo
+  const productoCoincidente = React.useMemo(() => {
+    const sNorm = sku.trim().toLowerCase();
+    if (!sNorm) return null;
+    return productosExistentes.find(
+      (p) => p.sku.trim().toLowerCase() === sNorm && p.id !== productoAEditar?.id
+    );
+  }, [sku, productosExistentes, productoAEditar]);
 
   // Combinar categorías existentes y predefinidas sin duplicados
   const listaCategorias = Array.from(
@@ -106,6 +124,7 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
   );
 
   useEffect(() => {
+    setErrores({});
     if (productoAEditar) {
       setSku(productoAEditar.sku || '');
       setNombre(productoAEditar.nombre || '');
@@ -146,9 +165,17 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
     }
   }, [productoAEditar, valoresIniciales, open]);
 
+  // Generar un código SKU nuevo si el usuario no desea sobreescribir el coincidente
+  const handleGenerarNuevoSku = () => {
+    const nuevoSku = `SKU-${Math.floor(10000 + Math.random() * 90000)}`;
+    setSku(nuevoSku);
+    toast.info(`Nuevo SKU asignado: ${nuevoSku}`);
+  };
+
   // Manejar el escaneo de un código de barras
   const handleCodigoEscaneado = async (codigo: string) => {
     setIsBuscandoCodigo(true);
+    setErrores({});
     try {
       const res = await buscarProductoPorCodigo(codigo, productosExistentes);
 
@@ -198,21 +225,25 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const nuevosErrores: typeof errores = {};
     if (!nombre.trim() || nombre.trim().length < 2) {
-      toast.error('Ingresa una descripción clara para el producto');
-      return;
+      nuevosErrores.nombre = 'Ingresa una descripción para el producto (mínimo 2 caracteres).';
     }
-
     if (numVenta <= 0) {
-      toast.error('El precio de venta debe ser mayor a S/ 0.00');
-      return;
+      nuevosErrores.precioVenta = 'El precio de venta debe ser mayor a S/ 0.00.';
     }
-
     if (numCompra < 0) {
-      toast.error('El precio de costo no puede ser negativo');
+      nuevosErrores.precioCompra = 'El precio de costo no puede ser negativo.';
+    }
+
+    if (Object.keys(nuevosErrores).length > 0) {
+      setErrores(nuevosErrores);
+      const primerError = Object.values(nuevosErrores)[0];
+      if (primerError) toast.error(primerError);
       return;
     }
 
+    setErrores({});
     setIsSubmitting(true);
     try {
       const payload: NuevoProductoPayload = {
@@ -227,10 +258,14 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
         ubicacion: ubicacion.trim() || undefined,
       };
 
-      await onGuardar(payload, productoAEditar?.id);
+      // Si estamos editando o si el SKU ya pertenece a un producto existente, pasamos su id para actualizar
+      const targetId = productoAEditar?.id || (productoCoincidente ? productoCoincidente.id : undefined);
+      await onGuardar(payload, targetId);
       onOpenChange(false);
-    } catch {
-      // El error lo maneja la función padre
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al guardar el producto.';
+      setErrores({ general: msg });
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -317,6 +352,40 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
             </div>
           )}
 
+          {/* Aviso de coincidencia automática con producto existente */}
+          {productoCoincidente && !esEdicion && (
+            <div className="flex items-start justify-between gap-3 p-3 rounded-md bg-primary-soft border border-primary/25 text-xs">
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-primary">
+                    Código ya asignado: {productoCoincidente.nombre}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Al guardar se actualizarán el precio y stock de este producto en el catálogo.
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleGenerarNuevoSku}
+                className="h-7 px-2 text-[11px] text-primary border-primary/30 hover:bg-primary-soft shrink-0 font-medium"
+              >
+                Nuevo SKU
+              </Button>
+            </div>
+          )}
+
+          {/* Aviso de error general si ocurre al guardar */}
+          {errores.general && (
+            <div className="flex items-center gap-2 p-2.5 rounded-md bg-danger-soft border border-destructive/30 text-xs text-danger-text">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span>{errores.general}</span>
+            </div>
+          )}
+
           {/* Fila 1: Código SKU y Descripción */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1.5">
@@ -340,9 +409,12 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
                 <Input
                   id="sku"
                   value={sku}
-                  onChange={(e) => setSku(e.target.value)}
+                  onChange={(e) => {
+                    setSku(e.target.value);
+                    if (errores.general) setErrores((prev) => ({ ...prev, general: undefined }));
+                  }}
                   placeholder="ej. 7750106001234"
-                  className="h-9 text-xs font-mono font-bold bg-background pr-8"
+                  className="h-9 text-xs font-mono font-medium bg-background pr-8"
                   required
                 />
                 {!esEdicion && (
@@ -366,11 +438,17 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
               <Input
                 id="nombre"
                 value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
+                onChange={(e) => {
+                  setNombre(e.target.value);
+                  if (errores.nombre) setErrores((prev) => ({ ...prev, nombre: undefined }));
+                }}
                 placeholder="ej. Arroz Costeño Extra 1 kg"
-                className="h-9 text-xs bg-background"
+                className={cn('h-9 text-xs bg-background', errores.nombre && 'border-destructive focus-visible:ring-destructive')}
                 required
               />
+              {errores.nombre && (
+                <p className="text-xs text-danger-text font-medium mt-0.5">{errores.nombre}</p>
+              )}
             </div>
           </div>
 
@@ -413,13 +491,13 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
           </div>
 
           {/* Fila 3: Precios de Costo y Venta */}
-          <div className="p-3.5 rounded-lg border border-border/80 bg-muted/15 space-y-3">
+          <div className="p-3.5 rounded-lg border border-border bg-card space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                 <DollarSign className="h-4 w-4 text-primary" />
                 Precios y Rentabilidad Comercial
               </span>
-              <span className="text-[11px] text-muted-foreground">Moneda: Soles (S/)</span>
+              <span className="text-xs text-muted-foreground">Moneda: Soles (S/)</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -428,7 +506,7 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
                   Precio de Costo (Compra)
                 </Label>
                 <div className="relative">
-                  <span className="absolute left-2.5 top-2.5 text-xs font-bold text-muted-foreground">
+                  <span className="absolute left-2.5 top-2.5 text-xs font-medium text-muted-foreground">
                     S/
                   </span>
                   <Input
@@ -437,11 +515,18 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
                     step="0.01"
                     min="0"
                     value={precioCompra}
-                    onChange={(e) => setPrecioCompra(e.target.value)}
-                    className="h-9 pl-8 text-xs font-mono font-bold bg-background tabular-nums"
+                    onChange={(e) => {
+                      setPrecioCompra(e.target.value);
+                      if (errores.precioCompra) setErrores((prev) => ({ ...prev, precioCompra: undefined }));
+                    }}
+                    className={cn('h-9 pl-8 text-xs font-mono bg-background tabular-nums', errores.precioCompra && 'border-destructive')}
                   />
                 </div>
-                <span className="text-[10px] text-muted-foreground">Costo de adquisición al proveedor</span>
+                {errores.precioCompra ? (
+                  <p className="text-xs text-danger-text font-medium mt-0.5">{errores.precioCompra}</p>
+                ) : (
+                  <span className="text-[11px] text-muted-foreground">Costo de compra al proveedor</span>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -449,7 +534,7 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
                   Precio de Venta al Público *
                 </Label>
                 <div className="relative">
-                  <span className="absolute left-2.5 top-2.5 text-xs font-bold text-primary">
+                  <span className="absolute left-2.5 top-2.5 text-xs font-medium text-primary">
                     S/
                   </span>
                   <Input
@@ -458,12 +543,19 @@ export const ProductoFormDialog: React.FC<ProductoFormDialogProps> = ({
                     step="0.01"
                     min="0.01"
                     value={precioVenta}
-                    onChange={(e) => setPrecioVenta(e.target.value)}
-                    className="h-9 pl-8 text-xs font-mono font-bold bg-background text-primary tabular-nums"
+                    onChange={(e) => {
+                      setPrecioVenta(e.target.value);
+                      if (errores.precioVenta) setErrores((prev) => ({ ...prev, precioVenta: undefined }));
+                    }}
+                    className={cn('h-9 pl-8 text-xs font-mono font-medium bg-background text-foreground tabular-nums', errores.precioVenta && 'border-destructive')}
                     required
                   />
                 </div>
-                <span className="text-[10px] text-muted-foreground">Precio final al cliente en mostrador</span>
+                {errores.precioVenta ? (
+                  <p className="text-xs text-danger-text font-medium mt-0.5">{errores.precioVenta}</p>
+                ) : (
+                  <span className="text-[11px] text-muted-foreground">Precio final al cliente en mostrador</span>
+                )}
               </div>
             </div>
 

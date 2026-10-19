@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { ProductoFormDialog } from '../components/ProductoFormDialog';
 import { EscanerProductoModal } from '../components/EscanerProductoModal';
 import { ProductoDetalleModal } from '../components/ProductoDetalleModal';
@@ -38,6 +45,7 @@ import {
   ScanBarcode,
   Mic,
   MicOff,
+  MoreHorizontal,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -49,7 +57,7 @@ type SortField = 'sku' | 'nombre' | 'precioCompra' | 'precioVenta' | 'stock';
 export const ProductosPage: React.FC = () => {
   const { user } = useAuth();
 
-  // TODO backend: ocultar esto en el servidor
+  // Ocultar costos para cajeros
   const puedeVerCostos = user?.rol !== 'CAJERO';
 
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -62,12 +70,14 @@ export const ProductosPage: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Búsqueda por voz con micrófono
+  // Búsqueda por voz con micrófono memoizada para evitar re-renderizados continuos
+  const handleVoiceTranscript = useCallback((texto: string) => {
+    setSearchTerm(texto);
+  }, []);
+
   const { isListening, toggleListening } = useVoiceSearch({
     lang: 'es-PE',
-    onTranscript: (texto) => {
-      setSearchTerm(texto);
-    },
+    onTranscript: handleVoiceTranscript,
   });
   
   // Modales de CRUD, Escáner y Detalle
@@ -78,39 +88,43 @@ export const ProductosPage: React.FC = () => {
   const [detalleModalOpen, setDetalleModalOpen] = useState(false);
   const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null);
 
-  const fetchProductos = async () => {
-    setLoading(true);
+  // Carga de catálogo con parámetro isInitial para no provocar parpadeo de skeletons
+  const fetchProductos = async (isInitial: boolean = false) => {
+    if (isInitial) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const data = await productosService.getProductos();
       setProductos(data);
     } catch {
       setError('No se pudo cargar el catálogo de productos. Revisa tu conexión a internet o el estado del sistema.');
-      toast.error('Error al cargar la lista de productos');
+      toast.error('Error al sincronizar productos');
     } finally {
-      setLoading(false);
+      if (isInitial) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchProductos();
+    fetchProductos(true);
     const unsubscribe = subscribeToErp(() => {
-      fetchProductos();
+      fetchProductos(false);
     });
     return unsubscribe;
   }, []);
 
-  // Guardar (Crear o Editar)
+  // Guardar (Crear o Editar vía upsert inteligente que no falla si el SKU existe)
   const handleGuardarProducto = async (payload: NuevoProductoPayload, id?: string) => {
     try {
-      if (id) {
-        const actualizado = await productosService.actualizarProducto(id, payload);
-        toast.success(`Producto "${actualizado.nombre}" actualizado correctamente`);
+      const { producto: guardado, esNuevo } = await productosService.upsertProducto(payload, id);
+      if (esNuevo) {
+        toast.success(`Producto "${guardado.nombre}" registrado exitosamente · SKU: ${guardado.sku}`);
       } else {
-        const nuevo = await productosService.crearProducto(payload);
-        toast.success(`Producto "${nuevo.nombre}" registrado exitosamente · SKU: ${nuevo.sku}`);
+        toast.success(`Producto "${guardado.nombre}" actualizado correctamente`);
       }
-      fetchProductos();
+      fetchProductos(false);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al guardar el producto';
       toast.error(msg);
@@ -423,9 +437,8 @@ export const ProductosPage: React.FC = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className={cn(
-                  'pl-9 pr-16 h-9 text-base md:text-sm w-full transition-all',
-                  isListening &&
-                    'border-rose-400 ring-2 ring-rose-300/40 bg-rose-50/20 placeholder:text-rose-600 font-semibold'
+                  'pl-9 pr-16 h-9 text-base md:text-sm w-full bg-background transition-colors',
+                  isListening && 'border-primary ring-2 ring-primary/20'
                 )}
               />
               <div className="absolute right-2 top-1.5 flex items-center gap-1">
@@ -443,10 +456,10 @@ export const ProductosPage: React.FC = () => {
                   type="button"
                   onClick={toggleListening}
                   className={cn(
-                    'p-1 rounded-md transition-all flex items-center justify-center cursor-pointer',
+                    'p-1.5 rounded-md transition-colors flex items-center justify-center cursor-pointer',
                     isListening
-                      ? 'bg-rose-600 text-white animate-pulse shadow-xs ring-2 ring-rose-300'
-                      : 'text-muted-foreground hover:text-primary hover:bg-primary-soft'
+                      ? 'bg-primary-soft text-primary font-medium ring-1 ring-primary/30'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                   )}
                   title={isListening ? 'Detener micrófono' : 'Buscar con micrófono / voz'}
                   aria-label="Buscar con micrófono"
@@ -457,57 +470,59 @@ export const ProductosPage: React.FC = () => {
             </div>
 
             {/* Fila de Filtros: Estados y Selector Limpio de Categorías */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-3 border-t border-border/60">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-3 border-t border-border">
               {/* Botones segmentados de estado de stock */}
-              <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-medium text-muted-foreground whitespace-nowrap shrink-0 mr-1">
                   Estado:
                 </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedEstado('TODOS');
-                    setCurrentPage(1);
-                  }}
-                  className={cn(
-                    'px-2.5 py-1 text-xs font-medium rounded-md border transition-colors whitespace-nowrap shrink-0',
-                    selectedEstado === 'TODOS'
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground'
-                  )}
-                >
-                  Todos ({productos.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedEstado('STOCK_BAJO');
-                    setCurrentPage(1);
-                  }}
-                  className={cn(
-                    'px-2.5 py-1 text-xs font-medium rounded-md border transition-colors whitespace-nowrap shrink-0',
-                    selectedEstado === 'STOCK_BAJO'
-                      ? 'bg-warning-soft text-warning-text border-warning/40 font-semibold'
-                      : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground'
-                  )}
-                >
-                  Stock bajo ({stockCriticoCount})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedEstado('AGOTADO');
-                    setCurrentPage(1);
-                  }}
-                  className={cn(
-                    'px-2.5 py-1 text-xs font-medium rounded-md border transition-colors whitespace-nowrap shrink-0',
-                    selectedEstado === 'AGOTADO'
-                      ? 'bg-danger-soft text-danger-text border-destructive/40 font-semibold'
-                      : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground'
-                  )}
-                >
-                  Agotado ({agotadosCount})
-                </button>
+                <div className="inline-flex items-center p-0.5 bg-muted/70 rounded-md border border-border">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedEstado('TODOS');
+                      setCurrentPage(1);
+                    }}
+                    className={cn(
+                      'px-2.5 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap',
+                      selectedEstado === 'TODOS'
+                        ? 'bg-card text-foreground shadow-2xs font-semibold'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    Todos ({productos.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedEstado('STOCK_BAJO');
+                      setCurrentPage(1);
+                    }}
+                    className={cn(
+                      'px-2.5 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap',
+                      selectedEstado === 'STOCK_BAJO'
+                        ? 'bg-warning-soft text-warning-text font-semibold shadow-2xs'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    Stock bajo ({stockCriticoCount})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedEstado('AGOTADO');
+                      setCurrentPage(1);
+                    }}
+                    className={cn(
+                      'px-2.5 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap',
+                      selectedEstado === 'AGOTADO'
+                        ? 'bg-danger-soft text-danger-text font-semibold shadow-2xs'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    Sin stock ({agotadosCount})
+                  </button>
+                </div>
               </div>
 
               {/* Selector Desplegable Limpio de Categorías */}
@@ -567,7 +582,7 @@ export const ProductosPage: React.FC = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={fetchProductos}
+                onClick={() => fetchProductos(true)}
                 className="h-8 text-xs gap-1.5 bg-card text-foreground shrink-0 self-start sm:self-auto"
               >
                 <RotateCw className="h-3.5 w-3.5" />
@@ -816,7 +831,7 @@ export const ProductosPage: React.FC = () => {
                             </span>
                           </TableCell>
 
-                          {/* Acciones CRUD */}
+                          {/* Acciones CRUD condensadas (kipus-ui regla 6) */}
                           <TableCell
                             className="text-right py-2.5 px-3 whitespace-nowrap"
                             onClick={(e) => e.stopPropagation()}
@@ -824,31 +839,49 @@ export const ProductosPage: React.FC = () => {
                             <div className="flex items-center justify-end gap-1">
                               <Button
                                 variant="ghost"
-                                size="icon"
-                                onClick={() => handleVerDetalles(prod)}
-                                title="Ver detalles del producto"
-                                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
+                                size="sm"
                                 onClick={() => handleEditarProducto(prod)}
-                                title="Editar producto"
-                                className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
+                                className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted font-medium"
                               >
-                                <Edit className="h-4 w-4" />
+                                <Edit className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                                <span>Editar</span>
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEliminarProducto(prod)}
-                                title="Eliminar producto"
-                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-danger-soft"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded"
+                                    aria-label="Más acciones"
+                                  >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-44">
+                                  <DropdownMenuItem
+                                    onClick={() => handleVerDetalles(prod)}
+                                    className="text-xs cursor-pointer"
+                                  >
+                                    <Eye className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                                    <span>Ver detalles</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleEditarProducto(prod)}
+                                    className="text-xs cursor-pointer"
+                                  >
+                                    <Edit className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                                    <span>Editar producto</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => handleEliminarProducto(prod)}
+                                    className="text-xs text-danger-text focus:text-danger-text focus:bg-danger-soft cursor-pointer"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5 mr-2 text-danger-text" />
+                                    <span>Eliminar</span>
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -936,10 +969,10 @@ export const ProductosPage: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Botones de acción en Mobile */}
+                      {/* Botones de acción en Mobile condensados */}
                       <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-border/40">
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
                           onClick={() => handleVerDetalles(prod)}
                           className="h-8 text-xs px-2.5 gap-1 text-muted-foreground hover:text-foreground"
@@ -951,20 +984,32 @@ export const ProductosPage: React.FC = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => handleEditarProducto(prod)}
-                          className="h-8 text-xs px-2.5 gap-1 text-primary border-primary/30 hover:bg-primary/5"
+                          className="h-8 text-xs px-2.5 gap-1 text-foreground hover:bg-muted"
                         >
                           <Edit className="h-3.5 w-3.5" />
                           <span>Editar</span>
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEliminarProducto(prod)}
-                          className="h-8 text-xs px-2.5 gap-1 text-destructive border-destructive/30 hover:bg-danger-soft"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          <span>Eliminar</span>
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                              aria-label="Más opciones"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-40">
+                            <DropdownMenuItem
+                              onClick={() => handleEliminarProducto(prod)}
+                              className="text-xs text-danger-text focus:text-danger-text focus:bg-danger-soft cursor-pointer"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 mr-2 text-danger-text" />
+                              <span>Eliminar</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   );
@@ -1021,8 +1066,8 @@ export const ProductosPage: React.FC = () => {
         open={escanerModalOpen}
         onOpenChange={setEscanerModalOpen}
         productosExistentes={productos}
-        onGuardarProducto={async (payload) => {
-          await handleGuardarProducto(payload);
+        onGuardarProducto={async (payload, id) => {
+          await handleGuardarProducto(payload, id);
         }}
         onAbrirFormularioCompleto={(datos) => {
           setValoresInicialesForm(datos);

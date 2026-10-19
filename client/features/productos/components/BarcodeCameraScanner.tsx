@@ -73,6 +73,7 @@ export const BarcodeCameraScanner: React.FC<BarcodeCameraScannerProps> = ({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const timeoutRef = useRef<number | null>(null);
 
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -157,6 +158,10 @@ export const BarcodeCameraScanner: React.FC<BarcodeCameraScannerProps> = ({
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
     }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
@@ -211,9 +216,11 @@ export const BarcodeCameraScanner: React.FC<BarcodeCameraScannerProps> = ({
 
     let cancelado = false;
     const detectarCuadro = async () => {
-      if (cancelado || !videoRef.current || videoRef.current.readyState < 2) {
+      if (cancelado) return;
+      if (!videoRef.current || videoRef.current.readyState < 2) {
+        // En vez de spamear requestAnimationFrame 60-120 veces por segundo y colgar la pestaña, esperar 250ms
         if (!cancelado) {
-          animationFrameRef.current = requestAnimationFrame(detectarCuadro);
+          timeoutRef.current = window.setTimeout(detectarCuadro, 250);
         }
         return;
       }
@@ -231,12 +238,12 @@ export const BarcodeCameraScanner: React.FC<BarcodeCameraScannerProps> = ({
       }
 
       if (!cancelado) {
-        // Esperar 120ms entre detecciones para no sobrecargar la GPU
-        setTimeout(() => {
+        // Esperar 200ms entre detecciones para no saturar la CPU / GPU
+        timeoutRef.current = window.setTimeout(() => {
           if (!cancelado) {
             animationFrameRef.current = requestAnimationFrame(detectarCuadro);
           }
-        }, 120);
+        }, 200);
       }
     };
 
@@ -246,6 +253,11 @@ export const BarcodeCameraScanner: React.FC<BarcodeCameraScannerProps> = ({
       cancelado = true;
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
       }
     };
   }, [cameraActive, isScanning, handleCodigoDetectado]);

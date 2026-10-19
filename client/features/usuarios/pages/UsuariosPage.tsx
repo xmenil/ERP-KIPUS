@@ -17,6 +17,13 @@ import { UsuarioDetalleModal } from '../components/UsuarioDetalleModal';
 import { usuariosService } from '../services/usuariosService';
 import { Usuario, NuevoUsuarioPayload, UserRole } from '../types/usuarios.types';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   Users,
   ShieldCheck,
   Search,
@@ -38,6 +45,7 @@ import {
   CheckCircle2,
   XCircle,
   X,
+  MoreHorizontal,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -524,36 +532,50 @@ export const UsuariosPage: React.FC = () => {
                           className="py-2.5 px-3 whitespace-nowrap min-w-[120px] text-right"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <div className="flex items-center justify-end gap-1">
+                          <div className="flex items-center justify-end gap-1.5">
                             <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleVerDetalles(user)}
-                              title="Ver detalles del usuario"
-                              className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
+                              variant="outline"
+                              size="sm"
                               onClick={() => handleEditarUsuario(user)}
-                              title="Editar usuario"
-                              className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
+                              className="h-8 text-xs font-medium px-2.5 gap-1.5"
                             >
-                              <Edit className="h-4 w-4" />
+                              <Edit className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span>Editar</span>
                             </Button>
-                            {user.id !== 'user-admin' && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEliminarUsuario(user)}
-                                title="Eliminar usuario"
-                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-danger-soft"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                  <span className="sr-only">Acciones</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-44">
+                                <DropdownMenuItem onClick={() => handleVerDetalles(user)}>
+                                  <Eye className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                                  Ver perfil
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleEditarUsuario(user)}>
+                                  <Edit className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                                  Editar usuario
+                                </DropdownMenuItem>
+                                {user.id !== 'user-admin' && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => handleEliminarUsuario(user)}
+                                      className="text-danger-text focus:text-danger-text focus:bg-danger-soft"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5 mr-2 text-danger-text" />
+                                      Eliminar
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </TableCell>
                       </TableRow>

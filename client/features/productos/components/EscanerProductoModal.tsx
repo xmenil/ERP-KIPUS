@@ -42,7 +42,7 @@ interface EscanerProductoModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   productosExistentes: Producto[];
-  onGuardarProducto: (payload: NuevoProductoPayload) => Promise<void>;
+  onGuardarProducto: (payload: NuevoProductoPayload, id?: string) => Promise<void>;
   onAbrirFormularioCompleto: (payload: Partial<NuevoProductoPayload>) => void;
 }
 
@@ -165,8 +165,19 @@ export const EscanerProductoModal: React.FC<EscanerProductoModalProps> = ({
         stockMinimo: 5,
       };
 
-      await onGuardarProducto(payload);
-      toast.success(`"${nombre}" añadido al catálogo exitosamente.`);
+      const existingId =
+        resultado?.status === 'existente_en_catalogo'
+          ? resultado.producto.id
+          : productosExistentes.find(
+              (p) => p.sku.trim().toLowerCase() === sku.trim().toLowerCase()
+            )?.id;
+
+      await onGuardarProducto(payload, existingId);
+      toast.success(
+        existingId
+          ? `"${nombre}" actualizado en el catálogo exitosamente.`
+          : `"${nombre}" añadido al catálogo exitosamente.`
+      );
 
       if (modoContinuo) {
         // En modo continuo, limpiar para seguir escaneando el siguiente

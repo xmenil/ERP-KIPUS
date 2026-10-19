@@ -11,6 +11,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { MetricCard } from '@/components/common/MetricCard';
 import { ProveedorFormDialog } from '../components/ProveedorFormDialog';
 import { ProveedorDetalleModal } from '../components/ProveedorDetalleModal';
@@ -40,6 +47,7 @@ import {
   ExternalLink,
   ShieldCheck,
   X,
+  MoreHorizontal,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -496,45 +504,65 @@ export const ProveedoresPage: React.FC = () => {
                           </span>
                         </TableCell>
 
-                        {/* Acciones */}
-                        <TableCell className="text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-center gap-1">
+                        {/* Acciones condensadas (kipus-ui) */}
+                        <TableCell className="text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1">
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
-                              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                              onClick={() => {
-                                setProveedorSeleccionado(prov);
-                                setDetalleModalOpen(true);
-                              }}
-                              title="Ver ficha completa"
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                              className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted font-medium"
                               onClick={() => {
                                 setProveedorAEditar(prov);
                                 setFormModalOpen(true);
                               }}
-                              title="Editar proveedor"
                             >
-                              <Edit className="h-3.5 w-3.5" />
+                              <Edit className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                              <span>Editar</span>
                             </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 text-muted-foreground hover:text-danger-text"
-                              onClick={() => handleEliminarProveedor(prov)}
-                              title="Eliminar proveedor"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded"
+                                  aria-label="Más acciones"
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-44">
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setProveedorSeleccionado(prov);
+                                    setDetalleModalOpen(true);
+                                  }}
+                                  className="text-xs cursor-pointer"
+                                >
+                                  <Eye className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                                  <span>Ver ficha completa</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setProveedorAEditar(prov);
+                                    setFormModalOpen(true);
+                                  }}
+                                  className="text-xs cursor-pointer"
+                                >
+                                  <Edit className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                                  <span>Editar proveedor</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => handleEliminarProveedor(prov)}
+                                  className="text-xs text-danger-text focus:text-danger-text focus:bg-danger-soft cursor-pointer"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 mr-2 text-danger-text" />
+                                  <span>Eliminar</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </TableCell>
                       </TableRow>

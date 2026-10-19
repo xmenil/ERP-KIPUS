@@ -17,6 +17,11 @@ export const productosService = {
     return simulateDelay(actualizado);
   },
 
+  async upsertProducto(payload: NuevoProductoPayload, id?: string): Promise<{ producto: Producto; esNuevo: boolean }> {
+    const res = erpStore.upsertProducto(payload, id);
+    return simulateDelay(res);
+  },
+
   async eliminarProducto(id: string): Promise<boolean> {
     const res = erpStore.eliminarProducto(id);
     return simulateDelay(res);

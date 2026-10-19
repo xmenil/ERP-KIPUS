@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -94,6 +94,10 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
   const [fraseVoz, setFraseVoz] = useState('');
 
   // Búsqueda por voz con micrófono
+  const handleVoiceTranscript = useCallback((texto: string) => {
+    setSearchTerm(texto);
+  }, []);
+
   const {
     isListening,
     transcript,
@@ -101,9 +105,7 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
     toggleListening,
   } = useVoiceSearch({
     lang: 'es-PE',
-    onTranscript: (texto) => {
-      setSearchTerm(texto);
-    },
+    onTranscript: handleVoiceTranscript,
   });
 
   // Categorías únicas
