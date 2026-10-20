@@ -197,7 +197,8 @@ export const ProductosPage: React.FC = () => {
     return productos.filter((p) => {
       const matchSearch =
         p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.sku.toLowerCase().includes(searchTerm.toLowerCase());
+        p.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        Boolean(p.codigoBarras?.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchCategory =
         selectedCategoria === 'TODAS' || p.categoria === selectedCategoria;
       const matchEstado =
@@ -1066,6 +1067,7 @@ export const ProductosPage: React.FC = () => {
         open={escanerModalOpen}
         onOpenChange={setEscanerModalOpen}
         productosExistentes={productos}
+        onEditarProducto={handleEditarProducto}
         onGuardarProducto={async (payload, id) => {
           await handleGuardarProducto(payload, id);
         }}
@@ -1082,6 +1084,7 @@ export const ProductosPage: React.FC = () => {
         onOpenChange={setFormModalOpen}
         onGuardar={handleGuardarProducto}
         productoAEditar={productoAEditar}
+        onEditarCoincidencia={handleEditarProducto}
         categoriasExistentes={categorias}
         productosExistentes={productos}
         valoresIniciales={valoresInicialesForm}

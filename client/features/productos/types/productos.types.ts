@@ -1,4 +1,5 @@
 export interface Producto {
+  codigoBarras?: string;
   id: string;
   sku: string;
   nombre: string;
@@ -13,6 +14,7 @@ export interface Producto {
 }
 
 export interface NuevoProductoPayload {
+  codigoBarras?: string;
   sku: string;
   nombre: string;
   categoria: string;

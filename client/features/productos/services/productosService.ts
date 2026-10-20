@@ -1,8 +1,12 @@
 import { simulateDelay } from '@/services/mock/mockUtils';
 import { Producto, NuevoProductoPayload } from '../types/productos.types';
 import { erpStore } from '@/services/erp/erpStore';
+import { buscarProductoPorCodigo } from '../utils/codigosProducto';
 
 export const productosService = {
+  buscarPorCodigo(codigo: string): Producto | undefined {
+    return buscarProductoPorCodigo(erpStore.getProductos(), codigo);
+  },
   async getProductos(): Promise<Producto[]> {
     return simulateDelay(erpStore.getProductos());
   },

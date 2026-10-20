@@ -639,8 +639,8 @@ export async function buscarProductoPorCodigo(
   // 1. Revisar si ya existe en el catálogo actual del usuario
   const existente = productosExistentes.find(
     (p) =>
-      p.sku.toLowerCase() === codeTrimmed.toLowerCase() ||
-      p.id.toLowerCase() === codeTrimmed.toLowerCase()
+      p.codigoBarras?.trim() === codeTrimmed ||
+      (!p.codigoBarras && p.sku === codeTrimmed)
   );
   if (existente) {
     return {
@@ -654,19 +654,7 @@ export async function buscarProductoPorCodigo(
   if (CATALOGO_BARRAS_PERU[codeTrimmed]) {
     return {
       status: 'encontrado',
-      datos: { ...CATALOGO_BARRAS_PERU[codeTrimmed] },
-      origen: 'base_peru',
-    };
-  }
-
-  // Búsqueda parcial si fue ingresado con prefijo o parte del SKU
-  const itemPorPrefijo = Object.values(CATALOGO_BARRAS_PERU).find((item) =>
-    item.sku.toLowerCase().includes(codeTrimmed.toLowerCase())
-  );
-  if (itemPorPrefijo) {
-    return {
-      status: 'encontrado',
-      datos: { ...itemPorPrefijo },
+      datos: { ...CATALOGO_BARRAS_PERU[codeTrimmed], precioCompra: 0, precioVenta: 0, stockSugerido: 0 },
       origen: 'base_peru',
     };
   }

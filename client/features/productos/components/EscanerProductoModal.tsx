@@ -1,4 +1,5 @@
-import React, { useState, useTransition } from 'react';
+import React, { useState, useTransition, useEffect, useRef } from 'react';
+import { normalizarCodigo } from '../utils/codigosProducto';
 import {
   Dialog,
   DialogContent,
@@ -44,6 +45,7 @@ interface EscanerProductoModalProps {
   productosExistentes: Producto[];
   onGuardarProducto: (payload: NuevoProductoPayload, id?: string) => Promise<void>;
   onAbrirFormularioCompleto: (payload: Partial<NuevoProductoPayload>) => void;
+  onEditarProducto: (producto: Producto) => void;
 }
 
 const CATEGORIAS = [
@@ -76,6 +78,7 @@ export const EscanerProductoModal: React.FC<EscanerProductoModalProps> = ({
   productosExistentes,
   onGuardarProducto,
   onAbrirFormularioCompleto,
+  onEditarProducto,
 }) => {
   const [, startTransition] = useTransition();
 
@@ -92,12 +95,27 @@ export const EscanerProductoModal: React.FC<EscanerProductoModalProps> = ({
   const [stock, setStock] = useState<number | string>(10);
   const [modoContinuo, setModoContinuo] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [codigoBarras, setCodigoBarras] = useState('');
+  const solicitudRef = useRef(0);
+  const guardandoRef = useRef(false);
+  useEffect(() => {
+    solicitudRef.current++;
+    setResultado(null);
+    setCodigoBarras('');
+    setLoadingLookup(false);
+    return () => { solicitudRef.current++; };
+  }, [open]);
 
   // Manejar cuando se detecta un código por cámara o pistola
   const handleCodigoEscaneado = async (codigo: string) => {
+    if (guardandoRef.current) return;
+    const solicitud = ++solicitudRef.current;
     setLoadingLookup(true);
     try {
-      const res = await buscarProductoPorCodigo(codigo, productosExistentes);
+      const normalizado = normalizarCodigo(codigo);
+      const res = await buscarProductoPorCodigo(normalizado, productosExistentes);
+      if (solicitud !== solicitudRef.current) return;
+      setCodigoBarras(normalizado);
       setResultado(res);
 
       if (res.status === 'existente_en_catalogo') {
@@ -110,28 +128,28 @@ export const EscanerProductoModal: React.FC<EscanerProductoModalProps> = ({
         setStock(res.producto.stock);
         toast.info(`El producto "${res.producto.nombre}" ya existe en el catálogo.`);
       } else if (res.status === 'encontrado') {
-        setSku(res.datos.sku);
+        setSku(`SKU-${Math.floor(10000 + Math.random() * 90000)}`);
         setNombre(res.datos.nombre);
         setCategoria(res.datos.categoria);
         setUnidadMedida(res.datos.unidadMedida);
         setPrecioCompra(res.datos.precioCompra);
         setPrecioVenta(res.datos.precioVenta);
-        setStock(res.datos.stockSugerido);
+        setStock(0);
         toast.success(`Datos extraídos: ${res.datos.nombre}`);
       } else {
-        setSku(res.datos.sku);
+        setSku(`SKU-${Math.floor(10000 + Math.random() * 90000)}`);
         setNombre('');
         setCategoria('Abarrotes y Granos');
         setUnidadMedida('UNIDAD');
         setPrecioCompra(0);
         setPrecioVenta(0);
-        setStock(10);
+        setStock(0);
         toast('Código nuevo detectado. Completa la descripción para agregarlo.');
       }
     } catch {
       toast.error('Error al consultar el código');
     } finally {
-      setLoadingLookup(false);
+      if (solicitud === solicitudRef.current) setLoadingLookup(false);
     }
   };
 
@@ -143,6 +161,7 @@ export const EscanerProductoModal: React.FC<EscanerProductoModalProps> = ({
 
   // Registrar producto de forma ultra-rápida
   const handleAgregarRapido = async () => {
+    if (guardandoRef.current || loadingLookup || !resultado || resultado.status === 'existente_en_catalogo') return;
     if (!nombre.trim()) {
       toast.error('Ingresa una descripción para el producto');
       return;
@@ -151,11 +170,17 @@ export const EscanerProductoModal: React.FC<EscanerProductoModalProps> = ({
       toast.error('El precio de venta debe ser mayor a S/ 0.00');
       return;
     }
+    if (!Number.isFinite(numCompra) || numCompra < 0 || !Number.isFinite(numVenta) || !Number.isFinite(Number(stock)) || Number(stock) < 0) {
+      toast.error('Revisa los precios y el stock: deben ser números válidos y no negativos.');
+      return;
+    }
 
     setIsSubmitting(true);
+    guardandoRef.current = true;
     try {
       const payload: NuevoProductoPayload = {
         sku: sku.trim(),
+        codigoBarras,
         nombre: nombre.trim(),
         categoria,
         unidadMedida,
@@ -165,12 +190,9 @@ export const EscanerProductoModal: React.FC<EscanerProductoModalProps> = ({
         stockMinimo: 5,
       };
 
-      const existingId =
-        resultado?.status === 'existente_en_catalogo'
-          ? resultado.producto.id
-          : productosExistentes.find(
-              (p) => p.sku.trim().toLowerCase() === sku.trim().toLowerCase()
-            )?.id;
+      const existingId = productosExistentes.find(
+        (p) => p.sku.trim().toLowerCase() === sku.trim().toLowerCase()
+      )?.id;
 
       await onGuardarProducto(payload, existingId);
       toast.success(
@@ -183,11 +205,12 @@ export const EscanerProductoModal: React.FC<EscanerProductoModalProps> = ({
         // En modo continuo, limpiar para seguir escaneando el siguiente
         startTransition(() => {
           setResultado(null);
+          setCodigoBarras('');
           setSku('');
           setNombre('');
           setPrecioCompra(0);
           setPrecioVenta(0);
-          setStock(10);
+          setStock(0);
         });
       } else {
         onOpenChange(false);
@@ -196,12 +219,14 @@ export const EscanerProductoModal: React.FC<EscanerProductoModalProps> = ({
       // Manejado en el callback superior
     } finally {
       setIsSubmitting(false);
+      guardandoRef.current = false;
     }
   };
 
   const handlePersonalizar = () => {
     onAbrirFormularioCompleto({
       sku,
+      codigoBarras,
       nombre,
       categoria,
       unidadMedida,
@@ -215,15 +240,16 @@ export const EscanerProductoModal: React.FC<EscanerProductoModalProps> = ({
 
   const handleReset = () => {
     setResultado(null);
+    setCodigoBarras('');
     setSku('');
     setNombre('');
     setPrecioCompra(0);
     setPrecioVenta(0);
-    setStock(10);
+    setStock(0);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={value => { if (!guardandoRef.current) onOpenChange(value); }}>
       <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[92vh] flex flex-col p-0 overflow-hidden rounded-xl">
         <DialogHeader className="p-4 sm:p-5 pb-3 border-b border-border bg-muted/20 shrink-0">
           <div className="flex items-center justify-between">
@@ -248,10 +274,10 @@ export const EscanerProductoModal: React.FC<EscanerProductoModalProps> = ({
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
           {/* Módulo de Escaneo (Cámara / Pistola / Demos) */}
-          <BarcodeCameraScanner
+          {open && <BarcodeCameraScanner
             onScan={handleCodigoEscaneado}
-            isScanning={open}
-          />
+            isScanning={!loadingLookup && !resultado && !isSubmitting}
+          />}
 
           {/* Loader de búsqueda */}
           {loadingLookup && (
@@ -288,7 +314,7 @@ export const EscanerProductoModal: React.FC<EscanerProductoModalProps> = ({
                       {resultado.status === 'existente_en_catalogo'
                         ? `SKU: ${resultado.producto.sku} · Stock actual: ${resultado.producto.stock}`
                         : resultado.origen === 'base_peru'
-                        ? 'Identificado en catálogo comercial peruano'
+                        ? 'Sugerencia del catálogo de ejemplo. Verifica nombre, precio y stock antes de guardar.'
                         : resultado.origen === 'open_food_facts'
                         ? 'Identificado en base de datos global de alimentos'
                         : 'Ingresa su nombre para guardarlo'}
@@ -461,12 +487,13 @@ export const EscanerProductoModal: React.FC<EscanerProductoModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2 justify-end">
-            {resultado && (
+            {resultado && resultado.status !== 'existente_en_catalogo' && (
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={handlePersonalizar}
+                disabled={isSubmitting || loadingLookup}
                 className="h-8 text-xs gap-1"
                 title="Editar ubicación, stock mínimo y otros campos avanzados"
               >
@@ -480,12 +507,14 @@ export const EscanerProductoModal: React.FC<EscanerProductoModalProps> = ({
               variant="outline"
               size="sm"
               onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
               className="h-8 text-xs"
             >
               Cerrar
             </Button>
 
-            {resultado && (
+            {resultado?.status === 'existente_en_catalogo' && <Button type="button" variant="outline" onClick={() => { onOpenChange(false); onEditarProducto(resultado.producto); }}>Editar producto registrado</Button>}
+            {resultado && resultado.status !== 'existente_en_catalogo' && (
               <Button
                 type="button"
                 onClick={handleAgregarRapido}

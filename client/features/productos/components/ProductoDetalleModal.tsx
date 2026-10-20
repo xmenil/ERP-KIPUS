@@ -116,6 +116,7 @@ export const ProductoDetalleModal: React.FC<ProductoDetalleModalProps> = ({
                     )}
                   </button>
                 </div>
+                <p className="text-xs text-muted-foreground break-all">Código de barras / QR: <span className="font-mono">{producto.codigoBarras || 'Sin código'}</span></p>
               </div>
             </div>
 
