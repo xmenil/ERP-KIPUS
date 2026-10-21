@@ -34,7 +34,7 @@ export interface NavigationItem {
 
 export const NAVIGATION_ITEMS: NavigationItem[] = [
   {
-    name: 'Dashboard',
+    name: 'Resumen del negocio',
     path: APP_ROUTES.DASHBOARD,
     iconName: 'LayoutDashboard',
     category: 'gestion',

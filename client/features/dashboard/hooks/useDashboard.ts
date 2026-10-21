@@ -45,6 +45,16 @@ export function useDashboardData() {
     stockAlerts: stockAlertsQuery.data ?? [],
     salesTrend: salesTrendQuery.data ?? [],
     isLoading,
+    isFetching:
+      metricsQuery.isFetching ||
+      recentSalesQuery.isFetching ||
+      stockAlertsQuery.isFetching ||
+      salesTrendQuery.isFetching,
+    hasError:
+      metricsQuery.isError ||
+      recentSalesQuery.isError ||
+      stockAlertsQuery.isError ||
+      salesTrendQuery.isError,
     refetchAll: () => {
       metricsQuery.refetch();
       recentSalesQuery.refetch();

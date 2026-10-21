@@ -1,6 +1,13 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { SummaryStrip } from '@/components/common/SummaryStrip';
 import {
   Table,
   TableBody,
@@ -14,16 +21,10 @@ import { Venta, ResumenVentasKpis } from '../types/ventas.types';
 import { formatMoney } from '@/utils/formatters';
 import {
   ShoppingCart,
-  DollarSign,
-  TrendingUp,
-  Receipt,
   Printer,
   Eye,
   PlusCircle,
   CreditCard,
-  Building2,
-  Clock,
-  ArrowUpRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -49,14 +50,12 @@ export const VentasDashboardView: React.FC<VentasDashboardViewProps> = ({
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
             <h3 className="text-base font-semibold text-foreground">
-              Mostrador de Ventas y Facturación
+              Resumen de ventas
             </h3>
-            <span className="text-[10px] px-2 py-0.5 rounded-md bg-success-soft text-success-text font-semibold border border-success/30">
-              Caja Abierta
-            </span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Emite comprobantes electrónicos, boletas, facturas y controla los ingresos de tu turno.
+            Consulta los resultados y vuelve al punto de venta para registrar
+            una venta.
           </p>
         </div>
 
@@ -66,78 +65,27 @@ export const VentasDashboardView: React.FC<VentasDashboardViewProps> = ({
           className="gap-2 bg-primary text-primary-foreground font-semibold text-xs sm:text-sm h-10 sm:h-11 px-5 shadow-xs shrink-0"
         >
           <ShoppingCart className="h-4 w-4" />
-          <span>Abrir Punto de Venta (POS)</span>
+          <span>Registrar venta</span>
         </Button>
       </div>
 
-      {/* Tarjetas de Métricas Ejecutivas del Día */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {/* Total Facturado */}
-        <Card className="border-border/80 rounded-md">
-          <CardContent className="p-3.5 space-y-1">
-            <span className="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
-              <span>Ventas del Día</span>
-              <DollarSign className="h-3.5 w-3.5 text-success-text" />
-            </span>
-            <div className="text-2xl font-semibold font-mono tabular-nums text-foreground">
-              {formatMoney(kpis?.totalVendidoHoy || 0)}
-            </div>
-            <div className="flex items-center gap-1 text-[11px] text-success-text font-medium">
-              <TrendingUp className="h-3 w-3" />
-              <span>+{kpis?.comparativaAyerPorcentaje}% vs. ayer</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Comprobantes Emitidos */}
-        <Card className="border-border/80 rounded-md">
-          <CardContent className="p-3.5 space-y-1">
-            <span className="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
-              <span>Comprobantes Emitidos</span>
-              <Receipt className="h-3.5 w-3.5 text-primary" />
-            </span>
-            <div className="text-2xl font-semibold font-mono tabular-nums text-foreground">
-              {kpis?.transaccionesHoy || 0} operaciones
-            </div>
-            <div className="text-[11px] text-muted-foreground">
-              Boletas, facturas y notas de venta
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Ticket Promedio */}
-        <Card className="border-border/80 rounded-md">
-          <CardContent className="p-3.5 space-y-1">
-            <span className="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
-              <span>Ticket Promedio</span>
-              <ArrowUpRight className="h-3.5 w-3.5 text-primary" />
-            </span>
-            <div className="text-2xl font-semibold font-mono tabular-nums text-foreground">
-              {formatMoney(kpis?.ticketPromedioHoy || 0)}
-            </div>
-            <div className="text-[11px] text-muted-foreground font-mono">
-              Consumo promedio por venta
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Unidades Despachadas */}
-        <Card className="border-border/80 rounded-md">
-          <CardContent className="p-3.5 space-y-1">
-            <span className="text-[11px] text-muted-foreground font-medium flex items-center justify-between">
-              <span>Unidades Despachadas</span>
-              <ShoppingCart className="h-3.5 w-3.5 text-muted-foreground" />
-            </span>
-            <div className="text-2xl font-semibold font-mono tabular-nums text-foreground">
-              {kpis?.articulosDespachadosHoy || 0} unid.
-            </div>
-            <div className="text-[11px] text-muted-foreground">
-              Descontadas de Kardex hoy
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
+      <SummaryStrip
+        items={[
+          {
+            label: 'Ventas del día',
+            value: formatMoney(kpis?.totalVendidoHoy ?? 0),
+          },
+          { label: 'Comprobantes', value: kpis?.transaccionesHoy ?? 0 },
+          {
+            label: 'Venta promedio',
+            value: formatMoney(kpis?.ticketPromedioHoy ?? 0),
+          },
+          {
+            label: 'Unidades vendidas',
+            value: kpis?.articulosDespachadosHoy ?? 0,
+          },
+        ]}
+      />
       {/* Desglose por Medio de Pago en Caja */}
       {kpis?.ventasPorMetodo && (
         <Card className="border-border/80 rounded-md">
@@ -145,7 +93,7 @@ export const VentasDashboardView: React.FC<VentasDashboardViewProps> = ({
             <CardTitle className="text-xs font-semibold text-foreground">
               Ingresos por Medio de Pago (Turno Actual)
             </CardTitle>
-            <CardDescription className="text-[11px]">
+            <CardDescription className="text-xs">
               Distribución de cobranzas en efectivo y pagos digitales.
             </CardDescription>
           </CardHeader>
@@ -156,8 +104,10 @@ export const VentasDashboardView: React.FC<VentasDashboardViewProps> = ({
                   key={m.metodo}
                   className="rounded-md border border-border/70 bg-muted/30 p-2.5 space-y-1 text-xs"
                 >
-                  <div className="flex items-center justify-between text-muted-foreground text-[11px]">
-                    <span className="font-medium text-foreground">{m.metodo}</span>
+                  <div className="flex items-center justify-between text-muted-foreground text-xs">
+                    <span className="font-medium text-foreground">
+                      {m.metodo}
+                    </span>
                     <span className="font-mono">{m.porcentaje}%</span>
                   </div>
                   <div className="text-base font-semibold font-mono tabular-nums text-foreground">
@@ -177,7 +127,7 @@ export const VentasDashboardView: React.FC<VentasDashboardViewProps> = ({
             <CardTitle className="text-xs font-semibold text-foreground">
               Ventas Recientes del Turno
             </CardTitle>
-            <CardDescription className="text-[11px]">
+            <CardDescription className="text-xs">
               Comprobantes emitidos recientemente en mostrador.
             </CardDescription>
           </div>
@@ -205,32 +155,53 @@ export const VentasDashboardView: React.FC<VentasDashboardViewProps> = ({
                 <Table className="min-w-[700px]">
                   <TableHeader>
                     <TableRow className="bg-muted/40 border-b border-border">
-                      <TableHead className="text-xs py-2 whitespace-nowrap">Comprobante</TableHead>
-                      <TableHead className="text-xs py-2 min-w-[150px] whitespace-nowrap">Cliente</TableHead>
-                      <TableHead className="text-xs py-2 whitespace-nowrap">Hora</TableHead>
-                      <TableHead className="text-xs py-2 whitespace-nowrap">Medio Pago</TableHead>
-                      <TableHead className="text-xs py-2 text-right whitespace-nowrap">Total Cobrado</TableHead>
-                      <TableHead className="text-xs py-2 text-center w-28 whitespace-nowrap">Acciones</TableHead>
+                      <TableHead className="text-xs py-2 whitespace-nowrap">
+                        Comprobante
+                      </TableHead>
+                      <TableHead className="text-xs py-2 min-w-[150px] whitespace-nowrap">
+                        Cliente
+                      </TableHead>
+                      <TableHead className="text-xs py-2 whitespace-nowrap">
+                        Hora
+                      </TableHead>
+                      <TableHead className="text-xs py-2 whitespace-nowrap">
+                        Medio Pago
+                      </TableHead>
+                      <TableHead className="text-xs py-2 text-right whitespace-nowrap">
+                        Total Cobrado
+                      </TableHead>
+                      <TableHead className="text-xs py-2 text-center w-28 whitespace-nowrap">
+                        Acciones
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {ventasHoy.map((v) => (
-                      <TableRow key={v.id} className="text-xs hover:bg-muted/20 border-b border-border/60">
+                      <TableRow
+                        key={v.id}
+                        className="text-xs hover:bg-muted/20 border-b border-border/60"
+                      >
                         <TableCell className="py-2 whitespace-nowrap">
                           <span className="font-mono font-semibold text-primary block">
                             {v.serieCorrelativo}
                           </span>
-                          <span className="text-[10px] text-muted-foreground">{v.tipoComprobante}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {v.tipoComprobante}
+                          </span>
                         </TableCell>
                         <TableCell className="py-2 min-w-[150px]">
-                          <span className="font-medium text-foreground block">{v.clienteNombre}</span>
-                          <span className="text-[10px] text-muted-foreground font-mono">{v.clienteDocumento}</span>
+                          <span className="font-medium text-foreground block">
+                            {v.clienteNombre}
+                          </span>
+                          <span className="text-xs text-muted-foreground font-mono">
+                            {v.clienteDocumento}
+                          </span>
                         </TableCell>
-                        <TableCell className="py-2 font-mono text-muted-foreground text-[11px] whitespace-nowrap">
+                        <TableCell className="py-2 font-mono text-muted-foreground text-xs whitespace-nowrap">
                           {v.fecha}
                         </TableCell>
                         <TableCell className="py-2 whitespace-nowrap">
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-muted border border-border/60">
+                          <span className="px-1.5 py-0.5 rounded text-xs font-semibold bg-muted border border-border/60">
                             {v.metodoPago}
                           </span>
                         </TableCell>
@@ -251,7 +222,11 @@ export const VentasDashboardView: React.FC<VentasDashboardViewProps> = ({
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => toast.info(`Imprimiendo ticket ${v.serieCorrelativo}...`)}
+                              onClick={() =>
+                                toast.info(
+                                  `Imprimiendo ticket ${v.serieCorrelativo}...`,
+                                )
+                              }
                               className="h-7 w-7 p-0"
                               title="Reimprimir ticket"
                             >
@@ -278,14 +253,14 @@ export const VentasDashboardView: React.FC<VentasDashboardViewProps> = ({
                           <span className="font-mono font-semibold text-primary text-xs">
                             {v.serieCorrelativo}
                           </span>
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground">
+                          <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground">
                             {v.tipoComprobante}
                           </span>
                         </div>
                         <h4 className="font-medium text-foreground text-xs mt-1">
                           {v.clienteNombre}
                         </h4>
-                        <span className="text-[10px] text-muted-foreground font-mono">
+                        <span className="text-xs text-muted-foreground font-mono">
                           Doc: {v.clienteDocumento}
                         </span>
                       </div>
@@ -293,20 +268,20 @@ export const VentasDashboardView: React.FC<VentasDashboardViewProps> = ({
                         <span className="font-mono font-semibold text-foreground text-sm tabular-nums block">
                           {formatMoney(v.total)}
                         </span>
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted border border-border/60">
+                        <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-muted border border-border/60">
                           {v.metodoPago}
                         </span>
                       </div>
                     </div>
 
-                    <div className="pt-2 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
+                    <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs text-muted-foreground">
                       <span className="font-mono">{v.fecha}</span>
                       <div className="flex items-center gap-1">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => onVerDetalleVenta(v)}
-                          className="h-7 text-[11px] px-2 gap-1"
+                          className="h-7 text-xs px-2 gap-1"
                         >
                           <Eye className="h-3 w-3" />
                           <span>Ver</span>
@@ -314,8 +289,12 @@ export const VentasDashboardView: React.FC<VentasDashboardViewProps> = ({
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => toast.info(`Imprimiendo ticket ${v.serieCorrelativo}...`)}
-                          className="h-7 text-[11px] px-2 gap-1"
+                          onClick={() =>
+                            toast.info(
+                              `Imprimiendo ticket ${v.serieCorrelativo}...`,
+                            )
+                          }
+                          className="h-7 text-xs px-2 gap-1"
                         >
                           <Printer className="h-3 w-3" />
                           <span>Ticket</span>

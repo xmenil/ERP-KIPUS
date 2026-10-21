@@ -91,13 +91,13 @@ export const SalesTrendChart: React.FC<SalesTrendChartProps> = ({ data, isLoadin
                 <Bar
                   name="Ventas"
                   dataKey="ventas"
-                  fill="hsl(var(--primary))"
+                  fill="hsl(var(--chart-1))"
                   radius={[3, 3, 0, 0]}
                 />
                 <Bar
                   name="Gastos"
                   dataKey="gastos"
-                  fill="hsl(var(--danger-text))"
+                  fill="hsl(var(--chart-neutral))"
                   radius={[3, 3, 0, 0]}
                   opacity={0.8}
                 />

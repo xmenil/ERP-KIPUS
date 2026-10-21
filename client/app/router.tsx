@@ -1,24 +1,24 @@
-import React from 'react';
+import React, { lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { APP_ROUTES } from '@/constants/routes';
 import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
 import LoginPage from '@/features/auth/pages/LoginPage';
 
-// Importación directa de páginas de módulos
-import DashboardPage from '@/features/dashboard/pages/DashboardPage';
-import VentasPage from '@/features/ventas/pages/VentasPage';
-import ProductosPage from '@/features/productos/pages/ProductosPage';
-import InventarioPage from '@/features/inventario/pages/InventarioPage';
-import CajaPage from '@/features/caja/pages/CajaPage';
-import GastosPage from '@/features/gastos/pages/GastosPage';
-import ComprasPage from '@/features/compras/pages/ComprasPage';
-import ClientesPage from '@/features/clientes/pages/ClientesPage';
-import ProveedoresPage from '@/features/proveedores/pages/ProveedoresPage';
-import ReportesPage from '@/features/reportes/pages/ReportesPage';
-import KipusIaPage from '@/features/kipus-ia/pages/KipusIaPage';
-import UsuariosPage from '@/features/usuarios/pages/UsuariosPage';
-import ConfiguracionPage from '@/features/configuracion/pages/ConfiguracionPage';
+// Cada módulo se descarga al visitarlo; el shell permanece montado.
+const DashboardPage = lazy(() => import('@/features/dashboard/pages/DashboardPage'));
+const VentasPage = lazy(() => import('@/features/ventas/pages/VentasPage'));
+const ProductosPage = lazy(() => import('@/features/productos/pages/ProductosPage'));
+const InventarioPage = lazy(() => import('@/features/inventario/pages/InventarioPage'));
+const CajaPage = lazy(() => import('@/features/caja/pages/CajaPage'));
+const GastosPage = lazy(() => import('@/features/gastos/pages/GastosPage'));
+const ComprasPage = lazy(() => import('@/features/compras/pages/ComprasPage'));
+const ClientesPage = lazy(() => import('@/features/clientes/pages/ClientesPage'));
+const ProveedoresPage = lazy(() => import('@/features/proveedores/pages/ProveedoresPage'));
+const ReportesPage = lazy(() => import('@/features/reportes/pages/ReportesPage'));
+const KipusIaPage = lazy(() => import('@/features/kipus-ia/pages/KipusIaPage'));
+const UsuariosPage = lazy(() => import('@/features/usuarios/pages/UsuariosPage'));
+const ConfiguracionPage = lazy(() => import('@/features/configuracion/pages/ConfiguracionPage'));
 import NotFound from '@/pages/NotFound';
 
 /**

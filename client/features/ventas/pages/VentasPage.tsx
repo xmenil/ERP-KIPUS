@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createLatestRequest } from '@/lib/latestRequest';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -52,10 +53,13 @@ export const VentasPage: React.FC = () => {
   const [tabActiva, setTabActiva] = useState<string>('pos');
 
   // Complejidad progresiva (adaptable al tamaño de negocio)
-  const [nivelNegocio, setNivelNegocio] = useState<NivelComplejidadNegocio>('COMERCIO_MEDIANO');
+  const [nivelNegocio, setNivelNegocio] =
+    useState<NivelComplejidadNegocio>('COMERCIO_MEDIANO');
 
   // Sucursal y caja activa
-  const [sucursalActiva, setSucursalActiva] = useState('Sede Central (Tingo María)');
+  const [sucursalActiva, setSucursalActiva] = useState(
+    'Sede Central (Tingo María)',
+  );
   const [cajaActiva, setCajaActiva] = useState('Caja 01 - Mostrador');
 
   // Datos principales
@@ -67,28 +71,42 @@ export const VentasPage: React.FC = () => {
   const [devoluciones, setDevoluciones] = useState<Devolucion[]>([]);
   const [kpis, setKpis] = useState<ResumenVentasKpis | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const requests = useRef(createLatestRequest());
 
   // Modales
-  const [ventaSeleccionadaDetalle, setVentaSeleccionadaDetalle] = useState<Venta | null>(null);
+  const [ventaSeleccionadaDetalle, setVentaSeleccionadaDetalle] =
+    useState<Venta | null>(null);
   const [openDetalleModal, setOpenDetalleModal] = useState(false);
   const [openIaSheet, setOpenIaSheet] = useState(false);
-  const [ventaParaDevolucion, setVentaParaDevolucion] = useState<Venta | null>(null);
+  const [ventaParaDevolucion, setVentaParaDevolucion] = useState<Venta | null>(
+    null,
+  );
 
   // Carga de datos
   const fetchData = async () => {
-    setLoading(true);
+    const request = requests.current.begin();
+    setLoadError(false);
     try {
-      const [ventasData, prodsData, cliData, pedData, cotData, devData, kpisData] =
-        await Promise.all([
-          ventasService.getVentas(),
-          productosService.getProductos(),
-          clientesService.getClientes(),
-          ventasService.getPedidos(),
-          ventasService.getCotizaciones(),
-          ventasService.getDevoluciones(),
-          ventasService.getKpisVentas(),
-        ]);
+      const [
+        ventasData,
+        prodsData,
+        cliData,
+        pedData,
+        cotData,
+        devData,
+        kpisData,
+      ] = await Promise.all([
+        ventasService.getVentas(),
+        productosService.getProductos(),
+        clientesService.getClientes(),
+        ventasService.getPedidos(),
+        ventasService.getCotizaciones(),
+        ventasService.getDevoluciones(),
+        ventasService.getKpisVentas(),
+      ]);
 
+      if (!requests.current.isCurrent(request)) return;
       setVentas(ventasData);
       setProductos(prodsData);
       setClientes(cliData);
@@ -97,9 +115,11 @@ export const VentasPage: React.FC = () => {
       setDevoluciones(devData);
       setKpis(kpisData);
     } catch {
+      if (!requests.current.isCurrent(request)) return;
+      setLoadError(true);
       toast.error('Error al cargar datos del módulo de ventas');
     } finally {
-      setLoading(false);
+      if (requests.current.isCurrent(request)) setLoading(false);
     }
   };
 
@@ -108,49 +128,50 @@ export const VentasPage: React.FC = () => {
     const unsubscribe = subscribeToErp(() => {
       fetchData();
     });
-    return unsubscribe;
+    return () => {
+      requests.current.invalidate();
+      unsubscribe();
+    };
   }, []);
 
   // Handlers
-  const handleEmitirVenta = async (payload: NuevaVentaPayload): Promise<Venta> => {
+  const handleEmitirVenta = async (
+    payload: NuevaVentaPayload,
+  ): Promise<Venta> => {
     const nueva = await ventasService.crearVenta(payload);
-    await fetchData();
+
     return nueva;
   };
 
   const handleAnularVenta = async (id: string, motivo: string) => {
     await ventasService.anularVenta(id, motivo);
-    await fetchData();
   };
 
   const handleRegistrarDevolucion = async (payload: any) => {
     await ventasService.registrarDevolucion(payload);
-    await fetchData();
   };
 
-  const handleCambiarEstadoPedido = async (id: string, nuevoEstado: EstadoPedido) => {
+  const handleCambiarEstadoPedido = async (
+    id: string,
+    nuevoEstado: EstadoPedido,
+  ) => {
     await ventasService.cambiarEstadoPedido(id, nuevoEstado);
-    await fetchData();
   };
 
   const handleConvertirPedidoAVenta = async (pedidoId: string) => {
     await ventasService.convertirPedidoAVenta(pedidoId);
-    await fetchData();
   };
 
   const handleCrearPedido = async (payload: any) => {
     await ventasService.crearPedido(payload);
-    await fetchData();
   };
 
   const handleConvertirCotizacionAVenta = async (cotizacionId: string) => {
     await ventasService.convertirCotizacionAVenta(cotizacionId);
-    await fetchData();
   };
 
   const handleCrearCotizacion = async (payload: any) => {
     await ventasService.crearCotizacion(payload);
-    await fetchData();
   };
 
   const handleVerDetalleVenta = (v: Venta) => {
@@ -167,19 +188,23 @@ export const VentasPage: React.FC = () => {
     <div className="space-y-4">
       {/* Encabezado Principal */}
       <PageHeader
-        title="Módulo de Ventas y Facturación"
-        description="Punto de venta rápido, comprobantes electrónicos SUNAT, pedidos, cotizaciones y devoluciones."
-        badge="POS KIPU'S"
+        title="Ventas"
+        description="Registra ventas y consulta comprobantes, pedidos y devoluciones."
       >
         <div className="flex flex-wrap items-center gap-2">
           {/* Selector de complejidad progresiva del negocio */}
           <div className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1 text-xs">
             <Sliders className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-muted-foreground hidden sm:inline">Modo:</span>
+            <label htmlFor="ventas-vista" className="text-muted-foreground">
+              Vista
+            </label>
             <select
+              id="ventas-vista"
               value={nivelNegocio}
-              onChange={(e) => setNivelNegocio(e.target.value as NivelComplejidadNegocio)}
-              className="bg-transparent font-medium text-foreground text-xs focus:outline-none cursor-pointer"
+              onChange={(e) =>
+                setNivelNegocio(e.target.value as NivelComplejidadNegocio)
+              }
+              className="h-11 md:h-9 max-w-full bg-transparent text-base md:text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <option value="TIENDA_PEQUENA">Tienda Rápida / Bodega</option>
               <option value="COMERCIO_MEDIANO">Comercio Mediano</option>
@@ -192,12 +217,15 @@ export const VentasPage: React.FC = () => {
             <div className="hidden md:flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1 text-xs">
               <Building2 className="h-3.5 w-3.5 text-primary" />
               <select
+                aria-label="Sucursal de ventas"
                 value={sucursalActiva}
                 onChange={(e) => setSucursalActiva(e.target.value)}
-                className="bg-transparent font-medium text-foreground text-xs focus:outline-none cursor-pointer"
+                className="h-11 md:h-9 max-w-full bg-transparent text-base md:text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <option value="Sede Central (Tingo María)">Sede Central</option>
-                <option value="Tienda Mostrador (Tingo María)">Tienda Mostrador</option>
+                <option value="Tienda Mostrador (Tingo María)">
+                  Tienda Mostrador
+                </option>
                 <option value="Sucursal Huánuco">Sucursal Huánuco</option>
               </select>
             </div>
@@ -208,7 +236,7 @@ export const VentasPage: React.FC = () => {
             size="sm"
             variant="outline"
             onClick={() => setOpenIaSheet(true)}
-            className="gap-1.5 h-8 text-xs font-semibold text-primary border-primary/30 hover:bg-primary-soft cursor-pointer"
+            className="gap-2 h-11 md:h-9 text-sm"
           >
             <Sparkles className="h-3.5 w-3.5" />
             <span>KIPU'S IA</span>
@@ -216,20 +244,47 @@ export const VentasPage: React.FC = () => {
         </div>
       </PageHeader>
 
+      {loadError && (
+        <div
+          role="alert"
+          className="flex items-center justify-between gap-4 rounded-md border border-border p-4"
+        >
+          <p className="text-sm">
+            No se pudieron actualizar las ventas. Intenta cargarlas nuevamente.
+          </p>
+          <Button variant="outline" onClick={() => fetchData()}>
+            Reintentar
+          </Button>
+        </div>
+      )}
+
       {/* Navegación por pestañas de ventas */}
-      <Tabs value={tabActiva} onValueChange={setTabActiva} className="w-full space-y-3.5">
+      <Tabs
+        value={tabActiva}
+        onValueChange={setTabActiva}
+        className="w-full space-y-3.5"
+      >
         <TabsList className="bg-muted/70 p-1 flex overflow-x-auto flex-nowrap sm:flex-wrap h-auto gap-1 border border-border/60 max-w-full scrollbar-none justify-start">
-          <TabsTrigger value="pos" className="text-xs font-semibold py-1.5 px-3 gap-1.5 shrink-0">
+          <TabsTrigger
+            value="pos"
+            className="text-xs font-semibold py-1.5 px-3 gap-1.5 shrink-0"
+          >
             <ShoppingCart className="h-3.5 w-3.5" />
             <span>Punto de Venta (POS)</span>
           </TabsTrigger>
 
-          <TabsTrigger value="dashboard" className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0">
+          <TabsTrigger
+            value="dashboard"
+            className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0"
+          >
             <LayoutDashboard className="h-3.5 w-3.5" />
             <span>Resumen del Día</span>
           </TabsTrigger>
 
-          <TabsTrigger value="historial" className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0">
+          <TabsTrigger
+            value="historial"
+            className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0"
+          >
             <Receipt className="h-3.5 w-3.5" />
             <span>Historial de Comprobantes</span>
           </TabsTrigger>
@@ -237,12 +292,21 @@ export const VentasPage: React.FC = () => {
           {/* Pestañas habilitadas en Modo Comercio Mediano y Cadena */}
           {nivelNegocio !== 'TIENDA_PEQUENA' && (
             <>
-              <TabsTrigger value="pedidos" className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0">
+              <TabsTrigger
+                value="pedidos"
+                className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0"
+              >
                 <ShoppingBag className="h-3.5 w-3.5" />
-                <span>Pedidos ({pedidos.filter((p) => p.estado !== 'ENTREGADO').length})</span>
+                <span>
+                  Pedidos (
+                  {pedidos.filter((p) => p.estado !== 'ENTREGADO').length})
+                </span>
               </TabsTrigger>
 
-              <TabsTrigger value="cotizaciones" className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0">
+              <TabsTrigger
+                value="cotizaciones"
+                className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0"
+              >
                 <FileCheck className="h-3.5 w-3.5" />
                 <span>Cotizaciones / Proformas</span>
               </TabsTrigger>
@@ -251,7 +315,10 @@ export const VentasPage: React.FC = () => {
 
           {/* Pestaña habilitada en Modo Cadena Empresarial */}
           {nivelNegocio === 'CADENA_EMPRESARIAL' && (
-            <TabsTrigger value="devoluciones" className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0">
+            <TabsTrigger
+              value="devoluciones"
+              className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0"
+            >
               <RotateCcw className="h-3.5 w-3.5" />
               <span>Devoluciones</span>
             </TabsTrigger>

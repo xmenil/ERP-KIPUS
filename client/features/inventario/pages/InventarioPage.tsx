@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createLatestRequest } from '@/lib/latestRequest';
 import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { SummaryCard } from '../components/SummaryCard';
+import { SummaryStrip } from '@/components/common/SummaryStrip';
 import { FilterBar } from '../components/FilterBar';
 import { InventoryTable } from '../components/InventoryTable';
 import { ProductInventoryDetail } from '../components/ProductInventoryDetail';
@@ -27,7 +28,11 @@ import { formatCurrency } from '@/utils/formatters';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
-type SeccionInventario = 'existencias' | 'entradas-salidas' | 'ajustes' | 'inventario-fisico';
+type SeccionInventario =
+  | 'existencias'
+  | 'entradas-salidas'
+  | 'ajustes'
+  | 'inventario-fisico';
 
 /**
  * Módulo de INVENTARIO de KIPU'S ERP.
@@ -47,15 +52,24 @@ export const InventarioPage: React.FC = () => {
   const [almacenes, setAlmacenes] = useState<AlmacenResumen[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const requests = useRef(createLatestRequest());
 
   // Sección activa (controlada eficientemente por URL y estado sincronizado)
   const tabParam = searchParams.get('tab');
   const getSeccionValida = (tab: string | null): SeccionInventario =>
-    tab && ['existencias', 'entradas-salidas', 'ajustes', 'inventario-fisico'].includes(tab)
+    tab &&
+    [
+      'existencias',
+      'entradas-salidas',
+      'ajustes',
+      'inventario-fisico',
+    ].includes(tab)
       ? (tab as SeccionInventario)
       : 'existencias';
 
-  const [seccionActiva, setSeccionActiva] = useState<SeccionInventario>(() => getSeccionValida(tabParam));
+  const [seccionActiva, setSeccionActiva] = useState<SeccionInventario>(() =>
+    getSeccionValida(tabParam),
+  );
 
   // Sincronizar estado cuando cambia URL param por botones de historial
   useEffect(() => {
@@ -79,17 +93,19 @@ export const InventarioPage: React.FC = () => {
         }
         return next;
       },
-      { replace: true }
+      { replace: true },
     );
   };
 
   // Modales
-  const [productoSeleccionado, setProductoSeleccionado] = useState<ItemStockDetalle | null>(null);
+  const [productoSeleccionado, setProductoSeleccionado] =
+    useState<ItemStockDetalle | null>(null);
   const [openDetalleModal, setOpenDetalleModal] = useState(false);
   const [openAjusteModal, setOpenAjusteModal] = useState(false);
 
   // Filtro de búsqueda cruzada para Entradas y Salidas
-  const [filtroMovimientosProducto, setFiltroMovimientosProducto] = useState<string>('');
+  const [filtroMovimientosProducto, setFiltroMovimientosProducto] =
+    useState<string>('');
 
   // Filtros de la pantalla de Existencias
   const [busquedaExistencias, setBusquedaExistencias] = useState('');
@@ -99,26 +115,32 @@ export const InventarioPage: React.FC = () => {
 
   // Carga de datos unificada: sólo muestra esqueleto en la primera carga para evitar parpadeos
   const cargarDatos = async (isInitial: boolean = false) => {
+    const request = requests.current.begin();
     if (isInitial) {
       setLoading(true);
     }
     setError(null);
     try {
-      const [prodsData, movsData, ajustesData, almacenesData] = await Promise.all([
-        inventarioService.getProductosStock(),
-        inventarioService.getMovimientos(),
-        inventarioService.getAjustes(),
-        inventarioService.getAlmacenes(),
-      ]);
+      const [prodsData, movsData, ajustesData, almacenesData] =
+        await Promise.all([
+          inventarioService.getProductosStock(),
+          inventarioService.getMovimientos(),
+          inventarioService.getAjustes(),
+          inventarioService.getAlmacenes(),
+        ]);
+      if (!requests.current.isCurrent(request)) return;
       setProductos(prodsData || []);
       setMovimientos(movsData || []);
       setAjustes(ajustesData || []);
       setAlmacenes(almacenesData || []);
     } catch {
-      setError('No se pudo cargar la información del inventario. Revisa tu conexión a internet.');
+      if (!requests.current.isCurrent(request)) return;
+      setError(
+        'No se pudo cargar el inventario de este navegador. Intenta cargarlo nuevamente.',
+      );
       toast.error('Error al sincronizar inventario');
     } finally {
-      if (isInitial) {
+      if (requests.current.isCurrent(request)) {
         setLoading(false);
       }
     }
@@ -129,19 +151,28 @@ export const InventarioPage: React.FC = () => {
     const unsubscribe = subscribeToErp(() => {
       cargarDatos(false);
     });
-    return unsubscribe;
+    return () => {
+      requests.current.invalidate();
+      unsubscribe();
+    };
   }, []);
 
   // Lista de categorías únicas para los filtros
   const categorias = useMemo(() => {
-    return Array.from(new Set(productos.map((p) => p.categoria))).filter(Boolean);
+    return Array.from(new Set(productos.map((p) => p.categoria))).filter(
+      Boolean,
+    );
   }, [productos]);
 
   // Indicadores superiores (Sección 3)
   const metricas = useMemo(() => {
     const total = productos.length;
-    const stockBajo = productos.filter((p) => p.estadoNivel === 'STOCK_BAJO').length;
-    const agotados = productos.filter((p) => p.estadoNivel === 'AGOTADO').length;
+    const stockBajo = productos.filter(
+      (p) => p.estadoNivel === 'STOCK_BAJO',
+    ).length;
+    const agotados = productos.filter(
+      (p) => p.estadoNivel === 'AGOTADO',
+    ).length;
     const valorAprox = productos.reduce((acc, p) => acc + p.valorizadoCosto, 0);
 
     return {
@@ -166,11 +197,18 @@ export const InventarioPage: React.FC = () => {
         estadoFiltro === 'TODOS' || p.estadoNivel === estadoFiltro;
 
       const matchAlmacen =
-        almacenFiltro === 'TODOS' || (p.almacen && p.almacen.includes(almacenFiltro));
+        almacenFiltro === 'TODOS' ||
+        (p.almacen && p.almacen.includes(almacenFiltro));
 
       return matchBusqueda && matchCategoria && matchEstado && matchAlmacen;
     });
-  }, [productos, busquedaExistencias, categoriaFiltro, estadoFiltro, almacenFiltro]);
+  }, [
+    productos,
+    busquedaExistencias,
+    categoriaFiltro,
+    estadoFiltro,
+    almacenFiltro,
+  ]);
 
   const hayFiltrosExistenciasActivos =
     busquedaExistencias !== '' ||
@@ -200,15 +238,13 @@ export const InventarioPage: React.FC = () => {
   // Registrar nuevo ajuste individual
   const handleGuardarAjuste = async (payload: NuevoAjustePayload) => {
     await inventarioService.registrarAjuste(payload);
-    await cargarDatos();
   };
 
   // Aplicar ajustes masivos de inventario físico
   const handleAplicarAjustesFisicos = async (
-    items: { productoId: string; stockFisico: number; motivo?: string }[]
+    items: { productoId: string; stockFisico: number; motivo?: string }[],
   ) => {
     await inventarioService.aplicarAjustesFisicos(items);
-    await cargarDatos();
   };
 
   // Movimientos filtrados para el modal de detalle del producto seleccionado
@@ -217,7 +253,7 @@ export const InventarioPage: React.FC = () => {
     return movimientos.filter(
       (m) =>
         m.sku === productoSeleccionado.sku ||
-        m.productoNombre === productoSeleccionado.nombre
+        m.productoNombre === productoSeleccionado.nombre,
     );
   }, [movimientos, productoSeleccionado]);
 
@@ -241,34 +277,35 @@ export const InventarioPage: React.FC = () => {
         )}
       </PageHeader>
 
-      {/* Indicadores Superiores Discretos (Sección 3) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <SummaryCard
-          label="Total de productos"
-          value={metricas.total}
-          description="registrados en catálogo"
-        />
-        <SummaryCard
-          label="Stock bajo"
-          value={metricas.stockBajo}
-          description={metricas.stockBajo > 0 ? 'requieren reposición' : 'niveles estables'}
-          variant={metricas.stockBajo > 0 ? 'warning' : 'default'}
-        />
-        <SummaryCard
-          label="Agotados"
-          value={metricas.agotados}
-          description={metricas.agotados > 0 ? 'sin unidades disponibles' : 'ninguno agotado'}
-          variant={metricas.agotados > 0 ? 'danger' : 'default'}
-        />
-        <SummaryCard
-          label="Valor aprox. del inventario"
-          value={formatCurrency(metricas.valorAprox)}
-          description="calculado al costo de compra"
-        />
-      </div>
-
+      <SummaryStrip
+        loading={loading}
+        items={[
+          { label: 'Productos', value: metricas.total },
+          {
+            label: 'Stock bajo',
+            value: metricas.stockBajo,
+            description: 'Requieren reposición',
+            tone: metricas.stockBajo > 0 ? 'warning' : undefined,
+          },
+          {
+            label: 'Agotados',
+            value: metricas.agotados,
+            description: 'Sin unidades disponibles',
+            tone: metricas.agotados > 0 ? 'danger' : undefined,
+          },
+          {
+            label: 'Valor del inventario',
+            value: formatCurrency(metricas.valorAprox),
+            description: 'Al costo de compra',
+          },
+        ]}
+      />
       {/* Pestañas de Navegación del Módulo: Únicamente las 4 requeridas */}
-      <Tabs value={seccionActiva} onValueChange={handleTabChange} className="w-full space-y-4">
+      <Tabs
+        value={seccionActiva}
+        onValueChange={handleTabChange}
+        className="w-full space-y-4"
+      >
         <div className="border-b border-border overflow-x-auto pb-px scrollbar-none">
           <TabsList className="bg-transparent p-0 h-auto flex flex-nowrap gap-1 sm:gap-2 justify-start border-none">
             <TabsTrigger
@@ -310,7 +347,10 @@ export const InventarioPage: React.FC = () => {
         {/* SECCIÓN 1: EXISTENCIAS (Pantalla Principal)                               */}
         {/* ========================================================================= */}
         {!loading && !error && (
-          <TabsContent value="existencias" className="space-y-4 m-0 focus-visible:outline-none">
+          <TabsContent
+            value="existencias"
+            className="space-y-4 m-0 focus-visible:outline-none"
+          >
             <ErrorBoundary moduleName="Catálogo de Existencias">
               {/* Barra de Filtros */}
               <FilterBar
@@ -344,12 +384,18 @@ export const InventarioPage: React.FC = () => {
         {/* SECCIÓN 2: ENTRADAS Y SALIDAS                                             */}
         {/* ========================================================================= */}
         {!loading && !error && (
-          <TabsContent value="entradas-salidas" className="space-y-4 m-0 focus-visible:outline-none">
+          <TabsContent
+            value="entradas-salidas"
+            className="space-y-4 m-0 focus-visible:outline-none"
+          >
             <ErrorBoundary moduleName="Entradas y Salidas">
               <div className="space-y-1">
-                <h2 className="text-base font-semibold text-foreground">Entradas y salidas</h2>
+                <h2 className="text-base font-semibold text-foreground">
+                  Entradas y salidas
+                </h2>
                 <p className="text-xs text-muted-foreground">
-                  Consulta cómo ha cambiado el stock de tus productos a partir de compras, ventas y ajustes.
+                  Consulta cómo ha cambiado el stock de tus productos a partir
+                  de compras, ventas y ajustes.
                 </p>
               </div>
 
@@ -366,13 +412,19 @@ export const InventarioPage: React.FC = () => {
         {/* SECCIÓN 3: AJUSTES DE INVENTARIO                                          */}
         {/* ========================================================================= */}
         {!loading && !error && (
-          <TabsContent value="ajustes" className="space-y-4 m-0 focus-visible:outline-none">
+          <TabsContent
+            value="ajustes"
+            className="space-y-4 m-0 focus-visible:outline-none"
+          >
             <ErrorBoundary moduleName="Ajustes de Inventario">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="space-y-1">
-                  <h2 className="text-base font-semibold text-foreground">Ajustes de inventario</h2>
+                  <h2 className="text-base font-semibold text-foreground">
+                    Ajustes de inventario
+                  </h2>
                   <p className="text-xs text-muted-foreground">
-                    Corrige diferencias entre el stock registrado y el stock real por mermas, vencimientos o recuentos.
+                    Corrige diferencias entre el stock registrado y el stock
+                    real por mermas, vencimientos o recuentos.
                   </p>
                 </div>
 
@@ -399,12 +451,18 @@ export const InventarioPage: React.FC = () => {
         {/* SECCIÓN 4: INVENTARIO FÍSICO                                              */}
         {/* ========================================================================= */}
         {!loading && !error && (
-          <TabsContent value="inventario-fisico" className="space-y-4 m-0 focus-visible:outline-none">
+          <TabsContent
+            value="inventario-fisico"
+            className="space-y-4 m-0 focus-visible:outline-none"
+          >
             <ErrorBoundary moduleName="Inventario Físico">
               <div className="space-y-1">
-                <h2 className="text-base font-semibold text-foreground">Inventario físico</h2>
+                <h2 className="text-base font-semibold text-foreground">
+                  Inventario físico
+                </h2>
                 <p className="text-xs text-muted-foreground">
-                  Compara el stock registrado con la cantidad real disponible ingresando el conteo de cada producto.
+                  Compara el stock registrado con la cantidad real disponible
+                  ingresando el conteo de cada producto.
                 </p>
               </div>
 

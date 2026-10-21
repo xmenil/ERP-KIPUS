@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createLatestRequest } from '@/lib/latestRequest';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -52,7 +53,13 @@ import {
 import { toast } from 'sonner';
 
 type NivelComplejidad = 'BODEGA' | 'MEDIANO' | 'EMPRESARIAL';
-type TabCaja = 'MI_CAJA' | 'MOVIMIENTOS' | 'ARQUEO' | 'CIERRES' | 'CAJAS' | 'AUDITORIA';
+type TabCaja =
+  | 'MI_CAJA'
+  | 'MOVIMIENTOS'
+  | 'ARQUEO'
+  | 'CIERRES'
+  | 'CAJAS'
+  | 'AUDITORIA';
 
 export const CajaPage: React.FC = () => {
   // Estado de Datos
@@ -62,6 +69,8 @@ export const CajaPage: React.FC = () => {
   const [cierres, setCierres] = useState<CierreCaja[]>([]);
   const [auditorias, setAuditorias] = useState<AuditoriaCaja[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const requests = useRef(createLatestRequest());
 
   // Navegación y Complejidad Progresiva
   const [nivel, setNivel] = useState<NivelComplejidad>('EMPRESARIAL');
@@ -70,16 +79,21 @@ export const CajaPage: React.FC = () => {
   // Diálogos Modales
   const [modalAbrirOpen, setModalAbrirOpen] = useState(false);
   const [modalOperacionOpen, setModalOperacionOpen] = useState(false);
-  const [operacionTipo, setOperacionTipo] = useState<TipoOperacionCaja>('INGRESO');
+  const [operacionTipo, setOperacionTipo] =
+    useState<TipoOperacionCaja>('INGRESO');
   const [modalArqueoOpen, setModalArqueoOpen] = useState(false);
   const [modalCierreOpen, setModalCierreOpen] = useState(false);
   const [ultimoArqueo, setUltimoArqueo] = useState<ArqueoConteo | null>(null);
-  const [modalResultadoCierreOpen, setModalResultadoCierreOpen] = useState(false);
-  const [ultimoCierreRealizado, setUltimoCierreRealizado] = useState<CierreCaja | null>(null);
+  const [modalResultadoCierreOpen, setModalResultadoCierreOpen] =
+    useState(false);
+  const [ultimoCierreRealizado, setUltimoCierreRealizado] =
+    useState<CierreCaja | null>(null);
   const [modalIAOpen, setModalIAOpen] = useState(false);
 
   // Carga reactiva de datos
   const fetchDatos = async () => {
+    const request = requests.current.begin();
+    setLoadError(false);
     try {
       const [est, movs, cjs, cies, auds] = await Promise.all([
         cajaService.getEstado(),
@@ -88,15 +102,18 @@ export const CajaPage: React.FC = () => {
         cajaService.getCierres(),
         cajaService.getAuditoria(),
       ]);
+      if (!requests.current.isCurrent(request)) return;
       setEstado(est);
       setMovimientos(movs);
       setCajas(cjs);
       setCierres(cies);
       setAuditorias(auds);
     } catch {
+      if (!requests.current.isCurrent(request)) return;
+      setLoadError(true);
       toast.error('Error al sincronizar el módulo de caja');
     } finally {
-      setLoading(false);
+      if (requests.current.isCurrent(request)) setLoading(false);
     }
   };
 
@@ -105,18 +122,19 @@ export const CajaPage: React.FC = () => {
     const unsubscribe = subscribeToErp(() => {
       fetchDatos();
     });
-    return unsubscribe;
+    return () => {
+      requests.current.invalidate();
+      unsubscribe();
+    };
   }, []);
 
   // Handlers Operativos
   const handleAbrirCaja = async (payload: AperturaCajaPayload) => {
     try {
-      const nuevoEstado = await cajaService.abrirCaja(payload);
-      setEstado(nuevoEstado);
+      await cajaService.abrirCaja(payload);
       toast.success(
-        `Caja abierta con sencillo inicial de ${formatCurrency(payload.saldoInicial)}`
+        `Caja abierta con sencillo inicial de ${formatCurrency(payload.saldoInicial)}`,
       );
-      fetchDatos();
     } catch {
       toast.error('No se pudo abrir la caja');
     }
@@ -127,15 +145,16 @@ export const CajaPage: React.FC = () => {
     setModalOperacionOpen(true);
   };
 
-  const handleRegistrarOperacion = async (payload: NuevaOperacionCajaPayload) => {
+  const handleRegistrarOperacion = async (
+    payload: NuevaOperacionCajaPayload,
+  ) => {
     try {
       await cajaService.registrarOperacion(payload);
       toast.success(
         `${payload.tipo === 'INGRESO' ? 'Ingreso' : 'Egreso'} de ${formatCurrency(
-          payload.monto
-        )} registrado correctamente`
+          payload.monto,
+        )} registrado correctamente`,
       );
-      fetchDatos();
     } catch {
       toast.error('Error al registrar la operación');
     }
@@ -150,9 +169,8 @@ export const CajaPage: React.FC = () => {
           arqueo.estadoCuadre === 'CUADRADA'
             ? 'Caja cuadrada sin diferencia'
             : `Diferencia de ${formatCurrency(arqueo.diferencia)} registrada`
-        }`
+        }`,
       );
-      fetchDatos();
     } catch {
       toast.error('No se pudo guardar el arqueo');
     }
@@ -169,7 +187,6 @@ export const CajaPage: React.FC = () => {
       setUltimoCierreRealizado(res);
       setModalResultadoCierreOpen(true);
       toast.success('Turno de caja cerrado exitosamente.');
-      fetchDatos();
     } catch {
       toast.error('Error al procesar el cierre de caja');
     }
@@ -203,6 +220,29 @@ export const CajaPage: React.FC = () => {
     ];
   }, [nivel]);
 
+  if (loadError) {
+    return (
+      <div
+        role="alert"
+        className="space-y-4 rounded-md border border-border p-6"
+      >
+        <p className="text-sm">
+          No se pudo actualizar la caja. Vuelve a cargarla para consultar sus
+          datos.
+        </p>
+        <Button
+          variant="outline"
+          onClick={() => {
+            setLoading(true);
+            fetchDatos();
+          }}
+        >
+          Reintentar
+        </Button>
+      </div>
+    );
+  }
+
   if (loading || !estado) {
     return (
       <div className="p-8 text-center space-y-3">
@@ -222,9 +262,7 @@ export const CajaPage: React.FC = () => {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border/80 pb-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-              Módulo de Caja
-            </h1>
+            <h1 className="text-2xl font-semibold text-foreground">Caja</h1>
             {/* Estado Semántico (Regla 6) */}
             <span
               className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-medium border ${
@@ -235,58 +273,46 @@ export const CajaPage: React.FC = () => {
             >
               <span
                 className={`h-2 w-2 rounded-full ${
-                  cajaEstaAbierta ? 'bg-success animate-pulse' : 'bg-destructive'
+                  cajaEstaAbierta ? 'bg-success' : 'bg-destructive'
                 }`}
               />
               {cajaEstaAbierta ? 'Caja abierta' : 'Caja cerrada'}
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Control de efectivo en gaveta, ventas automáticas, cobros digitales y cierres de turno.
+            Consulta el efectivo, registra movimientos y cierra tu turno.
           </p>
         </div>
 
         {/* Acciones de Cabecera: Selector Progresivo y KIPU'S IA */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Selector de Complejidad Progresiva (Regla 35) */}
-          <div className="flex items-center gap-1 p-1 bg-muted/60 rounded-md border border-border/60 overflow-x-auto max-w-full">
-            <span className="text-xs font-medium text-muted-foreground px-2 hidden sm:inline shrink-0">
-              Modo:
-            </span>
-            {(
-              [
-                { id: 'BODEGA', label: 'Tienda Rápida' },
-                { id: 'MEDIANO', label: 'Comercio Mediano' },
-                { id: 'EMPRESARIAL', label: 'Cadena / Admin' },
-              ] as const
-            ).map((mod) => (
-              <button
-                key={mod.id}
-                type="button"
-                onClick={() => {
-                  setNivel(mod.id);
-                  if (mod.id === 'BODEGA' && (activeTab === 'CAJAS' || activeTab === 'AUDITORIA' || activeTab === 'CIERRES')) {
-                    setActiveTab('MI_CAJA');
-                  }
-                }}
-                className={`px-2.5 py-1 rounded text-xs transition-all whitespace-nowrap shrink-0 ${
-                  nivel === mod.id
-                    ? 'bg-card text-foreground shadow-xs border border-border font-medium'
-                    : 'text-muted-foreground hover:text-foreground font-normal'
-                }`}
-              >
-                {mod.label}
-              </button>
-            ))}
-          </div>
-
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+            Vista
+            <select
+              value={nivel}
+              onChange={(e) => {
+                const next = e.target.value as NivelComplejidad;
+                setNivel(next);
+                if (
+                  next === 'BODEGA' &&
+                  ['CAJAS', 'AUDITORIA', 'CIERRES'].includes(activeTab)
+                )
+                  setActiveTab('MI_CAJA');
+              }}
+              className="h-11 md:h-9 max-w-full rounded-md border border-input bg-card px-3 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm"
+            >
+              <option value="BODEGA">Tienda rápida</option>
+              <option value="MEDIANO">Comercio mediano</option>
+              <option value="EMPRESARIAL">Administración</option>
+            </select>
+          </label>
           {/* Botón KIPU'S IA */}
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={() => setModalIAOpen(true)}
-            className="h-8 text-xs font-semibold gap-1.5 border-primary/30 text-primary hover:bg-primary/5 shrink-0"
+            className="h-11 md:h-9 text-sm gap-2 shrink-0"
           >
             <Sparkles className="h-3.5 w-3.5" />
             <span>KIPU'S IA</span>
@@ -298,7 +324,7 @@ export const CajaPage: React.FC = () => {
               type="button"
               size="sm"
               onClick={() => setModalAbrirOpen(true)}
-              className="h-8 text-xs font-semibold gap-1.5 shrink-0"
+              className="h-11 md:h-9 text-sm gap-2 shrink-0"
             >
               <Plus className="h-3.5 w-3.5" />
               <span>Abrir caja</span>
@@ -380,7 +406,8 @@ export const CajaPage: React.FC = () => {
                 Conteo y Arqueo de Caja
               </h3>
               <p className="text-xs text-muted-foreground">
-                Cuenta los billetes y monedas físicos de tu gaveta para comprobar que no existan sobrantes ni faltantes en tu turno.
+                Cuenta los billetes y monedas físicos de tu gaveta para
+                comprobar que no existan sobrantes ni faltantes en tu turno.
               </p>
             </div>
             <div className="pt-2">
@@ -390,7 +417,9 @@ export const CajaPage: React.FC = () => {
                 disabled={!cajaEstaAbierta}
               >
                 <Calculator className="h-4 w-4" />
-                {cajaEstaAbierta ? 'Abrir calculadora de conteo' : 'Abre tu caja primero para arquear'}
+                {cajaEstaAbierta
+                  ? 'Abrir calculadora de conteo'
+                  : 'Abre tu caja primero para arquear'}
               </Button>
             </div>
           </Card>

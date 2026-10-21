@@ -1,8 +1,24 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SummaryStrip } from '@/components/common/SummaryStrip';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 import {
   Table,
   TableBody,
@@ -16,8 +32,13 @@ import { EscanerProductoModal } from '../components/EscanerProductoModal';
 import { ProductoDetalleModal } from '../components/ProductoDetalleModal';
 import { productosService } from '../services/productosService';
 import { Producto, NuevoProductoPayload } from '../types/productos.types';
-import { subscribeToErp } from '@/services/erp/erpStore';
-import { formatCurrency, formatNumber, formatPercentage, pluralizeUnit } from '@/utils/formatters';
+import { erpStore, subscribeToErp } from '@/services/erp/erpStore';
+import {
+  formatCurrency,
+  formatNumber,
+  formatPercentage,
+  pluralizeUnit,
+} from '@/utils/formatters';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { cn } from '@/lib/utils';
 import { useVoiceSearch } from '@/features/ventas/hooks/useVoiceSearch';
@@ -38,6 +59,7 @@ import {
   ScanBarcode,
   Mic,
   MicOff,
+  MoreHorizontal,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -69,72 +91,114 @@ export const ProductosPage: React.FC = () => {
       setSearchTerm(texto);
     },
   });
-  
+
   // Modales de CRUD, Escáner y Detalle
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [productoAEditar, setProductoAEditar] = useState<Producto | null>(null);
-  const [valoresInicialesForm, setValoresInicialesForm] = useState<Partial<NuevoProductoPayload> | null>(null);
+  const [valoresInicialesForm, setValoresInicialesForm] =
+    useState<Partial<NuevoProductoPayload> | null>(null);
   const [escanerModalOpen, setEscanerModalOpen] = useState(false);
   const [detalleModalOpen, setDetalleModalOpen] = useState(false);
-  const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null);
+  const [productoSeleccionado, setProductoSeleccionado] =
+    useState<Producto | null>(null);
+  const [productoAEliminar, setProductoAEliminar] = useState<Producto | null>(
+    null,
+  );
+  const [eliminando, setEliminando] = useState(false);
 
+  const requestId = useRef(0);
   const fetchProductos = async () => {
+    const currentRequest = ++requestId.current;
     setLoading(true);
     setError(null);
     try {
       const data = await productosService.getProductos();
+      if (currentRequest !== requestId.current) return;
       setProductos(data);
     } catch {
-      setError('No se pudo cargar el catálogo de productos. Revisa tu conexión a internet o el estado del sistema.');
+      if (currentRequest !== requestId.current) return;
+      setError(
+        'No se pudo cargar el catálogo de este navegador. Intenta cargarlo nuevamente.',
+      );
       toast.error('Error al cargar la lista de productos');
     } finally {
-      setLoading(false);
+      if (currentRequest === requestId.current) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchProductos();
     const unsubscribe = subscribeToErp(() => {
-      fetchProductos();
+      ++requestId.current;
+      setProductos(erpStore.getProductos());
+      setLoading(false);
+      setError(null);
     });
-    return unsubscribe;
+    return () => {
+      ++requestId.current;
+      unsubscribe();
+    };
   }, []);
 
   // Guardar (Crear o Editar)
-  const handleGuardarProducto = async (payload: NuevoProductoPayload, id?: string) => {
+  const handleGuardarProducto = async (
+    payload: NuevoProductoPayload,
+    id?: string,
+  ) => {
     try {
       if (id) {
-        const actualizado = await productosService.actualizarProducto(id, payload);
-        toast.success(`Producto "${actualizado.nombre}" actualizado correctamente`);
+        const actualizado = await productosService.actualizarProducto(
+          id,
+          payload,
+        );
+        toast.success(
+          `Producto "${actualizado.nombre}" actualizado correctamente`,
+        );
       } else {
         const nuevo = await productosService.crearProducto(payload);
-        toast.success(`Producto "${nuevo.nombre}" registrado exitosamente · SKU: ${nuevo.sku}`);
+        toast.success(
+          `Producto "${nuevo.nombre}" registrado exitosamente · SKU: ${nuevo.sku}`,
+        );
       }
-      fetchProductos();
+      setSearchTerm(payload.sku);
+      setSelectedCategoria('TODAS');
+      setSelectedEstado('TODOS');
+      setSortField(null);
+      setCurrentPage(1);
+      setProductoSeleccionado(null);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al guardar el producto';
+      const msg =
+        err instanceof Error ? err.message : 'Error al guardar el producto';
       toast.error(msg);
       throw err;
     }
   };
 
   // Eliminar producto
-  const handleEliminarProducto = async (prod: Producto) => {
-    const confirmacion = window.confirm(
-      `¿Estás seguro de eliminar el producto "${prod.nombre}" (SKU: ${prod.sku})?\n\nEsta acción quitará el producto del catálogo y de la lista de ventas.`
-    );
-    if (!confirmacion) return;
-
+  const handleEliminarProducto = (prod: Producto) => {
+    setDetalleModalOpen(false);
+    setProductoAEliminar(prod);
+  };
+  const confirmarEliminarProducto = async () => {
+    if (!productoAEliminar || eliminando) return;
+    const prod = productoAEliminar;
+    setEliminando(true);
     try {
       await productosService.eliminarProducto(prod.id);
       toast.success(`Producto "${prod.nombre}" eliminado del catálogo`);
+      setProductoAEliminar(null);
       if (detalleModalOpen && productoSeleccionado?.id === prod.id) {
         setDetalleModalOpen(false);
         setProductoSeleccionado(null);
       }
-      fetchProductos();
-    } catch {
-      toast.error('No se pudo eliminar el producto');
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : 'No se pudo eliminar el producto. Inténtalo nuevamente.',
+      );
+    } finally {
+      setEliminando(false);
     }
   };
 
@@ -163,7 +227,8 @@ export const ProductosPage: React.FC = () => {
 
   // Conteos para filtros
   const stockCriticoCount = useMemo(() => {
-    return productos.filter((p) => p.stock <= p.stockMinimo && p.stock > 0).length;
+    return productos.filter((p) => p.stock <= p.stockMinimo && p.stock > 0)
+      .length;
   }, [productos]);
 
   const agotadosCount = useMemo(() => {
@@ -184,12 +249,16 @@ export const ProductosPage: React.FC = () => {
       const matchSearch =
         p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        Boolean(p.codigoBarras?.toLowerCase().includes(searchTerm.toLowerCase()));
+        Boolean(
+          p.codigoBarras?.toLowerCase().includes(searchTerm.toLowerCase()),
+        );
       const matchCategory =
         selectedCategoria === 'TODAS' || p.categoria === selectedCategoria;
       const matchEstado =
         selectedEstado === 'TODOS' ||
-        (selectedEstado === 'STOCK_BAJO' && p.stock <= p.stockMinimo && p.stock > 0) ||
+        (selectedEstado === 'STOCK_BAJO' &&
+          p.stock <= p.stockMinimo &&
+          p.stock > 0) ||
         (selectedEstado === 'AGOTADO' && p.stock === 0);
       return matchSearch && matchCategory && matchEstado;
     });
@@ -202,7 +271,9 @@ export const ProductosPage: React.FC = () => {
     return [...filteredProductos].sort((a, b) => {
       let comparison = 0;
       if (sortField === 'sku' || sortField === 'nombre') {
-        comparison = a[sortField].localeCompare(b[sortField], 'es', { sensitivity: 'base' });
+        comparison = a[sortField].localeCompare(b[sortField], 'es', {
+          sensitivity: 'base',
+        });
       } else {
         comparison = (a[sortField] ?? 0) - (b[sortField] ?? 0);
       }
@@ -235,19 +306,64 @@ export const ProductosPage: React.FC = () => {
     }
   };
 
+  const renderProductActions = (prod: Producto) => (
+    <div className="flex items-center justify-end gap-1">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => handleEditarProducto(prod)}
+        aria-label={`Editar ${prod.nombre}`}
+      >
+        <Edit className="h-4 w-4" />
+        <span>Editar</span>
+      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`Más acciones de ${prod.nombre}`}
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={() => handleVerDetalles(prod)}>
+            <Eye className="mr-2 h-4 w-4" />
+            Ver detalle
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="text-danger-text focus:text-danger-text"
+            onSelect={() => handleEliminarProducto(prod)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Eliminar producto
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+
   const renderSortableHeader = (
     field: SortField,
     label: string,
     align: 'left' | 'right' = 'left',
-    extraClass?: string
+    extraClass?: string,
   ) => {
     const isSorted = sortField === field;
     return (
       <TableHead
+        aria-sort={
+          sortField === field
+            ? sortDirection === 'asc'
+              ? 'ascending'
+              : 'descending'
+            : 'none'
+        }
         className={cn(
           'text-xs font-medium text-muted-foreground uppercase tracking-wide py-2.5 px-3 whitespace-nowrap',
           align === 'right' ? 'text-right' : 'text-left',
-          extraClass
+          extraClass,
         )}
       >
         <button
@@ -255,9 +371,15 @@ export const ProductosPage: React.FC = () => {
           onClick={() => handleSort(field)}
           className={cn(
             'inline-flex items-center gap-1 hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary rounded py-0.5',
-            align === 'right' ? 'flex-row-reverse ml-auto' : 'flex-row'
+            align === 'right' ? 'flex-row-reverse ml-auto' : 'flex-row',
           )}
-          aria-sort={isSorted ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+          aria-sort={
+            isSorted
+              ? sortDirection === 'asc'
+                ? 'ascending'
+                : 'descending'
+              : 'none'
+          }
           aria-label={`Ordenar por ${label}`}
         >
           <span>{label}</span>
@@ -280,7 +402,7 @@ export const ProductosPage: React.FC = () => {
       {/* Encabezado */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-border">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">
+          <h1 className="text-2xl font-semibold text-foreground">
             Productos y precios
           </h1>
           <p className="mt-0.5 text-xs sm:text-sm text-muted-foreground">
@@ -292,7 +414,7 @@ export const ProductosPage: React.FC = () => {
             type="button"
             variant="outline"
             onClick={() => setEscanerModalOpen(true)}
-            className="h-9 gap-1.5 border-primary/30 text-primary hover:bg-primary-soft hover:text-primary shadow-xs text-xs font-semibold"
+            className="h-11 md:h-9 gap-2 text-sm"
           >
             <ScanBarcode className="h-4 w-4" />
             <span>Escáner rápido</span>
@@ -300,7 +422,7 @@ export const ProductosPage: React.FC = () => {
 
           <Button
             onClick={handleNuevoProducto}
-            className="h-9 gap-1.5 bg-primary hover:bg-primary-hover text-primary-foreground shadow-xs text-xs font-semibold"
+            className="h-11 md:h-9 gap-2 text-sm"
           >
             <Plus className="h-4 w-4" />
             <span>Nuevo producto</span>
@@ -308,105 +430,53 @@ export const ProductosPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Resumen métrico operativo */}
-      <div
-        className={cn(
-          'grid gap-3.5',
-          puedeVerCostos
-            ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
-            : 'grid-cols-1 md:grid-cols-3'
-        )}
-      >
-        {/* Total en catálogo */}
-        <Card className="border-border bg-card shadow-xs">
-          <CardContent className="p-4">
-            <p className="text-xs font-medium text-muted-foreground">
-              Total en catálogo
-            </p>
-            {loading ? (
-              <Skeleton className="h-7 w-20 mt-1" />
-            ) : (
-              <p className="text-2xl font-semibold tracking-tight text-foreground tabular-nums mt-0.5">
-                {formatNumber(productos.length)}
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Artículos y servicios activos
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Valorizado a costo (inversión total en stock) - Oculto para CAJERO */}
-        {puedeVerCostos && (
-          <Card className="border-border bg-card shadow-xs">
-            <CardContent className="p-4">
-              <p className="text-xs font-medium text-muted-foreground">
-                Inversión en stock (costo)
-              </p>
-              {loading ? (
-                <Skeleton className="h-7 w-32 mt-1" />
-              ) : (
-                <p className="text-2xl font-semibold tracking-tight text-foreground tabular-nums mt-0.5">
-                  {formatCurrency(totalValorizadoCosto)}
-                </p>
-              )}
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Costo de adquisición total
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Valorizado en venta */}
-        <Card className="border-border bg-card shadow-xs">
-          <CardContent className="p-4">
-            <p className="text-xs font-medium text-muted-foreground">
-              Valorizado en venta
-            </p>
-            {loading ? (
-              <Skeleton className="h-7 w-32 mt-1" />
-            ) : (
-              <p className="text-2xl font-semibold tracking-tight text-foreground tabular-nums mt-0.5">
-                {formatCurrency(totalValorizadoVenta)}
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Stock actual valorizado a PVP
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Stock por agotarse / Crítico */}
-        <Card className="border-border bg-card shadow-xs">
-          <CardContent className="p-4">
-            <p className="text-xs font-medium text-muted-foreground">
-              Stock crítico o agotado
-            </p>
-            {loading ? (
-              <Skeleton className="h-7 w-24 mt-1" />
-            ) : (
-              <div className="flex items-baseline gap-2 mt-0.5">
-                <p className="text-2xl font-semibold tracking-tight text-foreground tabular-nums">
-                  {stockCriticoCount + agotadosCount}
-                </p>
-                {(stockCriticoCount > 0 || agotadosCount > 0) && (
-                  <span className="text-xs font-medium text-danger-text">
-                    {agotadosCount > 0
-                      ? `${agotadosCount} sin stock`
-                      : 'requieren reposición'}
-                  </span>
-                )}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {stockCriticoCount + agotadosCount === 0
-                ? 'Todas las existencias en nivel óptimo'
-                : `${stockCriticoCount} por agotarse · ${agotadosCount} agotados`}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
+      <SummaryStrip
+        loading={loading}
+        items={[
+          {
+            label: 'Productos en catálogo',
+            value: formatNumber(productos.length),
+          },
+          {
+            label: 'Stock bajo',
+            value: stockCriticoCount,
+            description: 'Por debajo del mínimo',
+            tone: stockCriticoCount > 0 ? 'warning' : undefined,
+          },
+          {
+            label: 'Agotados',
+            value: agotadosCount,
+            description: 'Sin unidades disponibles',
+            tone: agotadosCount > 0 ? 'danger' : undefined,
+          },
+          { label: 'Categorías', value: Math.max(0, categorias.length - 1) },
+        ]}
+      />
+      <details className="rounded-md border border-border bg-card px-4 py-3">
+        <summary className="cursor-pointer text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          Valoración del catálogo
+        </summary>
+        <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+          {puedeVerCostos && (
+            <div>
+              <dt className="text-xs text-muted-foreground">
+                Inversión en stock al costo
+              </dt>
+              <dd className="mt-1 text-lg font-semibold tabular-nums">
+                {formatCurrency(totalValorizadoCosto)}
+              </dd>
+            </div>
+          )}
+          <div>
+            <dt className="text-xs text-muted-foreground">
+              Stock valorizado al precio de venta
+            </dt>
+            <dd className="mt-1 text-lg font-semibold tabular-nums">
+              {formatCurrency(totalValorizadoVenta)}
+            </dd>
+          </div>
+        </dl>
+      </details>
       {/* Bloque principal: Filtros y Tabla */}
       <Card className="border-border bg-card">
         <CardContent className="p-4 space-y-4">
@@ -416,6 +486,7 @@ export const ProductosPage: React.FC = () => {
             <div className="relative w-full max-w-md">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
+                aria-label="Buscar productos por SKU, nombre o código de barras"
                 placeholder={
                   isListening
                     ? 'Escuchando tu voz... Di el producto'
@@ -424,18 +495,17 @@ export const ProductosPage: React.FC = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className={cn(
-                  'pl-9 pr-16 h-9 text-base md:text-sm w-full transition-all',
-                  isListening &&
-                    'border-rose-400 ring-2 ring-rose-300/40 bg-rose-50/20 placeholder:text-rose-600 font-semibold'
+                  'pl-9 pr-24 h-11 text-base md:h-9 md:text-sm w-full',
+                  isListening && 'border-ring ring-2 ring-ring bg-primary-soft',
                 )}
               />
-              <div className="absolute right-2 top-1.5 flex items-center gap-1">
+              <div className="absolute right-0 top-0 flex items-center">
                 {searchTerm && (
                   <button
                     type="button"
                     onClick={() => setSearchTerm('')}
                     aria-label="Limpiar búsqueda"
-                    className="p-1 text-muted-foreground hover:text-foreground rounded transition-colors"
+                    className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:text-foreground md:h-9 md:w-9"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -444,15 +514,26 @@ export const ProductosPage: React.FC = () => {
                   type="button"
                   onClick={toggleListening}
                   className={cn(
-                    'p-1 rounded-md transition-all flex items-center justify-center cursor-pointer',
+                    'h-11 w-11 md:h-9 md:w-9 rounded-md flex items-center justify-center',
                     isListening
-                      ? 'bg-rose-600 text-white animate-pulse shadow-xs ring-2 ring-rose-300'
-                      : 'text-muted-foreground hover:text-primary hover:bg-primary-soft'
+                      ? 'bg-primary-soft text-primary ring-2 ring-ring'
+                      : 'text-muted-foreground hover:text-primary hover:bg-primary-soft',
                   )}
-                  title={isListening ? 'Detener micrófono' : 'Buscar con micrófono / voz'}
-                  aria-label="Buscar con micrófono"
+                  title={
+                    isListening
+                      ? 'Detener micrófono'
+                      : 'Buscar con micrófono / voz'
+                  }
+                  aria-label={
+                    isListening ? 'Detener micrófono' : 'Buscar con micrófono'
+                  }
+                  aria-pressed={isListening}
                 >
-                  {isListening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+                  {isListening ? (
+                    <MicOff className="h-3.5 w-3.5" />
+                  ) : (
+                    <Mic className="h-3.5 w-3.5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -471,10 +552,10 @@ export const ProductosPage: React.FC = () => {
                     setCurrentPage(1);
                   }}
                   className={cn(
-                    'px-2.5 py-1 text-xs font-medium rounded-md border transition-colors whitespace-nowrap shrink-0',
+                    'min-h-11 md:min-h-9 px-3 py-2 text-sm font-medium rounded-md border transition-colors whitespace-nowrap shrink-0',
                     selectedEstado === 'TODOS'
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground'
+                      ? 'bg-primary-soft text-primary border-primary'
+                      : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground',
                   )}
                 >
                   Todos ({productos.length})
@@ -486,10 +567,10 @@ export const ProductosPage: React.FC = () => {
                     setCurrentPage(1);
                   }}
                   className={cn(
-                    'px-2.5 py-1 text-xs font-medium rounded-md border transition-colors whitespace-nowrap shrink-0',
+                    'min-h-11 md:min-h-9 px-3 py-2 text-sm font-medium rounded-md border transition-colors whitespace-nowrap shrink-0',
                     selectedEstado === 'STOCK_BAJO'
                       ? 'bg-warning-soft text-warning-text border-warning/40 font-semibold'
-                      : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground'
+                      : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground',
                   )}
                 >
                   Stock bajo ({stockCriticoCount})
@@ -501,10 +582,10 @@ export const ProductosPage: React.FC = () => {
                     setCurrentPage(1);
                   }}
                   className={cn(
-                    'px-2.5 py-1 text-xs font-medium rounded-md border transition-colors whitespace-nowrap shrink-0',
+                    'min-h-11 md:min-h-9 px-3 py-2 text-sm font-medium rounded-md border transition-colors whitespace-nowrap shrink-0',
                     selectedEstado === 'AGOTADO'
                       ? 'bg-danger-soft text-danger-text border-destructive/40 font-semibold'
-                      : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground'
+                      : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground',
                   )}
                 >
                   Agotado ({agotadosCount})
@@ -525,7 +606,7 @@ export const ProductosPage: React.FC = () => {
                       setSelectedCategoria(e.target.value);
                       setCurrentPage(1);
                     }}
-                    className="w-full h-8 rounded-md border border-border bg-card text-foreground px-2.5 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all cursor-pointer shadow-2xs pr-7"
+                    className="w-full h-11 md:h-9 rounded-md border border-input bg-card text-foreground px-3 text-base md:text-sm font-medium focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all cursor-pointer shadow-2xs pr-7"
                   >
                     {categorias.map((cat) => {
                       const count =
@@ -534,7 +615,9 @@ export const ProductosPage: React.FC = () => {
                           : productos.filter((p) => p.categoria === cat).length;
                       return (
                         <option key={cat} value={cat}>
-                          {cat === 'TODAS' ? `Todas las categorías (${count})` : `${cat} (${count})`}
+                          {cat === 'TODAS'
+                            ? `Todas las categorías (${count})`
+                            : `${cat} (${count})`}
                         </option>
                       );
                     })}
@@ -569,7 +652,7 @@ export const ProductosPage: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={fetchProductos}
-                className="h-8 text-xs gap-1.5 bg-card text-foreground shrink-0 self-start sm:self-auto"
+                className="h-11 md:h-9 text-sm gap-1.5 bg-card text-foreground shrink-0 self-start sm:self-auto"
               >
                 <RotateCw className="h-3.5 w-3.5" />
                 <span>Reintentar</span>
@@ -585,41 +668,72 @@ export const ProductosPage: React.FC = () => {
                 <Table className="w-full min-w-table">
                   <TableHeader>
                     <TableRow className="bg-muted/40 border-b border-border">
-                      <TableHead className="text-xs font-medium text-muted-foreground py-2.5 px-3 whitespace-nowrap">Código SKU</TableHead>
-                      <TableHead className="text-xs font-medium text-muted-foreground py-2.5 px-3 whitespace-nowrap min-w-48">Descripción del artículo</TableHead>
-                      <TableHead className="text-xs font-medium text-muted-foreground py-2.5 px-3 whitespace-nowrap">Categoría</TableHead>
+                      <TableHead className="text-xs font-medium text-muted-foreground py-2.5 px-3 whitespace-nowrap">
+                        Código SKU
+                      </TableHead>
+                      <TableHead className="text-xs font-medium text-muted-foreground py-2.5 px-3 whitespace-nowrap min-w-48">
+                        Descripción del artículo
+                      </TableHead>
+                      <TableHead className="text-xs font-medium text-muted-foreground py-2.5 px-3 whitespace-nowrap">
+                        Categoría
+                      </TableHead>
                       {puedeVerCostos && (
-                        <TableHead className="text-xs font-medium text-muted-foreground text-right py-2.5 px-3 whitespace-nowrap">P. Costo</TableHead>
+                        <TableHead className="text-xs font-medium text-muted-foreground text-right py-2.5 px-3 whitespace-nowrap">
+                          P. Costo
+                        </TableHead>
                       )}
-                      <TableHead className="text-xs font-medium text-muted-foreground text-right py-2.5 px-3 whitespace-nowrap">PVP Venta</TableHead>
+                      <TableHead className="text-xs font-medium text-muted-foreground text-right py-2.5 px-3 whitespace-nowrap">
+                        PVP Venta
+                      </TableHead>
                       {puedeVerCostos && (
-                        <TableHead className="text-xs font-medium text-muted-foreground text-right py-2.5 px-3 whitespace-nowrap">Margen</TableHead>
+                        <TableHead className="text-xs font-medium text-muted-foreground text-right py-2.5 px-3 whitespace-nowrap">
+                          Margen
+                        </TableHead>
                       )}
-                      <TableHead className="text-xs font-medium text-muted-foreground text-right py-2.5 px-3 whitespace-nowrap">Stock en almacén</TableHead>
-                      <TableHead className="text-xs font-medium text-muted-foreground text-center py-2.5 px-3 whitespace-nowrap">Estado</TableHead>
+                      <TableHead className="text-xs font-medium text-muted-foreground text-right py-2.5 px-3 whitespace-nowrap">
+                        Stock en almacén
+                      </TableHead>
+                      <TableHead className="text-xs font-medium text-muted-foreground text-center py-2.5 px-3 whitespace-nowrap">
+                        Estado
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {Array.from({ length: 6 }).map((_, index) => (
-                      <TableRow key={index} className="border-b border-border/60">
-                        <TableCell className="py-3 px-3 whitespace-nowrap"><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableRow
+                        key={index}
+                        className="border-b border-border/60"
+                      >
+                        <TableCell className="py-3 px-3 whitespace-nowrap">
+                          <Skeleton className="h-4 w-20" />
+                        </TableCell>
                         <TableCell className="py-3 px-3 min-w-48">
                           <Skeleton className="h-4 w-48 mb-1" />
                           <Skeleton className="h-3 w-24" />
                         </TableCell>
-                        <TableCell className="py-3 px-3 whitespace-nowrap"><Skeleton className="h-5 w-20 rounded-md" /></TableCell>
+                        <TableCell className="py-3 px-3 whitespace-nowrap">
+                          <Skeleton className="h-5 w-20 rounded-md" />
+                        </TableCell>
                         {puedeVerCostos && (
-                          <TableCell className="py-3 px-3 text-right whitespace-nowrap"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
+                          <TableCell className="py-3 px-3 text-right whitespace-nowrap">
+                            <Skeleton className="h-4 w-16 ml-auto" />
+                          </TableCell>
                         )}
-                        <TableCell className="py-3 px-3 text-right whitespace-nowrap"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
+                        <TableCell className="py-3 px-3 text-right whitespace-nowrap">
+                          <Skeleton className="h-4 w-16 ml-auto" />
+                        </TableCell>
                         {puedeVerCostos && (
-                          <TableCell className="py-3 px-3 text-right whitespace-nowrap"><Skeleton className="h-4 w-12 ml-auto" /></TableCell>
+                          <TableCell className="py-3 px-3 text-right whitespace-nowrap">
+                            <Skeleton className="h-4 w-12 ml-auto" />
+                          </TableCell>
                         )}
                         <TableCell className="py-3 px-3 text-right whitespace-nowrap">
                           <Skeleton className="h-4 w-16 ml-auto mb-1" />
                           <Skeleton className="h-3 w-12 ml-auto" />
                         </TableCell>
-                        <TableCell className="py-3 px-3 text-center whitespace-nowrap"><Skeleton className="h-5 w-16 mx-auto rounded-md" /></TableCell>
+                        <TableCell className="py-3 px-3 text-center whitespace-nowrap">
+                          <Skeleton className="h-5 w-16 mx-auto rounded-md" />
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -629,7 +743,10 @@ export const ProductosPage: React.FC = () => {
               {/* Skeletons Mobile */}
               <div className="block lg:hidden space-y-2.5">
                 {Array.from({ length: 4 }).map((_, index) => (
-                  <div key={index} className="p-3.5 rounded-md border border-border bg-card space-y-2.5">
+                  <div
+                    key={index}
+                    className="p-3.5 rounded-md border border-border bg-card space-y-2.5"
+                  >
                     <div className="flex justify-between">
                       <Skeleton className="h-4 w-20" />
                       <Skeleton className="h-4 w-16" />
@@ -655,12 +772,10 @@ export const ProductosPage: React.FC = () => {
                     Aún no registraste productos
                   </p>
                   <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                    Agrega el primer producto o servicio a tu catálogo para empezar a vender y controlar tus existencias.
+                    Agrega el primer producto o servicio a tu catálogo para
+                    empezar a vender y controlar tus existencias.
                   </p>
-                  <Button
-                    onClick={handleNuevoProducto}
-                    className="h-9 gap-1.5"
-                  >
+                  <Button onClick={handleNuevoProducto} className="h-9 gap-1.5">
                     <Plus className="h-4 w-4" />
                     <span>Nuevo producto</span>
                   </Button>
@@ -672,7 +787,8 @@ export const ProductosPage: React.FC = () => {
                   </p>
                   <p className="text-xs text-muted-foreground max-w-sm mx-auto">
                     No hay resultados para los filtros seleccionados
-                    {searchTerm ? ` («${searchTerm}»)` : ''}. Modifica o restablece los criterios.
+                    {searchTerm ? ` («${searchTerm}»)` : ''}. Modifica o
+                    restablece los criterios.
                   </p>
                   <Button
                     variant="outline"
@@ -699,18 +815,33 @@ export const ProductosPage: React.FC = () => {
                   <TableHeader className="sticky top-0 bg-card z-10">
                     <TableRow className="bg-muted/40 border-b border-border hover:bg-muted/40">
                       {renderSortableHeader('sku', 'Código SKU')}
-                      {renderSortableHeader('nombre', 'Descripción del artículo', 'left', 'min-w-48')}
-                      <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide py-2.5 px-3 whitespace-nowrap">
+                      {renderSortableHeader(
+                        'nombre',
+                        'Producto',
+                        'left',
+                        'min-w-48',
+                      )}
+                      <TableHead className="hidden 2xl:table-cell text-xs font-medium text-muted-foreground uppercase tracking-wide py-2.5 px-3 whitespace-nowrap">
                         Categoría
                       </TableHead>
-                      {puedeVerCostos && renderSortableHeader('precioCompra', 'P. Costo', 'right')}
-                      {renderSortableHeader('precioVenta', 'PVP Venta', 'right')}
+                      {puedeVerCostos &&
+                        renderSortableHeader(
+                          'precioCompra',
+                          'Costo',
+                          'right',
+                          'hidden 2xl:table-cell',
+                        )}
+                      {renderSortableHeader(
+                        'precioVenta',
+                        'Precio de venta',
+                        'right',
+                      )}
                       {puedeVerCostos && (
-                        <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide text-right py-2.5 px-3 whitespace-nowrap">
+                        <TableHead className="hidden 2xl:table-cell text-xs font-medium text-muted-foreground uppercase tracking-wide text-right py-2.5 px-3 whitespace-nowrap">
                           Margen
                         </TableHead>
                       )}
-                      {renderSortableHeader('stock', 'Stock en almacén', 'right')}
+                      {renderSortableHeader('stock', 'Stock', 'right')}
                       <TableHead className="text-xs font-medium text-muted-foreground uppercase tracking-wide text-center py-2.5 px-3 whitespace-nowrap">
                         Estado
                       </TableHead>
@@ -722,10 +853,13 @@ export const ProductosPage: React.FC = () => {
                   <TableBody>
                     {paginatedProductos.map((prod) => {
                       const isAgotado = prod.stock === 0;
-                      const isLowStock = prod.stock <= prod.stockMinimo && !isAgotado;
+                      const isLowStock =
+                        prod.stock <= prod.stockMinimo && !isAgotado;
                       const marginPct =
                         prod.precioCompra > 0
-                          ? ((prod.precioVenta - prod.precioCompra) / prod.precioCompra) * 100
+                          ? ((prod.precioVenta - prod.precioCompra) /
+                              prod.precioCompra) *
+                            100
                           : 100;
 
                       return (
@@ -745,7 +879,7 @@ export const ProductosPage: React.FC = () => {
                               Unidad: {prod.unidadMedida.toLowerCase()}
                             </span>
                           </TableCell>
-                          <TableCell className="py-2.5 px-3 whitespace-nowrap">
+                          <TableCell className="hidden 2xl:table-cell py-2.5 px-3 whitespace-nowrap">
                             <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-muted text-muted-foreground border border-border">
                               {prod.categoria}
                             </span>
@@ -753,26 +887,26 @@ export const ProductosPage: React.FC = () => {
 
                           {/* P. Costo - Oculto para CAJERO */}
                           {puedeVerCostos && (
-                            <TableCell className="text-right text-muted-foreground tabular-nums py-2.5 px-3 text-xs whitespace-nowrap font-mono">
+                            <TableCell className="hidden 2xl:table-cell text-right text-muted-foreground tabular-nums py-2.5 px-3 text-sm whitespace-nowrap">
                               {formatCurrency(prod.precioCompra)}
                             </TableCell>
                           )}
 
-                          <TableCell className="text-right font-semibold text-foreground py-2.5 px-3 text-sm tabular-nums whitespace-nowrap font-mono">
+                          <TableCell className="text-right font-semibold text-foreground py-2.5 px-3 text-sm tabular-nums whitespace-nowrap">
                             {formatCurrency(prod.precioVenta)}
                           </TableCell>
 
                           {/* Margen comercial - Oculto para CAJERO */}
                           {puedeVerCostos && (
-                            <TableCell className="text-right tabular-nums py-2.5 px-3 text-xs whitespace-nowrap font-mono">
+                            <TableCell className="hidden 2xl:table-cell text-right tabular-nums py-2.5 px-3 text-sm whitespace-nowrap">
                               <span
                                 className={cn(
                                   'font-medium',
                                   marginPct < 0
                                     ? 'text-danger-text'
                                     : marginPct < 15
-                                    ? 'text-warning-text'
-                                    : 'text-foreground'
+                                      ? 'text-warning-text'
+                                      : 'text-foreground',
                                 )}
                               >
                                 {formatPercentage(marginPct)}
@@ -787,11 +921,12 @@ export const ProductosPage: React.FC = () => {
                                 isAgotado
                                   ? 'font-medium text-danger-text bg-danger-soft px-1.5 py-0.5 rounded-md border border-destructive/20'
                                   : isLowStock
-                                  ? 'font-medium text-warning-text bg-warning-soft px-1.5 py-0.5 rounded-md border border-warning/20'
-                                  : 'font-medium text-foreground'
+                                    ? 'font-medium text-warning-text bg-warning-soft px-1.5 py-0.5 rounded-md border border-warning/20'
+                                    : 'font-medium text-foreground',
                               )}
                             >
-                              {prod.stock} {pluralizeUnit(prod.stock, prod.unidadMedida)}
+                              {prod.stock}{' '}
+                              {pluralizeUnit(prod.stock, prod.unidadMedida)}
                             </span>
                             <span className="block text-xs text-muted-foreground mt-0.5 tabular-nums">
                               Mín. {prod.stockMinimo}
@@ -805,52 +940,23 @@ export const ProductosPage: React.FC = () => {
                                 isAgotado
                                   ? 'bg-danger-soft text-danger-text border-destructive/30'
                                   : isLowStock
-                                  ? 'bg-warning-soft text-warning-text border-warning/30'
-                                  : 'bg-success-soft text-success-text border-success/30'
+                                    ? 'bg-warning-soft text-warning-text border-warning/30'
+                                    : 'bg-success-soft text-success-text border-success/30',
                               )}
                             >
                               {isAgotado
                                 ? 'Agotado'
                                 : isLowStock
-                                ? 'Stock bajo'
-                                : 'Normal'}
+                                  ? 'Stock bajo'
+                                  : 'Disponible'}
                             </span>
                           </TableCell>
 
-                          {/* Acciones CRUD */}
                           <TableCell
-                            className="text-right py-2.5 px-3 whitespace-nowrap"
+                            className="text-right py-2 px-3"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <div className="flex items-center justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleVerDetalles(prod)}
-                                title="Ver detalles del producto"
-                                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEditarProducto(prod)}
-                                title="Editar producto"
-                                className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEliminarProducto(prod)}
-                                title="Eliminar producto"
-                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-danger-soft"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
+                            {renderProductActions(prod)}{' '}
                           </TableCell>
                         </TableRow>
                       );
@@ -863,10 +969,13 @@ export const ProductosPage: React.FC = () => {
               <div className="block lg:hidden space-y-2.5">
                 {paginatedProductos.map((prod) => {
                   const isAgotado = prod.stock === 0;
-                  const isLowStock = prod.stock <= prod.stockMinimo && !isAgotado;
+                  const isLowStock =
+                    prod.stock <= prod.stockMinimo && !isAgotado;
                   const marginPct =
                     prod.precioCompra > 0
-                      ? ((prod.precioVenta - prod.precioCompra) / prod.precioCompra) * 100
+                      ? ((prod.precioVenta - prod.precioCompra) /
+                          prod.precioCompra) *
+                        100
                       : 100;
 
                   return (
@@ -884,15 +993,15 @@ export const ProductosPage: React.FC = () => {
                             isAgotado
                               ? 'bg-danger-soft text-danger-text border-destructive/30'
                               : isLowStock
-                              ? 'bg-warning-soft text-warning-text border-warning/30'
-                              : 'bg-success-soft text-success-text border-success/30'
+                                ? 'bg-warning-soft text-warning-text border-warning/30'
+                                : 'bg-success-soft text-success-text border-success/30',
                           )}
                         >
                           {isAgotado
                             ? 'Agotado'
                             : isLowStock
-                            ? 'Stock bajo'
-                            : 'Normal'}
+                              ? 'Stock bajo'
+                              : 'Disponible'}
                         </span>
                       </div>
 
@@ -907,65 +1016,44 @@ export const ProductosPage: React.FC = () => {
 
                       <div className="flex items-center justify-between pt-2 border-t border-border/60 text-xs">
                         <div>
-                          <span className="text-muted-foreground block text-xs">PVP Venta</span>
-                          <span className="text-sm font-bold text-foreground tabular-nums">
+                          <span className="text-muted-foreground block text-xs">
+                            PVP Venta
+                          </span>
+                          <span className="text-sm font-semibold text-foreground tabular-nums">
                             {formatCurrency(prod.precioVenta)}
                           </span>
                           {puedeVerCostos && (
-                            <span className="text-[11px] text-muted-foreground block font-mono mt-0.5">
-                              Costo: {formatCurrency(prod.precioCompra)} · Margen: {formatPercentage(marginPct)}
+                            <span className="text-xs text-muted-foreground block font-mono mt-0.5">
+                              Costo: {formatCurrency(prod.precioCompra)} ·
+                              Margen: {formatPercentage(marginPct)}
                             </span>
                           )}
                         </div>
                         <div className="text-right">
-                          <span className="text-muted-foreground block text-xs">Disponible</span>
+                          <span className="text-muted-foreground block text-xs">
+                            Disponible
+                          </span>
                           <span
                             className={cn(
-                              'text-sm font-bold tabular-nums',
+                              'text-sm font-semibold tabular-nums',
                               isAgotado
                                 ? 'text-danger-text'
                                 : isLowStock
-                                ? 'text-warning-text'
-                                : 'text-foreground'
+                                  ? 'text-warning-text'
+                                  : 'text-foreground',
                             )}
                           >
-                            {prod.stock} {pluralizeUnit(prod.stock, prod.unidadMedida)}
+                            {prod.stock}{' '}
+                            {pluralizeUnit(prod.stock, prod.unidadMedida)}
                           </span>
-                          <span className="text-[11px] text-muted-foreground block">
+                          <span className="text-xs text-muted-foreground block">
                             Mín. {prod.stockMinimo}
                           </span>
                         </div>
                       </div>
 
-                      {/* Botones de acción en Mobile */}
-                      <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-border/40">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleVerDetalles(prod)}
-                          className="h-8 text-xs px-2.5 gap-1 text-muted-foreground hover:text-foreground"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          <span>Detalle</span>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditarProducto(prod)}
-                          className="h-8 text-xs px-2.5 gap-1 text-primary border-primary/30 hover:bg-primary/5"
-                        >
-                          <Edit className="h-3.5 w-3.5" />
-                          <span>Editar</span>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEliminarProducto(prod)}
-                          className="h-8 text-xs px-2.5 gap-1 text-destructive border-destructive/30 hover:bg-danger-soft"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          <span>Eliminar</span>
-                        </Button>
+                      <div className="border-t border-border pt-2">
+                        {renderProductActions(prod)}{' '}
                       </div>
                     </div>
                   );
@@ -977,7 +1065,8 @@ export const ProductosPage: React.FC = () => {
                 <p>
                   Mostrando{' '}
                   <span className="font-medium text-foreground tabular-nums">
-                    {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, sortedProductos.length)}
+                    {(currentPage - 1) * PAGE_SIZE + 1}–
+                    {Math.min(currentPage * PAGE_SIZE, sortedProductos.length)}
                   </span>{' '}
                   de{' '}
                   <span className="font-medium text-foreground tabular-nums">
@@ -991,9 +1080,11 @@ export const ProductosPage: React.FC = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.max(1, prev - 1))
+                      }
                       disabled={currentPage === 1}
-                      className="h-8 text-xs"
+                      className="h-11 md:h-9 text-sm"
                     >
                       Anterior
                     </Button>
@@ -1003,9 +1094,11 @@ export const ProductosPage: React.FC = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                      }
                       disabled={currentPage === totalPages}
-                      className="h-8 text-xs"
+                      className="h-11 md:h-9 text-sm"
                     >
                       Siguiente
                     </Button>
@@ -1016,6 +1109,36 @@ export const ProductosPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog
+        open={Boolean(productoAEliminar)}
+        onOpenChange={(open) => {
+          if (!open && !eliminando) setProductoAEliminar(null);
+        }}
+      >
+        <AlertDialogContent className="w-11/12 rounded-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar producto</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se quitará «{productoAEliminar?.nombre}» del catálogo y de la
+              selección de productos para nuevas ventas. Esta acción no se puede
+              deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={eliminando}>
+              Cancelar
+            </AlertDialogCancel>
+            <Button
+              variant="destructive"
+              disabled={eliminando}
+              onClick={confirmarEliminarProducto}
+            >
+              {eliminando ? 'Eliminando…' : 'Eliminar producto'}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Modal Escáner Rápido de Productos */}
       <EscanerProductoModal

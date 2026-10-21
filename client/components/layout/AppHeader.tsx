@@ -16,9 +16,7 @@ import {
   Building,
   User,
   LogOut,
-  Bell,
   HelpCircle,
-  TrendingUp,
   RotateCw,
   Calendar,
 } from 'lucide-react';
@@ -40,7 +38,7 @@ export const AppHeader: React.FC = () => {
         day: '2-digit',
         month: 'short',
         year: 'numeric',
-      })
+      }),
     );
   }, []);
 
@@ -62,52 +60,36 @@ export const AppHeader: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-border bg-card/95 px-4 backdrop-blur shadow-xs">
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-4">
       {/* Lado izquierdo: Botón colapsar menú y Sede */}
       <div className="flex items-center gap-3">
-        <SidebarTrigger className="h-8 w-8 text-foreground hover:bg-muted border border-border/80 rounded" />
-        
+        <SidebarTrigger className="h-11 w-11 md:h-9 md:w-9 text-foreground hover:bg-muted border border-border/80 rounded" />
+
         <div className="hidden sm:flex items-center gap-2 text-xs text-foreground bg-muted/50 px-2.5 py-1 rounded border border-border">
-          <Building className="h-3.5 w-3.5 text-primary" />
-          <span className="font-bold text-foreground">Sucursal:</span>
-          <span className="text-muted-foreground">Sede Central (Almacén 01)</span>
+          <Building className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="font-semibold text-foreground">Sucursal:</span>
+          <span className="text-muted-foreground">
+            {user?.sucursal || 'Sede Central'}
+          </span>
         </div>
 
         <div className="hidden lg:flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Calendar className="h-3.5 w-3.5 text-slate-500" />
+          <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="capitalize">{fechaActual}</span>
         </div>
       </div>
 
       {/* Lado derecho: Tipo de cambio, acciones y usuario */}
       <div className="flex items-center gap-2">
-        {/* TC SUNAT */}
-        <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded bg-muted/40 border border-border text-xs text-foreground">
-          <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
-          <span className="font-semibold text-muted-foreground">T.C.:</span>
-          <span className="font-mono font-bold">C: 3.74 | V: 3.76</span>
-        </div>
-
         {/* Refrescar */}
         <Button
           variant="ghost"
           size="icon"
           onClick={handleRefresh}
-          className="h-8 w-8 text-muted-foreground hover:text-foreground rounded"
+          className="h-11 w-11 md:h-9 md:w-9 text-muted-foreground hover:text-foreground rounded"
           title="Refrescar aplicación"
         >
           <RotateCw className="h-4 w-4" />
-        </Button>
-
-        {/* Notificaciones */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative h-8 w-8 text-muted-foreground hover:text-foreground rounded"
-          title="Notificaciones del sistema"
-        >
-          <Bell className="h-4 w-4" />
-          <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-primary" />
         </Button>
 
         {/* Alternar tema */}
@@ -115,10 +97,14 @@ export const AppHeader: React.FC = () => {
           variant="ghost"
           size="icon"
           onClick={toggleTheme}
-          className="h-8 w-8 text-muted-foreground hover:text-foreground rounded"
+          className="h-11 w-11 md:h-9 md:w-9 text-muted-foreground hover:text-foreground rounded"
           title={isDark ? 'Modo Claro' : 'Modo Oscuro'}
         >
-          {isDark ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4" />}
+          {isDark ? (
+            <Sun className="h-4 w-4 text-foreground" />
+          ) : (
+            <Moon className="h-4 w-4" />
+          )}
         </Button>
 
         {/* Perfil de Usuario */}
@@ -129,22 +115,26 @@ export const AppHeader: React.FC = () => {
               size="sm"
               className="flex items-center gap-2 pl-2 pr-3 py-1 h-8 rounded border-border/90 bg-background text-xs font-semibold hover:bg-muted"
             >
-              <div className="flex h-5 w-5 items-center justify-center rounded bg-primary text-primary-foreground font-bold text-[11px]">
+              <div className="flex h-5 w-5 items-center justify-center rounded bg-primary text-primary-foreground font-semibold text-xs">
                 {user?.avatarInitials || 'A'}
               </div>
               <span className="hidden sm:inline-block text-foreground max-w-[120px] truncate">
-                {user?.nombreCompleto ? user.nombreCompleto.split(' ')[0] : 'Administrador'}
+                {user?.nombreCompleto
+                  ? user.nombreCompleto.split(' ')[0]
+                  : 'Administrador'}
               </span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel className="font-normal py-1.5">
               <div className="flex flex-col space-y-0.5">
-                <p className="text-xs font-bold text-foreground">
+                <p className="text-xs font-semibold text-foreground">
                   {user?.nombreCompleto || 'Administrador'}
                 </p>
-                <p className="text-[11px] text-muted-foreground">{user?.email || 'admin@kipus.pe'}</p>
-                <span className="inline-block mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary w-fit">
+                <p className="text-[11px] text-muted-foreground">
+                  {user?.email || 'admin@kipus.pe'}
+                </p>
+                <span className="inline-block mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-muted-foreground w-fit">
                   {user?.rol || 'ADMINISTRADOR'}
                 </span>
               </div>

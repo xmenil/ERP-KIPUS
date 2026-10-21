@@ -22,26 +22,23 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-border">
       <div>
         <div className="flex items-center gap-2.5">
-          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">
-            {title}
-          </h1>
+          <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
           {badge && (
-            <Badge variant="outline" className="font-medium text-xs bg-muted/60 text-foreground border-border">
+            <Badge
+              variant="outline"
+              className="font-medium text-xs bg-muted/60 text-foreground border-border"
+            >
               {badge}
             </Badge>
           )}
         </div>
         {description && (
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {description}
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         )}
       </div>
 
       {children && (
-        <div className="flex flex-wrap items-center gap-2">
-          {children}
-        </div>
+        <div className="flex flex-wrap items-center gap-2">{children}</div>
       )}
     </div>
   );

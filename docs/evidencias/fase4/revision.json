@@ -1,0 +1,189 @@
+{
+  "results": [
+    {
+      "route": "/dashboard",
+      "width": 1440,
+      "pageWidth": 1434,
+      "title": "Resumen del negocio",
+      "error": false
+    },
+    {
+      "route": "/productos",
+      "width": 1440,
+      "pageWidth": 1434,
+      "title": "Productos y precios",
+      "error": false
+    },
+    {
+      "route": "/inventario",
+      "width": 1440,
+      "pageWidth": 1434,
+      "title": "Inventario",
+      "error": false
+    },
+    {
+      "route": "/ventas",
+      "width": 1440,
+      "pageWidth": 1434,
+      "title": "Ventas",
+      "error": false
+    },
+    {
+      "route": "/caja",
+      "width": 1440,
+      "pageWidth": 1434,
+      "title": "Caja",
+      "error": false
+    },
+    {
+      "route": "/dashboard",
+      "width": 390,
+      "pageWidth": 384,
+      "title": "Resumen del negocio",
+      "error": false
+    },
+    {
+      "route": "/productos",
+      "width": 390,
+      "pageWidth": 384,
+      "title": "Productos y precios",
+      "error": false
+    },
+    {
+      "route": "/inventario",
+      "width": 390,
+      "pageWidth": 384,
+      "title": "Inventario",
+      "error": false
+    },
+    {
+      "route": "/ventas",
+      "width": 390,
+      "pageWidth": 384,
+      "title": "Ventas",
+      "error": false
+    },
+    {
+      "route": "/caja",
+      "width": 390,
+      "pageWidth": 384,
+      "title": "Caja",
+      "error": false
+    },
+    {
+      "route": "/dashboard",
+      "width": 720,
+      "pageWidth": 714,
+      "title": "Resumen del negocio",
+      "error": false
+    },
+    {
+      "route": "/productos",
+      "width": 720,
+      "pageWidth": 714,
+      "title": "Productos y precios",
+      "error": false
+    },
+    {
+      "route": "/inventario",
+      "width": 720,
+      "pageWidth": 714,
+      "title": "Inventario",
+      "error": false
+    },
+    {
+      "route": "/ventas",
+      "width": 720,
+      "pageWidth": 714,
+      "title": "Ventas",
+      "error": false
+    },
+    {
+      "route": "/caja",
+      "width": 720,
+      "pageWidth": 714,
+      "title": "Caja",
+      "error": false
+    }
+  ],
+  "form": {
+    "width": 390,
+    "dialogWidth": 370.5,
+    "categoryLabel": "Categoría",
+    "categoryExists": true,
+    "unitExists": true,
+    "fontSize": "16px"
+  },
+  "persisted": true,
+  "deletionCancelled": true,
+  "edited": true,
+  "keyboard": {
+    "tag": "BUTTON",
+    "name": "Abrir o cerrar menú"
+  },
+  "lightContrast": [
+    {
+      "fg": "foreground",
+      "bg": "card",
+      "ratio": 17.12
+    },
+    {
+      "fg": "muted-foreground",
+      "bg": "card",
+      "ratio": 6.29
+    },
+    {
+      "fg": "primary-foreground",
+      "bg": "primary",
+      "ratio": 11.56
+    },
+    {
+      "fg": "danger-text",
+      "bg": "danger-soft",
+      "ratio": 5.83
+    },
+    {
+      "fg": "warning-text",
+      "bg": "warning-soft",
+      "ratio": 4.87
+    },
+    {
+      "fg": "success-text",
+      "bg": "success-soft",
+      "ratio": 4.87
+    }
+  ],
+  "darkContrast": [
+    {
+      "fg": "foreground",
+      "bg": "card",
+      "ratio": 14.77
+    },
+    {
+      "fg": "muted-foreground",
+      "bg": "card",
+      "ratio": 7.33
+    },
+    {
+      "fg": "primary-foreground",
+      "bg": "primary",
+      "ratio": 6.71
+    },
+    {
+      "fg": "danger-text",
+      "bg": "danger-soft",
+      "ratio": 6.17
+    },
+    {
+      "fg": "warning-text",
+      "bg": "warning-soft",
+      "ratio": 8.86
+    },
+    {
+      "fg": "success-text",
+      "bg": "success-soft",
+      "ratio": 8.41
+    }
+  ],
+  "exceptions": []
+}

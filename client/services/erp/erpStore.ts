@@ -1253,13 +1253,18 @@ let proveedores: Proveedor[] = structuredClone(DEFAULT_PROVEEDORES);
 // ==========================================
 // PERSISTENCIA EN LOCALSTORAGE
 // ==========================================
+let storageReadError = false;
 function loadStateFromStorage(): boolean {
   if (typeof window === 'undefined') return false;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
+    storageReadError = false;
     if (!raw) return false;
     const parsed = JSON.parse(raw);
-    if (parsed && Array.isArray(parsed.productos) && parsed.productos.length > 0) {
+    if (parsed && Array.isArray(parsed.productos) && parsed.productos.every((p: Producto) =>
+      p && typeof p.id === 'string' && typeof p.nombre === 'string' && typeof p.sku === 'string' &&
+      typeof p.categoria === 'string' && Number.isFinite(p.stock) && Number.isFinite(p.stockMinimo) &&
+      Number.isFinite(p.precioCompra) && Number.isFinite(p.precioVenta))) {
       productos = parsed.productos;
       ventas = parsed.ventas || [];
       pedidos = parsed.pedidos || [];
@@ -1278,17 +1283,20 @@ function loadStateFromStorage(): boolean {
       proveedores = parsed.proveedores || [];
       return true;
     }
+    throw new Error('El catálogo guardado no tiene un formato válido.');
   } catch (err) {
+    storageReadError = true;
     console.warn('[erpStore] Error al leer estado de localStorage:', err);
   }
   return false;
 }
 
-function saveStateToStorage(): void {
+function saveStateToStorage(nextProductos = productos, strict = false): void {
   if (typeof window === 'undefined') return;
   try {
+    if (storageReadError) throw new Error('No se pudieron leer los datos guardados. Consérvalos y revisa el almacenamiento del navegador antes de volver a guardar.');
     const payload = {
-      productos,
+      productos: nextProductos,
       ventas,
       pedidos,
       cotizaciones,
@@ -1308,18 +1316,17 @@ function saveStateToStorage(): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   } catch (err) {
     console.warn('[erpStore] Error al guardar estado en localStorage:', err);
+    if (strict) {
+      if (storageReadError) throw err;
+      throw new Error('No se pudo guardar el producto en este navegador. Revisa que tenga espacio disponible y permita guardar datos. Tus cambios siguen en el formulario.');
+    }
   }
 }
 
 // Inicialización de la persistencia
 if (typeof window !== 'undefined') {
-  // Limpieza preventiva de versiones anteriores obsoletas
-  try {
-    localStorage.removeItem('KIPUS_ERP_STORAGE');
-  } catch {}
-
   const loaded = loadStateFromStorage();
-  if (!loaded) {
+  if (!loaded && !storageReadError) {
     saveStateToStorage();
   }
 }
@@ -1330,8 +1337,8 @@ if (typeof window !== 'undefined') {
 type Listener = () => void;
 const listeners = new Set<Listener>();
 
-function notify() {
-  saveStateToStorage();
+function notify(persist = true) {
+  if (persist) saveStateToStorage();
   listeners.forEach((listener) => {
     try {
       listener();
@@ -1339,6 +1346,13 @@ function notify() {
       // Ignorar errores en callbacks
     }
   });
+}
+
+// El catálogo se publica en memoria y a suscriptores solo después de persistir.
+function commitProductos(next: Producto[]) {
+  saveStateToStorage(next, true);
+  productos = next;
+  notify(false);
 }
 
 export function subscribeToErp(listener: Listener): () => void {
@@ -1801,8 +1815,7 @@ export const erpStore = {
       codigoBarras,
       activo: true,
     };
-    productos = [nuevo, ...productos];
-    notify();
+    commitProductos([nuevo, ...productos]);
     return nuevo;
   },
 
@@ -1819,27 +1832,26 @@ export const erpStore = {
         throw new Error(`El código SKU "${payload.sku}" ya se encuentra registrado en otro producto.`);
       }
     }
-    productos[idx] = {
+    const actualizado = {
       ...productos[idx],
       ...payload,
       ...cambioCodigo,
     };
-    notify();
-    return productos[idx];
+    commitProductos(productos.map((p, index) => index === idx ? actualizado : p));
+    return actualizado;
   },
 
   eliminarProducto: (id: string): boolean => {
-    productos = productos.filter((p) => p.id !== id);
-    notify();
+    commitProductos(productos.filter((p) => p.id !== id));
     return true;
   },
 
   toggleEstadoProducto: (id: string): Producto => {
     const prod = productos.find((p) => p.id === id);
     if (!prod) throw new Error('Producto no encontrado');
-    prod.activo = !prod.activo;
-    notify();
-    return prod;
+    const actualizado = { ...prod, activo: !prod.activo };
+    commitProductos(productos.map(p => p.id === id ? actualizado : p));
+    return actualizado;
   },
 
   // ==========================================

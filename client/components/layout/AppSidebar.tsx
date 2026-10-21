@@ -39,7 +39,11 @@ interface NavItemConfig {
 }
 
 const gestionItems: NavItemConfig[] = [
-  { name: 'Dashboard', path: APP_ROUTES.DASHBOARD, icon: LayoutDashboard },
+  {
+    name: 'Resumen del negocio',
+    path: APP_ROUTES.DASHBOARD,
+    icon: LayoutDashboard,
+  },
   { name: 'Ventas', path: APP_ROUTES.VENTAS, icon: ShoppingCart },
   { name: 'Productos', path: APP_ROUTES.PRODUCTOS, icon: Package },
   { name: 'Inventario', path: APP_ROUTES.INVENTARIO, icon: Warehouse },
@@ -55,7 +59,7 @@ const operacionesItems: NavItemConfig[] = [
 
 const inteligenciaItems: NavItemConfig[] = [
   { name: 'Reportes', path: APP_ROUTES.REPORTES, icon: BarChart3 },
-  { name: 'KIPU\'S IA', path: APP_ROUTES.KIPUS_IA, icon: Sparkles, badge: 'IA' },
+  { name: "KIPU'S IA", path: APP_ROUTES.KIPUS_IA, icon: Sparkles, badge: 'IA' },
 ];
 
 const sistemaItems: NavItemConfig[] = [
@@ -68,7 +72,7 @@ export const AppSidebar: React.FC = () => {
 
   const renderNavGroup = (title: string, items: NavItemConfig[]) => (
     <SidebarGroup className="py-1 px-2">
-      <SidebarGroupLabel className="text-[10.5px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold px-2 h-6 select-none">
+      <SidebarGroupLabel className="text-xs uppercase tracking-wider text-muted-foreground font-semibold px-2 h-6 select-none">
         {title}
       </SidebarGroupLabel>
       <SidebarGroupContent>
@@ -77,7 +81,8 @@ export const AppSidebar: React.FC = () => {
             const Icon = item.icon;
             const isActive =
               location.pathname === item.path ||
-              (item.path !== APP_ROUTES.DASHBOARD && location.pathname.startsWith(item.path));
+              (item.path !== APP_ROUTES.DASHBOARD &&
+                location.pathname.startsWith(item.path));
 
             return (
               <SidebarMenuItem key={item.path}>
@@ -91,7 +96,10 @@ export const AppSidebar: React.FC = () => {
                       : 'text-slate-800 dark:text-slate-200 hover:bg-slate-200/70 dark:hover:bg-slate-800/80 hover:text-slate-900'
                   }`}
                 >
-                  <Link to={item.path} className="flex items-center gap-2.5 w-full">
+                  <Link
+                    to={item.path}
+                    className="flex items-center gap-2.5 w-full"
+                  >
                     <Icon
                       className={`h-4 w-4 shrink-0 ${
                         isActive
@@ -101,7 +109,7 @@ export const AppSidebar: React.FC = () => {
                     />
                     <span className="truncate">{item.name}</span>
                     {item.badge && (
-                      <SidebarMenuBadge className="ml-auto bg-amber-500/15 text-amber-700 dark:text-amber-400 font-bold text-[10px] px-1.5 py-0.2 rounded border border-amber-500/30">
+                      <SidebarMenuBadge className="ml-auto bg-amber-500/15 text-amber-700 dark:text-amber-400 font-semibold text-[10px] px-1.5 py-0.2 rounded border border-amber-500/30">
                         {item.badge}
                       </SidebarMenuBadge>
                     )}
@@ -116,7 +124,10 @@ export const AppSidebar: React.FC = () => {
   );
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border bg-sidebar select-none">
+    <Sidebar
+      collapsible="icon"
+      className="border-r border-border bg-sidebar select-none"
+    >
       {/* Encabezado del ERP estilo Desktop Software */}
       <SidebarHeader className="border-b border-border p-3">
         {/* Vista expandida: Logo oficial Kipus + ERP PRO */}
@@ -128,7 +139,7 @@ export const AppSidebar: React.FC = () => {
               className="h-11 w-auto object-contain shrink-0 dark:brightness-110"
             />
 
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-bold">
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-semibold">
               PRO
             </span>
           </div>
@@ -157,11 +168,11 @@ export const AppSidebar: React.FC = () => {
       {/* Pie de Panel: Empresa activa */}
       <SidebarFooter className="border-t border-border p-2">
         <div className="flex items-center gap-2 rounded p-1.5 bg-muted/40 border border-border/60">
-          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-bold text-[10px]">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-semibold text-[10px]">
             KC
           </div>
           <div className="flex flex-col overflow-hidden text-left text-xs">
-            <span className="font-bold text-foreground text-[11px] truncate">
+            <span className="font-semibold text-foreground text-[11px] truncate">
               Comercial Los Andes S.A.C.
             </span>
             <span className="text-[10px] text-muted-foreground truncate">

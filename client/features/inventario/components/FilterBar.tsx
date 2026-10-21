@@ -48,7 +48,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 }) => {
   return (
     <div className="space-y-2.5">
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         {/* Buscador */}
         <SearchBar
           value={busqueda}
@@ -58,9 +58,18 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         />
 
         {/* Filtro por Categoría */}
-        <div className="w-full sm:w-44 shrink-0">
+        <div className="min-w-0">
+          <label
+            htmlFor="inventario-categoria"
+            className="mb-1 block text-xs text-muted-foreground"
+          >
+            Categoría
+          </label>
           <Select value={categoria} onValueChange={onCategoriaChange}>
-            <SelectTrigger className="h-9 text-xs border-border bg-card">
+            <SelectTrigger
+              id="inventario-categoria"
+              className="h-11 md:h-9 text-base md:text-sm border-input bg-card"
+            >
               <SelectValue placeholder="Categoría" />
             </SelectTrigger>
             <SelectContent>
@@ -77,9 +86,18 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         </div>
 
         {/* Filtro por Estado */}
-        <div className="w-full sm:w-36 shrink-0">
+        <div className="min-w-0">
+          <label
+            htmlFor="inventario-estado"
+            className="mb-1 block text-xs text-muted-foreground"
+          >
+            Estado del stock
+          </label>
           <Select value={estado} onValueChange={onEstadoChange}>
-            <SelectTrigger className="h-9 text-xs border-border bg-card">
+            <SelectTrigger
+              id="inventario-estado"
+              className="h-11 md:h-9 text-base md:text-sm border-input bg-card"
+            >
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
             <SelectContent>
@@ -101,9 +119,18 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
         {/* Filtro por Almacén (si hay almacenes y handler) */}
         {onAlmacenChange && almacenes.length > 0 && (
-          <div className="w-full sm:w-48 shrink-0">
+          <div className="min-w-0">
+            <label
+              htmlFor="inventario-almacen"
+              className="mb-1 block text-xs text-muted-foreground"
+            >
+              Almacén
+            </label>
             <Select value={almacen || 'TODOS'} onValueChange={onAlmacenChange}>
-              <SelectTrigger className="h-9 text-xs border-border bg-card">
+              <SelectTrigger
+                id="inventario-almacen"
+                className="h-11 md:h-9 text-base md:text-sm border-input bg-card"
+              >
                 <SelectValue placeholder="Almacén" />
               </SelectTrigger>
               <SelectContent>
@@ -111,7 +138,11 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                   Todos los almacenes
                 </SelectItem>
                 {almacenes.map((alm) => (
-                  <SelectItem key={alm.id} value={alm.nombre} className="text-xs">
+                  <SelectItem
+                    key={alm.id}
+                    value={alm.nombre}
+                    className="text-xs"
+                  >
                     {alm.nombre}
                   </SelectItem>
                 ))}
@@ -130,7 +161,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               variant="ghost"
               size="sm"
               onClick={onResetFilters}
-              className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1 -ml-1 font-normal"
+              className="h-11 md:h-9 px-2 text-sm text-muted-foreground hover:text-foreground gap-1 -ml-1 font-normal"
             >
               <RotateCcw className="h-3 w-3" />
               Restablecer filtros
@@ -140,7 +171,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
         {totalResultados !== undefined && (
           <span className="tabular-nums ml-auto text-xs">
-            Mostrando <strong className="text-foreground font-medium">{totalResultados}</strong>{' '}
+            Mostrando{' '}
+            <strong className="text-foreground font-medium">
+              {totalResultados}
+            </strong>{' '}
             {totalResultados === 1 ? 'producto' : 'productos'}
           </span>
         )}

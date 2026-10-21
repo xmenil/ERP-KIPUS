@@ -1,4 +1,5 @@
 import React from 'react';
+import { SummaryStrip } from '@/components/common/SummaryStrip';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { EstadoCaja, MovimientoCaja } from '../types/caja.types';
@@ -11,13 +12,10 @@ import {
   LockKeyhole,
   Smartphone,
   CreditCard,
-  Building,
   User,
   Clock,
   Store,
   ArrowRight,
-  TrendingUp,
-  Receipt,
 } from 'lucide-react';
 
 interface MiCajaViewProps {
@@ -44,7 +42,7 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
   return (
     <div className="space-y-6">
       {/* 1. Encabezado de Contexto Operativo y Estado de Caja (Reglas 4, 5, 6) */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-lg bg-card border border-border/80 shadow-xs">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-lg bg-card border border-border/80 shadow-none">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="text-base font-semibold text-foreground">
@@ -59,47 +57,38 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
-              <Store className="h-3.5 w-3.5 text-primary" />
+              <Store className="h-3.5 w-3.5 text-foreground" />
               {estado.sucursal}
             </span>
             <span className="flex items-center gap-1">
-              <User className="h-3.5 w-3.5 text-primary" />
-              Responsable: <strong className="text-foreground">{estado.responsable}</strong>
+              <User className="h-3.5 w-3.5 text-foreground" />
+              Responsable:{' '}
+              <strong className="text-foreground">{estado.responsable}</strong>
             </span>
             <span className="flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5 text-primary" />
-              Apertura: {estado.horaApertura || '08:00'} ({estado.turno})
+              <Clock className="h-3.5 w-3.5 text-foreground" />
+              Apertura: {estado.horaApertura || 'Sin hora registrada'} (
+              {estado.turno})
             </span>
           </div>
         </div>
-
-        {/* Acceso Rápido al Cierre */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onOpenCierre}
-          className="h-8 text-xs font-medium border-border text-muted-foreground hover:text-foreground hover:bg-muted gap-1.5 shrink-0"
-        >
-          <LockKeyhole className="h-3.5 w-3.5" />
-          <span>Cerrar turno de caja</span>
-        </Button>
       </div>
 
       {/* 2. TARJETA HERO: SALDO ACTUAL CON JERARQUÍA EQUILIBRADA Y ELEGANTE */}
-      <Card className="border border-border/80 shadow-xs bg-card overflow-hidden">
-        <CardContent className="p-5 sm:p-6">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+      <Card className="border border-border/80 shadow-none bg-card overflow-hidden">
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             {/* Saldo más delgado y proporcionado */}
             <div className="space-y-1">
               <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                <Coins className="h-3.5 w-3.5 text-primary" />
-                Saldo disponible en gaveta (Efectivo)
+                <Coins className="h-3.5 w-3.5 text-foreground" />
+                Efectivo disponible
               </span>
               <div className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight tabular-nums">
                 {formatCurrency(estado.saldoEfectivoEsperado)}
               </div>
               <p className="text-xs text-muted-foreground">
-                Iniciado con {formatCurrency(estado.saldoInicial)} de sencillo • Calculado en tiempo real
+                Iniciado con {formatCurrency(estado.saldoInicial)} de sencillo
               </p>
             </div>
 
@@ -111,9 +100,9 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
                 size="sm"
                 onClick={onOpenIngreso}
                 variant="outline"
-                className="h-10 sm:h-9 px-3.5 border-border hover:bg-muted text-foreground font-medium text-xs gap-1.5 rounded-md justify-center"
+                className="h-11 md:h-9 px-3.5 border-border hover:bg-muted text-foreground font-medium text-xs gap-1.5 rounded-md justify-center"
               >
-                <ArrowDownCircle className="h-3.5 w-3.5 text-primary" />
+                <ArrowDownCircle className="h-3.5 w-3.5 text-foreground" />
                 <span>Ingreso</span>
               </Button>
 
@@ -123,7 +112,7 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
                 size="sm"
                 onClick={onOpenEgreso}
                 variant="outline"
-                className="h-10 sm:h-9 px-3.5 border-border hover:bg-muted text-foreground font-medium text-xs gap-1.5 rounded-md justify-center"
+                className="h-11 md:h-9 px-3.5 border-border hover:bg-muted text-foreground font-medium text-xs gap-1.5 rounded-md justify-center"
               >
                 <ArrowUpCircle className="h-3.5 w-3.5 text-muted-foreground" />
                 <span>Egreso</span>
@@ -135,7 +124,7 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
                 size="sm"
                 onClick={onOpenArqueo}
                 variant="outline"
-                className="h-10 sm:h-9 px-3.5 border-border hover:bg-muted text-foreground font-medium text-xs gap-1.5 rounded-md justify-center"
+                className="h-11 md:h-9 px-3.5 border-border hover:bg-muted text-foreground font-medium text-xs gap-1.5 rounded-md justify-center"
               >
                 <Calculator className="h-3.5 w-3.5 text-muted-foreground" />
                 <span>Contar dinero</span>
@@ -146,7 +135,7 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
                 type="button"
                 size="sm"
                 onClick={onOpenCierre}
-                className="h-10 sm:h-9 px-3.5 font-medium text-xs gap-1.5 rounded-md justify-center"
+                className="h-11 md:h-9 px-3.5 font-medium text-xs gap-1.5 rounded-md justify-center"
               >
                 <LockKeyhole className="h-3.5 w-3.5" />
                 <span>Cerrar caja</span>
@@ -156,72 +145,45 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
         </CardContent>
       </Card>
 
-      {/* 3. Métricas Operativas de Flujo */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Ventas en Efectivo */}
-        <Card className="border border-border/80 shadow-xs bg-card">
-          <CardContent className="p-4 space-y-1">
-            <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <TrendingUp className="h-3.5 w-3.5 text-success" />
-              Ventas en efectivo
-            </span>
-            <div className="text-xl font-semibold text-success-text tabular-nums">
-              + {formatCurrency(estado.ventasEfectivo)}
-            </div>
-            <span className="text-xs text-muted-foreground">
-              Total vendido por comprobantes en mano
-            </span>
-          </CardContent>
-        </Card>
-
-        {/* Otros Ingresos */}
-        <Card className="border border-border/80 shadow-xs bg-card">
-          <CardContent className="p-4 space-y-1">
-            <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <ArrowDownCircle className="h-3.5 w-3.5 text-primary" />
-              Otros ingresos
-            </span>
-            <div className="text-xl font-semibold text-foreground tabular-nums">
-              + {formatCurrency(estado.otrosIngresosEfectivo)}
-            </div>
-            <span className="text-xs text-muted-foreground">
-              Aportes de sencillo y cobranzas
-            </span>
-          </CardContent>
-        </Card>
-
-        {/* Egresos */}
-        <Card className="border border-border/80 shadow-xs bg-card">
-          <CardContent className="p-4 space-y-1">
-            <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <ArrowUpCircle className="h-3.5 w-3.5 text-destructive" />
-              Egresos / Gastos
-            </span>
-            <div className="text-xl font-semibold text-danger-text tabular-nums">
-              - {formatCurrency(estado.egresosEfectivo)}
-            </div>
-            <span className="text-xs text-muted-foreground">
-              Compras menores y pagos desde caja
-            </span>
-          </CardContent>
-        </Card>
-      </div>
-
+      <SummaryStrip
+        items={[
+          {
+            label: 'Saldo inicial',
+            value: formatCurrency(estado.saldoInicial),
+          },
+          {
+            label: 'Ventas en efectivo',
+            value: formatCurrency(estado.ventasEfectivo),
+          },
+          {
+            label: 'Otros ingresos',
+            value: formatCurrency(estado.otrosIngresosEfectivo),
+          },
+          {
+            label: 'Egresos',
+            value: formatCurrency(estado.egresosEfectivo),
+            tone: estado.egresosEfectivo > 0 ? 'danger' : undefined,
+          },
+        ]}
+      />
       {/* 4. Distribución por Métodos de Pago */}
-      <Card className="border border-border/80 shadow-xs bg-card">
-        <CardContent className="p-5 space-y-4">
+      <Card className="border border-border/80 shadow-none bg-card">
+        <CardContent className="p-4 space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <h3 className="text-sm font-semibold text-foreground">
                 Cobros por métodos de pago hoy
               </h3>
               <p className="text-xs text-muted-foreground">
-                Efectivo recibido en caja más billeteras digitales y tarjetas del día.
+                Efectivo recibido en caja más billeteras digitales y tarjetas
+                del día.
               </p>
             </div>
             <div className="text-right">
-              <span className="text-[11px] text-muted-foreground block">Total General Ventas:</span>
-              <span className="text-sm font-semibold text-primary tabular-nums">
+              <span className="text-xs text-muted-foreground block">
+                Total General Ventas:
+              </span>
+              <span className="text-sm font-semibold text-foreground tabular-nums">
                 {formatCurrency(estado.totalVentasGeneral)}
               </span>
             </div>
@@ -237,7 +199,7 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
               <div className="text-base font-semibold text-foreground tabular-nums">
                 {formatCurrency(estado.ventasEfectivo)}
               </div>
-              <span className="text-[11px] text-muted-foreground">En gaveta</span>
+              <span className="text-xs text-muted-foreground">En gaveta</span>
             </div>
 
             {/* Yape */}
@@ -249,7 +211,9 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
               <div className="text-base font-semibold text-foreground tabular-nums">
                 {formatCurrency(estado.ventasDigitales.yape)}
               </div>
-              <span className="text-[11px] text-muted-foreground">Billetera BCP</span>
+              <span className="text-xs text-muted-foreground">
+                Billetera BCP
+              </span>
             </div>
 
             {/* Plin */}
@@ -261,7 +225,9 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
               <div className="text-base font-semibold text-foreground tabular-nums">
                 {formatCurrency(estado.ventasDigitales.plin)}
               </div>
-              <span className="text-[11px] text-muted-foreground">Interbank / BBVA</span>
+              <span className="text-xs text-muted-foreground">
+                Interbank / BBVA
+              </span>
             </div>
 
             {/* Tarjeta POS */}
@@ -273,15 +239,17 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
               <div className="text-base font-semibold text-foreground tabular-nums">
                 {formatCurrency(estado.ventasDigitales.tarjeta)}
               </div>
-              <span className="text-[11px] text-muted-foreground">Izipay / Niubiz</span>
+              <span className="text-xs text-muted-foreground">
+                Izipay / Niubiz
+              </span>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* 5. Últimos Movimientos Rápidos */}
-      <Card className="border border-border/80 shadow-xs bg-card">
-        <CardContent className="p-5 space-y-3">
+      <Card className="border border-border/80 shadow-none bg-card">
+        <CardContent className="p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <h3 className="text-sm font-semibold text-foreground">
@@ -296,7 +264,7 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
               variant="ghost"
               size="sm"
               onClick={onVerTodosMovimientos}
-              className="text-xs font-medium text-primary hover:text-primary gap-1"
+              className="text-xs font-medium text-foreground hover:text-foreground gap-1"
             >
               <span>Ver todos los movimientos</span>
               <ArrowRight className="h-3.5 w-3.5" />
@@ -336,7 +304,7 @@ export const MiCajaView: React.FC<MiCajaViewProps> = ({
                         {mov.comprobanteRef && (
                           <>
                             <span>•</span>
-                            <span className="font-mono text-primary font-medium truncate">
+                            <span className="font-mono text-foreground font-medium truncate">
                               {mov.comprobanteRef}
                             </span>
                           </>

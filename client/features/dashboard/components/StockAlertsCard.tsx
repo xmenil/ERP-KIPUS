@@ -1,5 +1,11 @@
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from '@/components/ui/card';
 import { StockAlert } from '../types/dashboard.types';
 import { ArrowUpRight, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -10,10 +16,13 @@ interface StockAlertsCardProps {
   isLoading?: boolean;
 }
 
-export const StockAlertsCard: React.FC<StockAlertsCardProps> = ({ alerts, isLoading }) => {
+export const StockAlertsCard: React.FC<StockAlertsCardProps> = ({
+  alerts,
+  isLoading,
+}) => {
   return (
     <Card className="rounded-md border-border bg-card shadow-xs h-full flex flex-col justify-between">
-      <CardHeader className="flex flex-row items-center justify-between pb-3">
+      <CardHeader className="flex flex-col gap-2 pb-4">
         <div>
           <CardTitle className="text-base font-semibold text-foreground">
             Alertas de reabastecimiento
@@ -24,7 +33,7 @@ export const StockAlertsCard: React.FC<StockAlertsCardProps> = ({ alerts, isLoad
         </div>
         <Link
           to={APP_ROUTES.INVENTARIO}
-          className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-0.5"
+          className="min-h-11 md:min-h-9 text-sm text-primary hover:underline inline-flex items-center gap-1"
         >
           Ver inventario
           <ArrowUpRight className="h-3 w-3" />
@@ -34,13 +43,18 @@ export const StockAlertsCard: React.FC<StockAlertsCardProps> = ({ alerts, isLoad
         {isLoading ? (
           <div className="space-y-2.5">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-12 bg-muted/40 rounded-md animate-pulse" />
+              <div
+                key={i}
+                className="h-12 bg-muted/40 rounded-md animate-pulse"
+              />
             ))}
           </div>
         ) : alerts.length === 0 ? (
           <div className="h-44 flex flex-col items-center justify-center text-center p-4 border border-dashed border-border rounded-md">
             <CheckCircle2 className="h-5 w-5 text-success-text mb-1" />
-            <p className="text-sm font-medium text-foreground">Stock en orden</p>
+            <p className="text-sm font-medium text-foreground">
+              Stock en orden
+            </p>
             <p className="text-xs text-muted-foreground mt-0.5">
               Todos los artículos tienen stock suficiente.
             </p>
@@ -53,9 +67,9 @@ export const StockAlertsCard: React.FC<StockAlertsCardProps> = ({ alerts, isLoad
               return (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between p-2.5 rounded-md border border-border bg-background hover:bg-muted/40 transition-colors"
+                  className="flex flex-wrap items-center justify-between gap-3 border-b border-border py-3 last:border-0"
                 >
-                  <div className="space-y-0.5 min-w-0 pr-2">
+                  <div className="space-y-1 min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground truncate">
                       {item.producto}
                     </p>
