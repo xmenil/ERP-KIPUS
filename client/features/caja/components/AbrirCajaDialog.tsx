@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -50,6 +50,8 @@ export const AbrirCajaDialog: React.FC<AbrirCajaDialogProps> = ({
   const [observaciones, setObservaciones] = useState('');
   const [mostrarCalculadora, setMostrarCalculadora] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitting = useRef(false);
+  const [saveError, setSaveError] = useState('');
   const [exito, setExito] = useState(false);
   const [horaApertura, setHoraApertura] = useState('');
 
@@ -77,6 +79,9 @@ export const AbrirCajaDialog: React.FC<AbrirCajaDialogProps> = ({
     e.preventDefault();
     if (saldoInicial < 0) return;
 
+    if (submitting.current) return;
+    submitting.current = true;
+    setSaveError('');
     setIsSubmitting(true);
     try {
       const ahoraHora = new Date().toLocaleTimeString('es-PE', {
@@ -92,7 +97,10 @@ export const AbrirCajaDialog: React.FC<AbrirCajaDialogProps> = ({
         observaciones: observaciones.trim() || undefined,
       });
       setExito(true);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'No se pudo guardar. Conserva los campos e inténtalo de nuevo.');
     } finally {
+      submitting.current = false;
       setIsSubmitting(false);
     }
   };
@@ -105,6 +113,7 @@ export const AbrirCajaDialog: React.FC<AbrirCajaDialogProps> = ({
   return (
     <Dialog open={open} onOpenChange={handleCerrarModal}>
       <DialogContent className="w-[95vw] sm:max-w-md p-0 overflow-hidden max-h-[92vh] flex flex-col">
+        {saveError && <p role="alert" className="m-4 rounded-md border border-destructive bg-danger-soft p-3 text-sm text-danger-text">{saveError}</p>}
         {exito ? (
           /* Pantalla de Éxito posterior a la apertura */
           <div className="p-4 sm:p-8 space-y-5 sm:space-y-6 text-center flex-1 overflow-y-auto">

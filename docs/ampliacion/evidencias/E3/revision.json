@@ -1,0 +1,117 @@
+{
+  "results": [
+    {
+      "route": "/proveedores",
+      "width": 1440,
+      "pageWidth": 1440,
+      "title": "Proveedores",
+      "error": false
+    },
+    {
+      "route": "/compras",
+      "width": 1440,
+      "pageWidth": 1440,
+      "title": "Gestión de Compras y Abastecimiento",
+      "error": false
+    },
+    {
+      "route": "/proveedores",
+      "width": 390,
+      "pageWidth": 384,
+      "title": "Proveedores",
+      "error": false
+    },
+    {
+      "route": "/compras",
+      "width": 390,
+      "pageWidth": 384,
+      "title": "Gestión de Compras y Abastecimiento",
+      "error": false
+    },
+    {
+      "route": "/proveedores",
+      "width": 720,
+      "pageWidth": 714,
+      "title": "Proveedores",
+      "error": false
+    },
+    {
+      "route": "/compras",
+      "width": 720,
+      "pageWidth": 714,
+      "title": "Gestión de Compras y Abastecimiento",
+      "error": false
+    }
+  ],
+  "operations": {
+    "invalidFocus": "proveedor-ruc",
+    "createFailure": {
+      "unchanged": true,
+      "draft": "Distribuidora \"Peña\", E3"
+    },
+    "count": 1,
+    "protectedRuc": true,
+    "linked": {
+      "ruc": "20987654321",
+      "comprobante": "E3-COMPRA-001"
+    },
+    "editFailure": true,
+    "historyPreserved": true,
+    "deleteProtected": true,
+    "stateFailure": true,
+    "csvDownloaded": true,
+    "csvFile": "docs\\ampliacion\\evidencias\\E3\\descargas\\1792622945248\\proveedores-filtrados.csv",
+    "csvRows": 1,
+    "inactiveExcluded": true,
+    "lightContrast": [
+      {
+        "fg": "foreground",
+        "bg": "card",
+        "ratio": 17.117104139241334
+      },
+      {
+        "fg": "muted-foreground",
+        "bg": "card",
+        "ratio": 6.289086591235966
+      },
+      {
+        "fg": "success-text",
+        "bg": "success-soft",
+        "ratio": 4.8740970650216955
+      },
+      {
+        "fg": "danger-text",
+        "bg": "danger-soft",
+        "ratio": 5.829491003064583
+      }
+    ],
+    "darkContrast": [
+      {
+        "fg": "foreground",
+        "bg": "card",
+        "ratio": 14.774888376169935
+      },
+      {
+        "fg": "muted-foreground",
+        "bg": "card",
+        "ratio": 7.330723980824855
+      },
+      {
+        "fg": "success-text",
+        "bg": "success-soft",
+        "ratio": 8.410935599611472
+      },
+      {
+        "fg": "danger-text",
+        "bg": "danger-soft",
+        "ratio": 6.166465323585059
+      }
+    ],
+    "duplicateRejected": true,
+    "deleteCancelled": true,
+    "deleteFailure": true,
+    "deleted": true,
+    "corruptPreserved": true
+  },
+  "exceptions": []
+}

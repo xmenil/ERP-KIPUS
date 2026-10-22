@@ -387,16 +387,7 @@ export const LoginPage: React.FC = () => {
                     <Label htmlFor="password" className="text-xs font-semibold text-foreground">
                       Contraseña
                     </Label>
-                    <a
-                      href="#recuperar"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        fillDemoAccount('admin', 'admin123');
-                      }}
-                      className="text-xs text-[#5B1C8A] hover:underline font-medium"
-                    >
-                      ¿Olvidaste tu contraseña?
-                    </a>
+                    <span className="text-xs text-muted-foreground">¿Olvidaste tu contraseña? Pide al administrador que la cambie.</span>
                   </div>
                   <div className="relative">
                     <LockIcon className="absolute left-3 top-2.5 sm:top-3 h-4 w-4 text-muted-foreground pointer-events-none" />

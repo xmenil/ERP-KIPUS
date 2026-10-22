@@ -1,0 +1,71 @@
+
+ RUN  v3.2.4 C:/Users/ThikPad/Desktop/PROYECTOS/ERP-KIPUS
+
+·············································stderr | client/features/productos/services/cameraDetection.spec.ts > detección de imágenes con la configuración de cámara > decodifica EAN-13 0012345678905 fuera del centro sin perder ceros
+MultiFormatReader: non-ReaderException from reader: NotFoundException: 
+    at FinderPatternFinder.selectBestPatterns (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\node_modules\.pnpm\@zxing+library@0.23.0\node_modules\@zxing\library\cjs\core\qrcode\detector\FinderPatternFinder.js:579:19)
+    at FinderPatternFinder.find (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\node_modules\.pnpm\@zxing+library@0.23.0\node_modules\@zxing\library\cjs\core\qrcode\detector\FinderPatternFinder.js:173:32)
+    at Detector.detect (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\node_modules\.pnpm\@zxing+library@0.23.0\node_modules\@zxing\library\cjs\core\qrcode\detector\Detector.js:71:27)
+    at QRCodeReader.decode (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\node_modules\.pnpm\@zxing+library@0.23.0\node_modules\@zxing\library\cjs\core\qrcode\QRCodeReader.js:68:81)
+    at MultiFormatReader.decodeInternal (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\node_modules\.pnpm\@zxing+library@0.23.0\node_modules\@zxing\library\cjs\core\MultiFormatReader.js:204:35)
+    at MultiFormatReader.decodeWithState (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\node_modules\.pnpm\@zxing+library@0.23.0\node_modules\@zxing\library\cjs\core\MultiFormatReader.js:100:21)
+    at decode (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\client\features\productos\services\cameraDetection.spec.ts:8:17)
+    at C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\client\features\productos\services\cameraDetection.spec.ts:33:12
+    at file:///C:/Users/ThikPad/Desktop/PROYECTOS/ERP-KIPUS/node_modules/.pnpm/@vitest+runner@3.2.4/node_modules/@vitest/runner/dist/chunk-hooks.js:863:59
+    at file:///C:/Users/ThikPad/Desktop/PROYECTOS/ERP-KIPUS/node_modules/.pnpm/@vitest+runner@3.2.4/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+MultiFormatReader: non-ReaderException from reader: NotFoundException: 
+    at WhiteRectangleDetector.detect (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\node_modules\.pnpm\@zxing+library@0.23.0\node_modules\@zxing\library\cjs\core\common\detector\WhiteRectangleDetector.js:214:19)
+    at Detector.detect (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\node_modules\.pnpm\@zxing+library@0.23.0\node_modules\@zxing\library\cjs\core\datamatrix\detector\Detector.js:44:51)
+    at DataMatrixReader.decode (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\node_modules\.pnpm\@zxing+library@0.23.0\node_modules\@zxing\library\cjs\core\datamatrix\DataMatrixReader.js:62:81)
+    at MultiFormatReader.decodeInternal (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\node_modules\.pnpm\@zxing+library@0.23.0\node_modules\@zxing\library\cjs\core\MultiFormatReader.js:204:35)
+    at MultiFormatReader.decodeWithState (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\node_modules\.pnpm\@zxing+library@0.23.0\node_modules\@zxing\library\cjs\core\MultiFormatReader.js:100:21)
+    at decode (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\client\features\productos\services\cameraDetection.spec.ts:8:17)
+    at C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\client\features\productos\services\cameraDetection.spec.ts:33:12
+    at file:///C:/Users/ThikPad/Desktop/PROYECTOS/ERP-KIPUS/node_modules/.pnpm/@vitest+runner@3.2.4/node_modules/@vitest/runner/dist/chunk-hooks.js:863:59
+    at file:///C:/Users/ThikPad/Desktop/PROYECTOS/ERP-KIPUS/node_modules/.pnpm/@vitest+runner@3.2.4/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+    at file:///C:/Users/ThikPad/Desktop/PROYECTOS/ERP-KIPUS/node_modules/.pnpm/@vitest+runner@3.2.4/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+
+···stderr | client/features/productos/services/cameraDetection.spec.ts > detección de imágenes con la configuración de cámara > decodifica EAN-13 4006381333931 fuera del centro sin perder ceros
+MultiFormatReader: non-ReaderException from reader: NotFoundException: 
+    at FinderPatternFinder.selectBestPatterns (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\node_modules\.pnpm\@zxing+library@0.23.0\node_modules\@zxing\library\cjs\core\qrcode\detector\FinderPatternFinder.js:579:19)
+    at FinderPatternFinder.find (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\node_modules\.pnpm\@zxing+library@0.23.0\node_modules\@zxing\library\cjs\core\qrcode\detector\FinderPatternFinder.js:173:32)
+    at Detector.detect (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\node_modules\.pnpm\@zxing+library@0.23.0\node_modules\@zxing\library\cjs\core\qrcode\detector\Detector.js:71:27)
+    at QRCodeReader.decode (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\node_modules\.pnpm\@zxing+library@0.23.0\node_modules\@zxing\library\cjs\core\qrcode\QRCodeReader.js:68:81)
+    at MultiFormatReader.decodeInternal (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\node_modules\.pnpm\@zxing+library@0.23.0\node_modules\@zxing\library\cjs\core\MultiFormatReader.js:204:35)
+    at MultiFormatReader.decodeWithState (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\node_modules\.pnpm\@zxing+library@0.23.0\node_modules\@zxing\library\cjs\core\MultiFormatReader.js:100:21)
+    at decode (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\client\features\productos\services\cameraDetection.spec.ts:8:17)
+    at C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\client\features\productos\services\cameraDetection.spec.ts:33:12
+    at file:///C:/Users/ThikPad/Desktop/PROYECTOS/ERP-KIPUS/node_modules/.pnpm/@vitest+runner@3.2.4/node_modules/@vitest/runner/dist/chunk-hooks.js:863:59
+    at file:///C:/Users/ThikPad/Desktop/PROYECTOS/ERP-KIPUS/node_modules/.pnpm/@vitest+runner@3.2.4/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+MultiFormatReader: non-ReaderException from reader: NotFoundException: 
+    at WhiteRectangleDetector.detect (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\node_modules\.pnpm\@zxing+library@0.23.0\node_modules\@zxing\library\cjs\core\common\detector\WhiteRectangleDetector.js:214:19)
+    at Detector.detect (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\node_modules\.pnpm\@zxing+library@0.23.0\node_modules\@zxing\library\cjs\core\datamatrix\detector\Detector.js:44:51)
+    at DataMatrixReader.decode (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\node_modules\.pnpm\@zxing+library@0.23.0\node_modules\@zxing\library\cjs\core\datamatrix\DataMatrixReader.js:62:81)
+    at MultiFormatReader.decodeInternal (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\node_modules\.pnpm\@zxing+library@0.23.0\node_modules\@zxing\library\cjs\core\MultiFormatReader.js:204:35)
+    at MultiFormatReader.decodeWithState (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\node_modules\.pnpm\@zxing+library@0.23.0\node_modules\@zxing\library\cjs\core\MultiFormatReader.js:100:21)
+    at decode (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\client\features\productos\services\cameraDetection.spec.ts:8:17)
+    at C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\client\features\productos\services\cameraDetection.spec.ts:33:12
+    at file:///C:/Users/ThikPad/Desktop/PROYECTOS/ERP-KIPUS/node_modules/.pnpm/@vitest+runner@3.2.4/node_modules/@vitest/runner/dist/chunk-hooks.js:863:59
+    at file:///C:/Users/ThikPad/Desktop/PROYECTOS/ERP-KIPUS/node_modules/.pnpm/@vitest+runner@3.2.4/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+    at file:///C:/Users/ThikPad/Desktop/PROYECTOS/ERP-KIPUS/node_modules/.pnpm/@vitest+runner@3.2.4/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+
+····················································stderr | client/services/erp/erpStore.gastos.spec.ts > erpStore - Gastos y Egresos Operativos (E5) > G07: revierte atómicamente si la persistencia falla
+[erpStore] Error al guardar estado en localStorage: Error: QuotaExceededError simulado
+    at Object.setItem (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\client\services\erp\erpStore.gastos.spec.ts:177:15)
+    at saveStateToStorage (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\client\services\erp\erpStore.ts:1378:18)
+    at Object.registrarGasto (C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\client\services\erp\erpStore.ts:2817:7)
+    at C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS\client\services\erp\erpStore.gastos.spec.ts:192:18
+    at Proxy.assertThrows (file:///C:/Users/ThikPad/Desktop/PROYECTOS/ERP-KIPUS/node_modules/.pnpm/chai@5.2.1/node_modules/chai/chai.js:2787:5)
+    at Proxy.methodWrapper (file:///C:/Users/ThikPad/Desktop/PROYECTOS/ERP-KIPUS/node_modules/.pnpm/chai@5.2.1/node_modules/chai/chai.js:1706:25)
+    at Proxy.<anonymous> (file:///C:/Users/ThikPad/Desktop/PROYECTOS/ERP-KIPUS/node_modules/.pnpm/@vitest+expect@3.2.4/node_modules/@vitest/expect/dist/index.js:1088:12)
+    at Proxy.overwritingMethodWrapper (file:///C:/Users/ThikPad/Desktop/PROYECTOS/ERP-KIPUS/node_modules/.pnpm/chai@5.2.1/node_modules/chai/chai.js:1755:33)
+    at Proxy.<anonymous> (file:///C:/Users/ThikPad/Desktop/PROYECTOS/ERP-KIPUS/node_modules/.pnpm/@vitest+expect@3.2.4/node_modules/@vitest/expect/dist/index.js:1420:16)
+    at Proxy.<anonymous> (file:///C:/Users/ThikPad/Desktop/PROYECTOS/ERP-KIPUS/node_modules/.pnpm/@vitest+expect@3.2.4/node_modules/@vitest/expect/dist/index.js:1029:14)
+
+··············································································································
+
+ Test Files  27 passed (27)
+      Tests  210 passed (210)
+   Start at  21:40:14
+   Duration  26.97s (transform 1.83s, setup 0ms, collect 29.33s, tests 18.64s, environment 13ms, prepare 12.07s)
+

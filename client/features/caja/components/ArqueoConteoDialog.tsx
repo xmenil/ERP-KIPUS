@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -88,6 +88,8 @@ export const ArqueoConteoDialog: React.FC<ArqueoConteoDialogProps> = ({
   const [motivoDiferencia, setMotivoDiferencia] = useState(MOTIVOS_DIFERENCIA[0]);
   const [observaciones, setObservaciones] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitting = useRef(false);
+  const [saveError, setSaveError] = useState('');
 
   // Cálculo total del efectivo contado según el modo
   const efectivoContado = useMemo(() => {
@@ -165,12 +167,18 @@ export const ArqueoConteoDialog: React.FC<ArqueoConteoDialogProps> = ({
   };
 
   const handleGuardar = async () => {
+    if (submitting.current) return;
+    submitting.current = true;
+    setSaveError('');
     setIsSubmitting(true);
     try {
       const arqueo = construirPayloadArqueo();
       await onArqueoGuardado(arqueo);
       onOpenChange(false);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'No se pudo guardar. Conserva los campos e inténtalo de nuevo.');
     } finally {
+      submitting.current = false;
       setIsSubmitting(false);
     }
   };
@@ -184,8 +192,9 @@ export const ArqueoConteoDialog: React.FC<ArqueoConteoDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={value => { if (!submitting.current) onOpenChange(value); }}>
       <DialogContent className="w-[95vw] sm:max-w-2xl p-0 overflow-hidden max-h-[92vh] flex flex-col">
+        {saveError && <p role="alert" className="m-4 rounded-md border border-destructive bg-danger-soft p-3 text-sm text-danger-text">{saveError}</p>}
         {/* Cabecera amigable sin jerga contable */}
         <DialogHeader className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-border/60 bg-muted/20 shrink-0">
           <div className="flex items-center justify-between">

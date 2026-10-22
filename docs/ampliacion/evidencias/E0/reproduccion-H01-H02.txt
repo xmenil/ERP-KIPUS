@@ -1,0 +1,145 @@
+
+ RUN  v3.2.4 C:/Users/ThikPad/Desktop/PROYECTOS/ERP-KIPUS
+
+ ❯ client/services/erp/erpStore.operaciones.spec.ts (14 tests | 14 failed) 529ms
+   × H01: venta revierte todo y permite un reintento tras fallo de escritura 332ms
+     → expected [Function operation] to throw an error
+   × H01: compra revierte todo y permite un reintento tras fallo de escritura 18ms
+     → expected [Function operation] to throw an error
+   × H01: gasto revierte todo y permite un reintento tras fallo de escritura 15ms
+     → expected [Function operation] to throw an error
+   × H01: ajuste revierte todo y permite un reintento tras fallo de escritura 18ms
+     → expected [Function operation] to throw an error
+   × H01: caja revierte todo y permite un reintento tras fallo de escritura 13ms
+     → expected [Function operation] to throw an error
+   × H02: rechaza cantidad 0 sin efectos 12ms
+     → expected [Function] to throw an error
+   × H02: rechaza cantidad -1 sin efectos 12ms
+     → expected [Function] to throw an error
+   × H02: rechaza cantidad NaN sin efectos 18ms
+     → expected [Function] to throw an error
+   × H02: rechaza cantidad Infinity sin efectos 15ms
+     → expected [Function] to throw an error
+   × H02: rechaza cantidad 46 sin efectos 13ms
+     → expected [Function] to throw an error
+   × valida stock acumulado y producto activo/existente 12ms
+     → expected [Function] to throw an error
+   × mixto registra cada componente una vez y crédito no registra cobro 22ms
+     → expected [ [ 'EFECTIVO', 4.8 ] ] to deeply equal ArrayContaining{…}
+   × rechaza caja cerrada y desglose inválido; identificadores rápidos son únicos 11ms
+     → expected [Function] to throw an error
+   × conversión anidada confirma una vez y revierte el pedido ante fallo 13ms
+     → expected [Function] to throw an error
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 14 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  client/services/erp/erpStore.operaciones.spec.ts > H01: venta revierte todo y permite un reintento tras fallo de escritura
+ FAIL  client/services/erp/erpStore.operaciones.spec.ts > H01: compra revierte todo y permite un reintento tras fallo de escritura
+ FAIL  client/services/erp/erpStore.operaciones.spec.ts > H01: gasto revierte todo y permite un reintento tras fallo de escritura
+ FAIL  client/services/erp/erpStore.operaciones.spec.ts > H01: ajuste revierte todo y permite un reintento tras fallo de escritura
+ FAIL  client/services/erp/erpStore.operaciones.spec.ts > H01: caja revierte todo y permite un reintento tras fallo de escritura
+AssertionError: expected [Function operation] to throw an error
+
+- Expected: 
+null
+
++ Received: 
+undefined
+
+ ❯ client/services/erp/erpStore.operaciones.spec.ts:35:21
+     33|   };
+     34|   storage.setItem.mockImplementationOnce(() => { throw new Error('Quot…
+     35|   expect(operation).toThrow('No se pudo guardar');
+       |                     ^
+     36|   expect(snapshot()).toBe(memory); expect(values.get(KEY)).toBe(before…
+     37|   operation(); expect(listener).toHaveBeenCalledTimes(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/14]⎯
+
+ FAIL  client/services/erp/erpStore.operaciones.spec.ts > H02: rechaza cantidad 0 sin efectos
+ FAIL  client/services/erp/erpStore.operaciones.spec.ts > H02: rechaza cantidad -1 sin efectos
+ FAIL  client/services/erp/erpStore.operaciones.spec.ts > H02: rechaza cantidad NaN sin efectos
+ FAIL  client/services/erp/erpStore.operaciones.spec.ts > H02: rechaza cantidad Infinity sin efectos
+ FAIL  client/services/erp/erpStore.operaciones.spec.ts > H02: rechaza cantidad 46 sin efectos
+AssertionError: expected [Function] to throw an error
+ ❯ client/services/erp/erpStore.operaciones.spec.ts:43:48
+     41| it.each([0, -1, NaN, Infinity, 46])('H02: rechaza cantidad %s sin efec…
+     42|   const { erpStore: s } = await load(); const before = values.get(KEY);
+     43|   expect(() => s.emitirVenta(venta(cantidad))).toThrow(); expect(value…
+       |                                                ^
+     44| });
+     45| it('valida stock acumulado y producto activo/existente', async () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/14]⎯
+
+ FAIL  client/services/erp/erpStore.operaciones.spec.ts > valida stock acumulado y producto activo/existente
+AssertionError: expected [Function] to throw an error
+ ❯ client/services/erp/erpStore.operaciones.spec.ts:48:40
+     46|   const { erpStore: s } = await load();
+     47|   const payload = venta(30); payload.items.push({ ...payload.items[0] …
+     48|   expect(() => s.emitirVenta(payload)).toThrow();
+       |                                        ^
+     49|   s.actualizarProducto('prod-1', { activo: false }); expect(() => s.em…
+     50|   payload.items[0].productoId = 'no-existe'; expect(() => s.emitirVent…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/14]⎯
+
+ FAIL  client/services/erp/erpStore.operaciones.spec.ts > mixto registra cada componente una vez y crédito no registra cobro
+AssertionError: expected [ [ 'EFECTIVO', 4.8 ] ] to deeply equal ArrayContaining{…}
+
+- Expected
++ Received
+
+- ArrayContaining [
++ [
+    [
+      "EFECTIVO",
+-     2,
+-   ],
+-   [
+-     "YAPE",
+-     2.8,
++     4.8,
+    ],
+  ]
+
+ ❯ client/services/erp/erpStore.operaciones.spec.ts:56:53
+     54|   const v = s.emitirVenta({ ...venta(), metodoPago: 'MIXTO', desgloseP…
+     55|   const movimientos = s.getMovimientosCaja().filter(m => m.comprobante…
+     56|   expect(movimientos.map(m => [m.metodo, m.monto])).toEqual(expect.arr…
+       |                                                     ^
+     57|   expect(s.getEstadoCaja().saldoEfectivoEsperado - before.saldoEfectiv…
+     58|   const digital = s.getEstadoCaja().totalVentasDigitales; const count …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/14]⎯
+
+ FAIL  client/services/erp/erpStore.operaciones.spec.ts > rechaza caja cerrada y desglose inválido; identificadores rápidos son únicos
+AssertionError: expected [Function] to throw an error
+ ❯ client/services/erp/erpStore.operaciones.spec.ts:64:116
+     62| it('rechaza caja cerrada y desglose inválido; identificadores rápidos …
+     63|   const { erpStore: s } = await load();
+     64|   expect(() => s.emitirVenta({ ...venta(), metodoPago: 'MIXTO', desglo…
+       |                                                                                                                    ^
+     65|   const ids = Array.from({ length: 10 }, () => s.emitirVenta(venta()).…
+     66|   s.cerrarCaja({ saldoContado: 0, diferencia: 0 }); expect(() => s.emi…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/14]⎯
+
+ FAIL  client/services/erp/erpStore.operaciones.spec.ts > conversión anidada confirma una vez y revierte el pedido ante fallo
+AssertionError: expected [Function] to throw an error
+ ❯ client/services/erp/erpStore.operaciones.spec.ts:73:47
+     71|   const before = values.get(KEY); const listener = vi.fn(); subscribeT…
+     72|   storage.setItem.mockImplementationOnce(() => { throw new Error('Quot…
+     73|   expect(() => s.convertirPedidoAVenta(p.id)).toThrow(); expect(values…
+       |                                               ^
+     74|   storage.setItem.mockClear(); s.convertirPedidoAVenta(p.id); expect(s…
+     75|   expect(() => s.convertirPedidoAVenta(p.id)).toThrow();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/14]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  14 failed (14)
+   Start at  16:43:41
+   Duration  2.74s (transform 318ms, setup 0ms, collect 100ms, tests 529ms, environment 0ms, prepare 1.02s)
+

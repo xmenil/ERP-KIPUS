@@ -42,17 +42,17 @@ interface UsuarioFormDialogProps {
 const ROLES_INFO: Record<UserRole, { label: string; desc: string; color: string }> = {
   ADMINISTRADOR: {
     label: 'Administrador General',
-    desc: 'Acceso total a finanzas, costos, reportes, usuarios y configuración global.',
+    desc: 'Acceso a todos los módulos del prototipo.',
     color: 'text-purple-700 bg-purple-50 dark:text-purple-300 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800',
   },
   SUPERVISOR: {
     label: 'Supervisor / Almacenero',
-    desc: 'Gestión de inventario, recepción de compras, movimientos de kardex y catálogo.',
+    desc: 'Resumen, productos, inventario, compras, proveedores y clientes.',
     color: 'text-blue-700 bg-blue-50 dark:text-blue-300 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800',
   },
   CAJERO: {
     label: 'Cajero / Punto de Venta',
-    desc: 'Emisión de comprobantes, apertura/cierre de caja chica y cobros en POS.',
+    desc: 'Resumen, ventas, caja y clientes.',
     color: 'text-amber-700 bg-amber-50 dark:text-amber-300 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800',
   },
 };
@@ -289,7 +289,7 @@ export const UsuarioFormDialog: React.FC<UsuarioFormDialogProps> = ({
                       Administrador General
                     </span>
                     <span className="text-[11px] text-muted-foreground block">
-                      Acceso irrestricto a todos los módulos y costos
+                      Todos los módulos del prototipo
                     </span>
                   </div>
                 </SelectItem>
@@ -299,7 +299,7 @@ export const UsuarioFormDialog: React.FC<UsuarioFormDialogProps> = ({
                       Supervisor / Almacén
                     </span>
                     <span className="text-[11px] text-muted-foreground block">
-                      Gestión de kardex, productos y compras
+                      Resumen, productos, inventario, compras, proveedores y clientes
                     </span>
                   </div>
                 </SelectItem>
@@ -309,7 +309,7 @@ export const UsuarioFormDialog: React.FC<UsuarioFormDialogProps> = ({
                       Cajero / Ventas POS
                     </span>
                     <span className="text-[11px] text-muted-foreground block">
-                      Ventas de mostrador y arqueo de caja diaria
+                      Resumen, ventas, caja y clientes
                     </span>
                   </div>
                 </SelectItem>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -62,6 +62,7 @@ export const AdjustmentForm: React.FC<AdjustmentFormProps> = ({
   // Estado del diálogo de confirmación
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const submitting = useRef(false);
 
   // Sincronizar producto si se pasa prop inicial
   React.useEffect(() => {
@@ -89,7 +90,7 @@ export const AdjustmentForm: React.FC<AdjustmentFormProps> = ({
       return;
     }
     const val = Number(nuevoStockInput);
-    if (isNaN(val) || val < 0) {
+    if (!Number.isFinite(val) || val < 0) {
       setErrorInput('La cantidad debe ser un número mayor o igual a 0.');
       return;
     }
@@ -102,7 +103,8 @@ export const AdjustmentForm: React.FC<AdjustmentFormProps> = ({
   };
 
   const handleConfirmarYGuardar = async () => {
-    if (!productoSeleccionado) return;
+    if (!productoSeleccionado || submitting.current) return;
+    submitting.current = true;
     setSaving(true);
     try {
       await onGuardarAjuste({
@@ -121,16 +123,17 @@ export const AdjustmentForm: React.FC<AdjustmentFormProps> = ({
       onOpenChange(false);
       setNuevoStockInput('');
       setObservacion('');
-    } catch {
-      toast.error('No se pudo guardar el ajuste. Inténtalo de nuevo.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo guardar el ajuste. Conserva los datos e inténtalo de nuevo.');
     } finally {
+      submitting.current = false;
       setSaving(false);
     }
   };
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={value => { if (!submitting.current) onOpenChange(value); }}>
         <DialogContent className="w-[95vw] sm:max-w-md max-h-[92vh] flex flex-col p-4 sm:p-5 gap-4 overflow-hidden rounded-lg">
           <DialogHeader className="space-y-1 text-left shrink-0">
             <DialogTitle className="text-base font-semibold text-foreground">

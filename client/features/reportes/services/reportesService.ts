@@ -1,192 +1,362 @@
-import { simulateDelay } from '@/services/mock/mockUtils';
-import {
-  ResumenFinanciero,
-  LiquidacionSunat,
-  TopProductoReporte,
+import { erpStore } from "@/services/erp/erpStore";
+import { isDateWithinRange } from "@/utils/dateRange";
+import { formatDate } from "@/utils/formatters";
+import type { Venta, Devolucion } from "@/features/ventas/types/ventas.types";
+import type { Compra } from "@/features/compras/types/compras.types";
+import type { Gasto } from "@/features/gastos/types/gastos.types";
+import type { MovimientoCaja } from "@/features/caja/types/caja.types";
+import type {
   PeriodoReporte,
-} from '../types/reportes.types';
-import { erpStore } from '@/services/erp/erpStore';
+  RangoReporte,
+  Reporte,
+  TopProductoReporte,
+  OperacionReporte,
+  SerieMensual,
+} from "../types/reportes.types";
+
+export interface DatosReporte {
+  ventas: Venta[];
+  devoluciones: Devolucion[];
+  compras: Compra[];
+  gastos: Gasto[];
+  productos: {
+    id: string;
+    sku: string;
+    nombre: string;
+    categoria?: string;
+    precioCompra: number;
+  }[];
+  movimientos: MovimientoCaja[];
+}
+const round = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+
+/** UTC calendar dates match the store's ISO timestamps and date-only records. */
+export function rangoPeriodo(
+  periodo: PeriodoReporte,
+  ahora = new Date(),
+): RangoReporte {
+  const year = ahora.getUTCFullYear();
+  const month = ahora.getUTCMonth() - (periodo === "MES_ANTERIOR" ? 1 : 0);
+  const start = new Date(
+    Date.UTC(year, periodo === "ANIO_ACTUAL" ? 0 : month, 1),
+  );
+  const end =
+    periodo === "MES_ANTERIOR" ? new Date(Date.UTC(year, month + 1, 0)) : ahora;
+  const desde = start.toISOString().slice(0, 10);
+  const hasta = end.toISOString().slice(0, 10);
+  return {
+    desde,
+    hasta,
+    label: `${formatDate(`${desde}T00:00:00`)} al ${formatDate(`${hasta}T00:00:00`)} (UTC)`,
+  };
+}
+
+export function calcularReporte(
+  datos: DatosReporte,
+  rango: RangoReporte,
+): Reporte {
+  const dentro = (fecha: string) =>
+    isDateWithinRange(fecha, rango.desde, rango.hasta);
+  const vigentes = datos.ventas.filter((v) => v.estado === "COMPLETADA");
+  const ventas = vigentes.filter((v) => dentro(v.fecha));
+  const porId = new Map(vigentes.map((v) => [v.id, v]));
+  const devoluciones = datos.devoluciones.filter(
+    (d) => dentro(d.fecha) && porId.has(d.ventaId),
+  );
+  const gastos = datos.gastos.filter(
+    (g) => g.estado !== "ANULADO" && dentro(g.fecha),
+  );
+  const compras = datos.compras.filter(
+    (c) => c.estado === "RECIBIDO" && dentro(c.fechaRecepcion || c.fecha),
+  );
+  const movimientos = datos.movimientos.filter(
+    (m) =>
+      dentro(m.fecha) &&
+      (m.origenTipo === "VENTA" || m.origenTipo === "DEVOLUCION"),
+  );
+  const catalogo = new Map(datos.productos.map((p) => [p.id, p]));
+  const productos = new Map<string, TopProductoReporte>();
+  const meses = new Map<string, SerieMensual>();
+  const operaciones: OperacionReporte[] = [];
+  let costo = 0,
+    sinCosto = 0;
+  const mes = (fecha: string) => {
+    const key = fecha.slice(0, 7);
+    if (!meses.has(key))
+      meses.set(key, {
+        periodo: key,
+        ingresos: 0,
+        costos: 0,
+        gastos: 0,
+        utilidad: 0,
+      });
+    return meses.get(key)!;
+  };
+  const acumularProducto = (
+    id: string,
+    nombre: string,
+    sku: string,
+    unidades: number,
+    monto: number,
+  ) => {
+    const p = catalogo.get(id);
+    const row = productos.get(id) || {
+      productoId: id,
+      nombre,
+      sku: sku || p?.sku || id,
+      categoria: p?.categoria,
+      unidadesVendidas: 0,
+      totalRecaudado: 0,
+      porcentajeVenta: 0,
+    };
+    row.unidadesVendidas += unidades;
+    row.totalRecaudado += monto;
+    productos.set(id, row);
+  };
+  const acumularCosto = (
+    id: string | undefined,
+    unidades: number,
+    fecha: string,
+  ) => {
+    const valor = id ? catalogo.get(id)?.precioCompra : undefined;
+    const bucket = mes(fecha);
+    if (valor === undefined || !Number.isFinite(valor) || valor < 0) {
+      sinCosto++;
+      bucket.costos = null;
+      return;
+    }
+    const monto = valor * unidades;
+    costo += monto;
+    if (bucket.costos !== null) bucket.costos += monto;
+  };
+  let bruto = 0,
+    devuelto = 0,
+    credito = 0,
+    baseVentas = 0,
+    igvVentas = 0,
+    boletas = 0,
+    facturas = 0;
+  for (const v of ventas) {
+    bruto += v.total;
+    if (v.metodoPago === "CREDITO") credito += v.total;
+    mes(v.fecha).ingresos += v.total;
+    if (v.tipoComprobante !== "NOTA_VENTA") {
+      baseVentas += v.subtotal;
+      igvVentas += v.igv;
+    }
+    if (v.tipoComprobante === "BOLETA") boletas += v.total;
+    if (v.tipoComprobante === "FACTURA") facturas += v.total;
+    const sumaItems = v.items.reduce((sum, item) => sum + item.subtotal, 0);
+    if (!v.items.length) {
+      sinCosto++;
+      mes(v.fecha).costos = null;
+    }
+    let asignado = 0,
+      pesoAcumulado = 0;
+    for (const [index, item] of v.items.entries()) {
+      pesoAcumulado += item.subtotal;
+      const importe =
+        index === v.items.length - 1
+          ? round(v.total - asignado)
+          : round(
+              (sumaItems > 0
+                ? round((pesoAcumulado * v.total) / sumaItems)
+                : 0) - asignado,
+            );
+      asignado = round(asignado + importe);
+      // Allocate document discounts proportionally using the saved sale total.
+      acumularProducto(
+        item.productoId,
+        item.nombre,
+        item.sku || "",
+        item.cantidad,
+        importe,
+      );
+      acumularCosto(item.productoId, item.cantidad, v.fecha);
+    }
+    operaciones.push({
+      fecha: v.fecha,
+      tipo: "VENTA",
+      referencia: v.serieCorrelativo,
+      concepto: v.clienteNombre,
+      monto: v.total,
+    });
+  }
+  for (const d of devoluciones) {
+    const venta = porId.get(d.ventaId)!;
+    devuelto += d.montoDevuelto;
+    mes(d.fecha).ingresos -= d.montoDevuelto;
+    if (venta.tipoComprobante !== "NOTA_VENTA" && venta.total > 0) {
+      baseVentas -= (d.montoDevuelto * venta.subtotal) / venta.total;
+      igvVentas -= (d.montoDevuelto * venta.igv) / venta.total;
+    }
+    if (venta.tipoComprobante === "BOLETA") boletas -= d.montoDevuelto;
+    if (venta.tipoComprobante === "FACTURA") facturas -= d.montoDevuelto;
+    const id =
+      d.productoId || venta.items.find((i) => i.sku === d.sku)?.productoId;
+    acumularProducto(
+      id || `devolucion-${d.sku}`,
+      d.productoNombre,
+      d.sku,
+      -d.cantidad,
+      -d.montoDevuelto,
+    );
+    if (d.retornaAInventario) acumularCosto(id, -d.cantidad, d.fecha);
+    operaciones.push({
+      fecha: d.fecha,
+      tipo: "DEVOLUCION",
+      referencia: d.serieCorrelativo,
+      concepto: d.productoNombre,
+      monto: -d.montoDevuelto,
+    });
+  }
+  let egresos = 0;
+  for (const g of gastos) {
+    egresos += g.monto;
+    mes(g.fecha).gastos += g.monto;
+    operaciones.push({
+      fecha: g.fecha,
+      tipo: "GASTO",
+      referencia: g.comprobante || g.id,
+      concepto: g.descripcion,
+      monto: g.monto,
+    });
+  }
+  let cobros = 0;
+  for (const m of movimientos) {
+    const monto = m.tipo === "INGRESO" ? m.monto : -m.monto;
+    cobros += monto;
+    operaciones.push({
+      fecha: m.fecha,
+      tipo: "COBRO",
+      referencia: m.comprobanteRef || m.id,
+      concepto: m.concepto,
+      monto,
+    });
+  }
+  for (const c of compras)
+    operaciones.push({
+      fecha: c.fechaRecepcion || c.fecha,
+      tipo: "COMPRA",
+      referencia: c.serieFactura,
+      concepto: c.proveedorNombre,
+      monto: c.total,
+    });
+  const neto = round(bruto - devuelto);
+  const costoVentas = sinCosto ? null : round(costo);
+  const utilidadBruta = costoVentas === null ? null : round(neto - costoVentas);
+  const utilidad =
+    utilidadBruta === null ? null : round(utilidadBruta - egresos);
+  const financiero = {
+    ventasTotales: neto,
+    ventasBrutas: round(bruto),
+    devoluciones: round(devuelto),
+    ventasCredito: round(credito),
+    cobrosRegistrados: round(cobros),
+    costoVentas,
+    utilidadBruta,
+    gastosOperativos: round(egresos),
+    utilidadNeta: utilidad,
+    margenNetoPorcentaje:
+      utilidad !== null && neto > 0 ? round((utilidad / neto) * 100) : null,
+    itemsSinCosto: sinCosto,
+    desgloseMensual: [...meses.values()]
+      .sort((a, b) => a.periodo.localeCompare(b.periodo))
+      .map((m) => ({
+        ...m,
+        ingresos: round(m.ingresos),
+        costos: m.costos === null ? null : round(m.costos),
+        gastos: round(m.gastos),
+        utilidad:
+          m.costos === null ? null : round(m.ingresos - m.costos - m.gastos),
+      })),
+    filas: [
+      { concepto: "Ventas registradas, incluido IGV", monto: round(bruto) },
+      { concepto: "Devoluciones del periodo", monto: round(devuelto) },
+      { concepto: "Ventas menos devoluciones", monto: neto },
+      {
+        concepto: "Costo estimado al precio de compra actual",
+        monto: costoVentas,
+      },
+      {
+        concepto: "Resultado bruto estimado, incluido IGV",
+        monto: utilidadBruta,
+      },
+      { concepto: "Gastos operativos activos", monto: round(egresos) },
+      { concepto: "Resultado estimado, incluido IGV", monto: utilidad },
+      {
+        concepto: "Ventas a crédito registradas (sin inferir saldo)",
+        monto: round(credito),
+      },
+      { concepto: "Cobros netos registrados en Caja", monto: round(cobros) },
+    ],
+  };
+  const totalCompras = round(compras.reduce((sum, c) => sum + c.total, 0));
+  const baseCompras = round(totalCompras / 1.18);
+  const igvCompras = round(totalCompras - baseCompras);
+  const saldo = round(igvVentas - igvCompras);
+  const sunat = {
+    baseImponibleVentas: round(baseVentas),
+    igvVentasDebito: round(igvVentas),
+    baseImponibleCompras: baseCompras,
+    igvComprasCredito: igvCompras,
+    igvPagar: Math.max(0, saldo),
+    creditoFiscalRemanente: Math.max(0, -saldo),
+    ventasConBoleta: round(boletas),
+    ventasConFactura: round(facturas),
+    comprasConFactura: totalCompras,
+    filas: [
+      { concepto: "Boletas menos devoluciones", monto: round(boletas) },
+      { concepto: "Facturas menos devoluciones", monto: round(facturas) },
+      {
+        concepto: "Base de ventas guardada, ajustada por devoluciones",
+        monto: round(baseVentas),
+      },
+      {
+        concepto: "IGV de ventas guardado, ajustado por devoluciones",
+        monto: round(igvVentas),
+      },
+      {
+        concepto: "Compras recibidas (validación fiscal no disponible)",
+        monto: totalCompras,
+      },
+      { concepto: "Base de compras simulada al 18%", monto: baseCompras },
+      { concepto: "IGV de compras simulado al 18%", monto: igvCompras },
+      { concepto: "Diferencia positiva simulada", monto: Math.max(0, saldo) },
+      { concepto: "Diferencia negativa simulada", monto: Math.max(0, -saldo) },
+    ],
+  };
+  return {
+    rango,
+    financiero,
+    sunat,
+    productos: [...productos.values()]
+      .map((p) => ({
+        ...p,
+        totalRecaudado: round(p.totalRecaudado),
+        porcentajeVenta: neto > 0 ? round((p.totalRecaudado / neto) * 100) : 0,
+      }))
+      .sort(
+        (a, b) =>
+          b.totalRecaudado - a.totalRecaudado ||
+          a.productoId.localeCompare(b.productoId),
+      ),
+    operaciones: operaciones.sort((a, b) => a.fecha.localeCompare(b.fecha)),
+  };
+}
 
 export const reportesService = {
-  async getResumenFinanciero(periodo: PeriodoReporte = 'ESTE_MES'): Promise<ResumenFinanciero> {
-    const ventas = erpStore.getVentas().filter((v) => v.estado !== 'ANULADA');
-    const gastos = erpStore.getGastos();
-    const productos = erpStore.getProductos();
-
-    // Factor según periodo seleccionado para dar variedad realista
-    const factorPeriodo = periodo === 'ESTE_MES' ? 1 : periodo === 'MES_ANTERIOR' ? 0.88 : 3.4;
-
-    const baseVentasTotales = ventas.reduce((acc, v) => acc + v.total, 0);
-    const ventasTotales = +(baseVentasTotales * factorPeriodo).toFixed(2);
-
-    // Costo de ventas ponderado por costo de compra real o 62% típico de bodega
-    const costoVentas = +(ventasTotales * 0.62).toFixed(2);
-    const utilidadBruta = +(ventasTotales - costoVentas).toFixed(2);
-
-    const baseGastos = gastos.reduce((acc, g) => acc + g.monto, 0);
-    const gastosOperativos = +(baseGastos * factorPeriodo).toFixed(2);
-    const utilidadNeta = +(utilidadBruta - gastosOperativos).toFixed(2);
-
-    const margenNetoPorcentaje =
-      ventasTotales > 0 ? +((utilidadNeta / ventasTotales) * 100).toFixed(1) : 0;
-    const margenBrutoPorcentaje =
-      ventasTotales > 0 ? +((utilidadBruta / ventasTotales) * 100).toFixed(1) : 0;
-
-    // Desglose de rubros para gráfico de estructura
-    const estructuraRubros = [
+  async getReporte(periodo: PeriodoReporte = "ESTE_MES"): Promise<Reporte> {
+    return calcularReporte(
       {
-        rubro: 'Ventas brutas facturadas',
-        monto: ventasTotales,
-        tipo: 'INGRESO' as const,
-        porcentaje: 100,
+        ventas: erpStore.getVentas(),
+        devoluciones: erpStore.getDevoluciones(),
+        compras: erpStore.getCompras(),
+        gastos: erpStore.getGastos(),
+        productos: erpStore.getProductos(),
+        movimientos: erpStore.getMovimientosCaja(),
       },
-      {
-        rubro: 'Costo de mercadería vendida',
-        monto: costoVentas,
-        tipo: 'COSTO' as const,
-        porcentaje: +(costoVentas / (ventasTotales || 1) * 100).toFixed(1),
-      },
-      {
-        rubro: 'Gastos operativos y servicios',
-        monto: gastosOperativos,
-        tipo: 'GASTO' as const,
-        porcentaje: +(gastosOperativos / (ventasTotales || 1) * 100).toFixed(1),
-      },
-      {
-        rubro: 'Utilidad neta disponible',
-        monto: utilidadNeta,
-        tipo: 'UTILIDAD' as const,
-        porcentaje: margenNetoPorcentaje,
-      },
-    ];
-
-    // Desglose de los últimos 6 meses para visualización de tendencia en ERP
-    const desgloseMensual = [
-      { periodo: 'May', ingresos: 14200, costos: 8800, gastos: 1950, utilidad: 3450 },
-      { periodo: 'Jun', ingresos: 15800, costos: 9790, gastos: 2100, utilidad: 3910 },
-      { periodo: 'Jul', ingresos: 18400, costos: 11400, gastos: 2300, utilidad: 4700 },
-      { periodo: 'Ago', ingresos: 16900, costos: 10470, gastos: 2050, utilidad: 4380 },
-      { periodo: 'Set', ingresos: 17500, costos: 10850, gastos: 2150, utilidad: 4500 },
-      {
-        periodo: 'Oct',
-        ingresos: ventasTotales > 0 ? ventasTotales : 19200,
-        costos: costoVentas > 0 ? costoVentas : 11900,
-        gastos: gastosOperativos > 0 ? gastosOperativos : 2250,
-        utilidad: utilidadNeta > 0 ? utilidadNeta : 5050,
-      },
-    ];
-
-    const resumen: ResumenFinanciero = {
-      ventasTotales,
-      costoVentas,
-      utilidadBruta,
-      gastosOperativos,
-      utilidadNeta,
-      margenNetoPorcentaje,
-      margenBrutoPorcentaje,
-      desgloseMensual,
-      estructuraRubros,
-    };
-
-    return simulateDelay(resumen);
-  },
-
-  async getLiquidacionSunat(periodo: PeriodoReporte = 'ESTE_MES'): Promise<LiquidacionSunat> {
-    const ventas = erpStore.getVentas().filter((v) => v.estado !== 'ANULADA');
-    const compras = erpStore.getCompras();
-
-    const factorPeriodo = periodo === 'ESTE_MES' ? 1 : periodo === 'MES_ANTERIOR' ? 0.9 : 3.2;
-
-    const totalVentas = +(ventas.reduce((acc, v) => acc + v.total, 0) * factorPeriodo).toFixed(2);
-    const baseImponibleVentas = +(totalVentas / 1.18).toFixed(2);
-    const igvVentasDebito = +(totalVentas - baseImponibleVentas).toFixed(2);
-
-    const totalCompras = +(compras.reduce((acc, c) => acc + c.total, 0) * factorPeriodo).toFixed(2);
-    const baseImponibleCompras = +(totalCompras / 1.18).toFixed(2);
-    const igvComprasCredito = +(totalCompras - baseImponibleCompras).toFixed(2);
-
-    const saldo = +(igvVentasDebito - igvComprasCredito).toFixed(2);
-    const igvPagar = Math.max(0, saldo);
-    const creditoFiscalRemanente = saldo < 0 ? Math.abs(saldo) : 0;
-
-    const ventasConBoleta = +(totalVentas * 0.72).toFixed(2);
-    const ventasConFactura = +(totalVentas * 0.28).toFixed(2);
-    const comprasConFactura = totalCompras;
-
-    const sunat: LiquidacionSunat = {
-      baseImponibleVentas,
-      igvVentasDebito,
-      baseImponibleCompras,
-      igvComprasCredito,
-      igvPagar,
-      creditoFiscalRemanente,
-      ventasConBoleta,
-      ventasConFactura,
-      comprasConFactura,
-    };
-
-    return simulateDelay(sunat);
-  },
-
-  async getTopProductos(periodo: PeriodoReporte = 'ESTE_MES'): Promise<TopProductoReporte[]> {
-    const productos = erpStore.getProductos();
-    const ventas = erpStore.getVentas().filter((v) => v.estado !== 'ANULADA');
-
-    // Mapeo de ventas reales si existen items vendidos
-    const ventasPorProducto = new Map<string, { unidades: number; total: number }>();
-
-    ventas.forEach((v) => {
-      v.items?.forEach((item) => {
-        const actual = ventasPorProducto.get(item.productoId) || { unidades: 0, total: 0 };
-        ventasPorProducto.set(item.productoId, {
-          unidades: actual.unidades + item.cantidad,
-          total: actual.total + item.subtotal,
-        });
-      });
-    });
-
-    const totalGeneralVentas = ventas.reduce((acc, v) => acc + v.total, 0) || 1;
-
-    // Si hay ventas registradas por items
-    if (ventasPorProducto.size > 0) {
-      const topList: TopProductoReporte[] = [];
-
-      ventasPorProducto.forEach((data, prodId) => {
-        const prod = productos.find((p) => p.id === prodId);
-        if (prod) {
-          topList.push({
-            nombre: prod.nombre,
-            sku: prod.sku,
-            categoria: prod.categoria,
-            unidadesVendidas: data.unidades,
-            totalRecaudado: +data.total.toFixed(2),
-            porcentajeVenta: +((data.total / totalGeneralVentas) * 100).toFixed(1),
-          });
-        }
-      });
-
-      topList.sort((a, b) => b.totalRecaudado - a.totalRecaudado);
-      return simulateDelay(topList.slice(0, 10));
-    }
-
-    // Catálogo inicial con datos coherentes de bodega / minimarket de Tingo María
-    const factorPeriodo = periodo === 'ESTE_MES' ? 1 : periodo === 'MES_ANTERIOR' ? 0.85 : 3.1;
-    const baseTotal = (totalGeneralVentas > 0 ? totalGeneralVentas : 12400) * factorPeriodo;
-
-    const catalogoTop = productos.slice(0, 8).map((p, idx) => {
-      const soldUnits = Math.round((48 - idx * 5) * factorPeriodo);
-      const totalRecaudado = +(soldUnits * p.precioVenta).toFixed(2);
-      return {
-        nombre: p.nombre,
-        sku: p.sku,
-        categoria: p.categoria,
-        unidadesVendidas: Math.max(1, soldUnits),
-        totalRecaudado,
-        porcentajeVenta: +((totalRecaudado / (baseTotal || 1)) * 100).toFixed(1),
-      };
-    });
-
-    catalogoTop.sort((a, b) => b.totalRecaudado - a.totalRecaudado);
-    return simulateDelay(catalogoTop);
+      rangoPeriodo(periodo),
+    );
   },
 };

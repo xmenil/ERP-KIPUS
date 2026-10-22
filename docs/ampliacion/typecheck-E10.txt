@@ -1,0 +1,4 @@
+
+> fusion-starter@ typecheck C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS
+> tsc
+

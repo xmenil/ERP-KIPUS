@@ -3,6 +3,7 @@ import { AuthUser, LoginCredentials, AuthContextType } from '../types/auth.types
 import { authService } from '../services/authService';
 import { toast } from 'sonner';
 import { AUTH_STORAGE_KEY, AUTH_ACTIVITY_KEY, AUTH_TOKEN_KEY } from '../services/sessionStore';
+import { USUARIOS_CHANGE_EVENT, USUARIOS_STORAGE_KEY } from '@/features/usuarios/services/usuariosStorage';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -38,6 +39,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setUser(null);
           return;
         }
+        if (current.rol !== user.rol || current.username !== user.username || current.email !== user.email || current.nombreCompleto !== user.nombreCompleto || current.sucursal !== user.sucursal || current.avatarInitials !== user.avatarInitials) setUser(current);
         if (activity && Date.now() - lastWrite >= 1000) {
           authService.registerActivity();
           lastWrite = Date.now();
@@ -51,13 +53,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const onResume = () => check();
     const onStorage = (event: StorageEvent) => {
       if (event.storageArea === localStorage &&
-          (event.key === null || [AUTH_STORAGE_KEY, AUTH_ACTIVITY_KEY, AUTH_TOKEN_KEY].includes(event.key))) check();
+          (event.key === null || [AUTH_STORAGE_KEY, AUTH_ACTIVITY_KEY, AUTH_TOKEN_KEY, USUARIOS_STORAGE_KEY].includes(event.key))) check();
     };
+    const onUsersChanged = () => check();
     const events = ['pointerdown', 'keydown', 'wheel', 'touchstart', 'scroll'];
     events.forEach(event => window.addEventListener(event, onActivity, { passive: true, capture: true }));
     window.addEventListener('focus', onResume);
     document.addEventListener('visibilitychange', onResume);
     window.addEventListener('storage', onStorage);
+    window.addEventListener(USUARIOS_CHANGE_EVENT, onUsersChanged);
     check();
     return () => {
       clearTimeout(timer);
@@ -65,6 +69,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       window.removeEventListener('focus', onResume);
       document.removeEventListener('visibilitychange', onResume);
       window.removeEventListener('storage', onStorage);
+      window.removeEventListener(USUARIOS_CHANGE_EVENT, onUsersChanged);
     };
   }, [user]);
 

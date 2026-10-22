@@ -10,19 +10,27 @@ export type CategoriaGasto =
 export interface Gasto {
   id: string;
   fecha: string;
+  hora?: string;
   categoria: CategoriaGasto;
   descripcion: string;
   beneficiario: string;
   comprobante: string;
   monto: number;
   metodoPago: string;
+  usuario?: string;
+  sucursal?: string;
+  cajaNombre?: string;
+  estado?: 'REGISTRADO' | 'ANULADO';
+  fechaAnulacion?: string;
+  motivoAnulacion?: string;
 }
 
 export interface NuevoGastoPayload {
   categoria: CategoriaGasto;
   descripcion: string;
-  beneficiario: string;
-  comprobante: string;
+  beneficiario?: string;
+  comprobante?: string;
   monto: number;
   metodoPago: string;
+  fecha?: string;
 }

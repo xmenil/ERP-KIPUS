@@ -103,6 +103,7 @@ export const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({
         </DialogHeader>
 
         <div className="space-y-4 py-2 text-xs">
+          {venta.emisor ? <section aria-label="Emisor del comprobante" className="space-y-1 rounded-md border border-border p-3 text-sm"><p className="font-medium">{venta.emisor.razonSocial}</p><p className="font-mono">RUC: {venta.emisor.ruc}</p><p>{venta.emisor.direccionFiscal}</p><p>{venta.emisor.nombreSede}</p>{venta.emisor.correo && <p>{venta.emisor.correo}</p>}{venta.emisor.telefono && <p>{venta.emisor.telefono}</p>}{venta.emisor.regimenTributario && <p>{venta.emisor.regimenTributario}</p>}</section> : <p className="text-sm text-muted-foreground">Este comprobante anterior no conserva una copia de los datos del emisor.</p>}
           {/* Ficha de datos generales */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 rounded-lg border border-border bg-muted/30">
             <div>

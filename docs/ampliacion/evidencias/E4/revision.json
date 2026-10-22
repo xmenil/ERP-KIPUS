@@ -1,0 +1,101 @@
+{
+  "results": [
+    {
+      "route": "/compras",
+      "width": 1440,
+      "pageWidth": 1440,
+      "title": "Compras y Abastecimiento",
+      "error": false
+    },
+    {
+      "route": "/inventario",
+      "width": 1440,
+      "pageWidth": 1434,
+      "title": "Inventario",
+      "error": false
+    },
+    {
+      "route": "/compras",
+      "width": 390,
+      "pageWidth": 384,
+      "title": "Compras y Abastecimiento",
+      "error": false
+    },
+    {
+      "route": "/inventario",
+      "width": 390,
+      "pageWidth": 384,
+      "title": "Inventario",
+      "error": false
+    },
+    {
+      "route": "/compras",
+      "width": 720,
+      "pageWidth": 714,
+      "title": "Compras y Abastecimiento",
+      "error": false
+    },
+    {
+      "route": "/inventario",
+      "width": 720,
+      "pageWidth": 714,
+      "title": "Inventario",
+      "error": false
+    }
+  ],
+  "operations": {
+    "pendingRegistered": true,
+    "stockPreservedWhilePending": true,
+    "kardexPreservedWhilePending": true,
+    "cashPreservedWhilePending": true,
+    "receiptSuccessful": true,
+    "stockAddedOnReceipt": true,
+    "kardexCreatedOnReceipt": true,
+    "cashDeductedOnReceipt": true,
+    "lightContrast": [
+      {
+        "fg": "foreground",
+        "bg": "card",
+        "ratio": 17.117104139241334
+      },
+      {
+        "fg": "muted-foreground",
+        "bg": "card",
+        "ratio": 6.289086591235966
+      },
+      {
+        "fg": "success-text",
+        "bg": "success-soft",
+        "ratio": 4.8740970650216955
+      },
+      {
+        "fg": "danger-text",
+        "bg": "danger-soft",
+        "ratio": 5.829491003064583
+      }
+    ],
+    "darkContrast": [
+      {
+        "fg": "foreground",
+        "bg": "card",
+        "ratio": 14.774888376169935
+      },
+      {
+        "fg": "muted-foreground",
+        "bg": "card",
+        "ratio": 7.330723980824855
+      },
+      {
+        "fg": "success-text",
+        "bg": "success-soft",
+        "ratio": 8.410935599611472
+      },
+      {
+        "fg": "danger-text",
+        "bg": "danger-soft",
+        "ratio": 6.166465323585059
+      }
+    ]
+  },
+  "exceptions": []
+}

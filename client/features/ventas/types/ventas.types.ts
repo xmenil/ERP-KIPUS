@@ -33,6 +33,7 @@ export interface PagoMixtoDesglose {
 }
 
 export interface Venta {
+  emisor?: import('@/features/configuracion/types/configuracion.types').DatosEmpresa;
   id: string;
   tipoComprobante: TipoComprobante;
   serieCorrelativo: string; // ej. B001-000482
@@ -123,6 +124,7 @@ export interface Cotizacion {
 export interface Devolucion {
   id: string;
   ventaId: string;
+  productoId?: string;
   serieCorrelativo: string;
   fecha: string;
   productoNombre: string;

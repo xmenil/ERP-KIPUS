@@ -1,0 +1,68 @@
+{
+  "results": [
+    {
+      "route": "/configuracion",
+      "width": 1440,
+      "pageWidth": 1434,
+      "title": "Configuración",
+      "error": false
+    },
+    {
+      "route": "/configuracion",
+      "width": 390,
+      "pageWidth": 384,
+      "title": "Configuración",
+      "error": false
+    },
+    {
+      "route": "/configuracion",
+      "width": 720,
+      "pageWidth": 714,
+      "title": "Configuración",
+      "error": false
+    }
+  ],
+  "operations": {
+    "invalid": {
+      "focus": "config-ruc",
+      "ruc": "El RUC debe tener 11 dígitos.",
+      "mail": "Ingresa un correo como ventas@empresa.pe."
+    },
+    "failure": {
+      "unchanged": true,
+      "erpUnchanged": true,
+      "draft": "Bodega de prueba E2",
+      "oldSidebar": true
+    },
+    "saved": {
+      "writes": 1,
+      "name": "Bodega de prueba E2",
+      "nav": true,
+      "erpUnchanged": true
+    },
+    "draftRetained": true,
+    "resetCancelled": false,
+    "sessionRetained": true,
+    "sale": {
+      "id": "v-1792621785760-1-bkv9a9lq7ta",
+      "number": "B001-000501",
+      "emisor": {
+        "ruc": "20608821941",
+        "razonSocial": "Empresa de prueba E2 S.A.C.",
+        "nombreComercial": "Bodega de prueba E2",
+        "nombreSede": "Sede de prueba E2",
+        "direccionFiscal": "Jr. Tito Jaime 450 - Tingo María, Huánuco",
+        "telefono": "(062) 562-180 / 991 884 122",
+        "correo": "ventas.e2@example.pe",
+        "regimenTributario": "Régimen MYPE Tributario (RMT)"
+      },
+      "sucursal": "Sede de prueba E2",
+      "expected": "B001-000501"
+    },
+    "historical": "Empresa de prueba E2 S.A.C.",
+    "lightContrast": 5.829491003064583,
+    "darkContrast": 6.166465323585059,
+    "corruptPreserved": true
+  },
+  "exceptions": []
+}

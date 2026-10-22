@@ -1,0 +1,75 @@
+
+ RUN  v3.2.4 C:/Users/ThikPad/Desktop/PROYECTOS/ERP-KIPUS
+
+ ❯ client/services/erp/erpStore.proveedores.spec.ts (11 tests | 7 failed) 664ms
+   × normaliza RUC y rechaza duplicados incluidos los inactivos 382ms
+     → expected ' 20-987 654321 ' to be '20987654321' // Object.is equality
+   × no permite borrar proveedor referenciado por una compra ni cambiar su RUC 25ms
+     → expected [Function] to throw an error
+   ✓ crear conserva memoria/persistencia al fallar y permite reintentar 44ms
+   ✓ editar conserva memoria/persistencia al fallar y permite reintentar 40ms
+   ✓ estado conserva memoria/persistencia al fallar y permite reintentar 38ms
+   ✓ borrar conserva memoria/persistencia al fallar y permite reintentar 38ms
+   × rechaza datos inválidos {"ruc":"ABC12345678"} sin efectos 22ms
+     → expected [Function] to throw an error
+   × rechaza datos inválidos {"correo":"invalido"} sin efectos 18ms
+     → expected [Function] to throw an error
+   × rechaza datos inválidos {"razonSocial":""} sin efectos 18ms
+     → expected [Function] to throw an error
+   × rechaza datos inválidos {"limiteCredito":-1} sin efectos 18ms
+     → expected [Function] to throw an error
+   × rechaza datos inválidos {"diasCredito":null} sin efectos 18ms
+     → expected [Function] to throw an error
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  client/services/erp/erpStore.proveedores.spec.ts > normaliza RUC y rechaza duplicados incluidos los inactivos
+AssertionError: expected ' 20-987 654321 ' to be '20987654321' // Object.is equality
+
+Expected: "20987654321"
+Received: " 20-987 654321 "
+
+ ❯ client/services/erp/erpStore.proveedores.spec.ts:16:17
+     14| it('normaliza RUC y rechaza duplicados incluidos los inactivos', async…
+     15|   const { erpStore: s } = await load(); const p = s.crearProveedor({ .…
+     16|   expect(p.ruc).toBe('20987654321'); s.toggleEstadoProveedor(p.id);
+       |                 ^
+     17|   const before = values.get(KEY); expect(() => s.crearProveedor(draft(…
+     18| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  client/services/erp/erpStore.proveedores.spec.ts > no permite borrar proveedor referenciado por una compra ni cambiar su RUC
+AssertionError: expected [Function] to throw an error
+ ❯ client/services/erp/erpStore.proveedores.spec.ts:21:68
+     19| it('no permite borrar proveedor referenciado por una compra ni cambiar…
+     20|   const { erpStore: s } = await load(); const compra = s.getCompras()[…
+     21|   expect(p).toBeDefined(); expect(() => s.eliminarProveedor(p.id)).toT…
+       |                                                                    ^
+     22|   s.actualizarProveedor(p.id, { razonSocial: 'Razón social nueva E3' }…
+     23| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  client/services/erp/erpStore.proveedores.spec.ts > rechaza datos inválidos {"ruc":"ABC12345678"} sin efectos
+ FAIL  client/services/erp/erpStore.proveedores.spec.ts > rechaza datos inválidos {"correo":"invalido"} sin efectos
+ FAIL  client/services/erp/erpStore.proveedores.spec.ts > rechaza datos inválidos {"razonSocial":""} sin efectos
+ FAIL  client/services/erp/erpStore.proveedores.spec.ts > rechaza datos inválidos {"limiteCredito":-1} sin efectos
+ FAIL  client/services/erp/erpStore.proveedores.spec.ts > rechaza datos inválidos {"diasCredito":null} sin efectos
+AssertionError: expected [Function] to throw an error
+ ❯ client/services/erp/erpStore.proveedores.spec.ts:32:131
+     30| });
+     31| it.each([{ ruc: 'ABC12345678' }, { correo: 'invalido' }, { razonSocial…
+     32|   const { erpStore: s } = await load(); const before = values.get(KEY)…
+       |                                                                                                                                   ^
+     33| });
+     34| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 4 passed (11)
+   Start at  17:34:52
+   Duration  3.15s (transform 351ms, setup 0ms, collect 97ms, tests 664ms, environment 0ms, prepare 1.01s)
+

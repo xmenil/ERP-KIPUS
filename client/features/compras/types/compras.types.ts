@@ -12,6 +12,7 @@ export interface CompraItemDetalle {
 export interface Compra {
   id: string;
   fecha: string;
+  fechaRecepcion?: string;
   proveedorNombre: string;
   proveedorRuc: string;
   serieFactura: string;
@@ -21,6 +22,7 @@ export interface Compra {
   itemsCount: number;
   items?: CompraItemDetalle[];
   origenSugerencia?: boolean;
+  observaciones?: string;
 }
 
 export interface NuevaCompraPayload {
@@ -28,9 +30,11 @@ export interface NuevaCompraPayload {
   proveedorRuc: string;
   serieFactura: string;
   total: number;
+  estado?: EstadoCompra;
   metodoPago: string;
   itemsCount: number;
   items?: CompraItemDetalle[];
   productoId?: string;
   origenSugerencia?: boolean;
+  observaciones?: string;
 }

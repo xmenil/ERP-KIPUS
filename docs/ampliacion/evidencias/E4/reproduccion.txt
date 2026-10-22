@@ -1,0 +1,22 @@
+REPRODUCCIÓN DE FALLOS PREVIOS A E4 (21/10/2026)
+Suite: client/services/erp/erpStore.compras.spec.ts
+
+1. E4-REP-01: registrar compra PENDIENTE ignora el estado y fuerza RECIBIDO
+   - Esperado: compra con estado PENDIENTE no debe incrementar stock de productos ni registrar asientos en Kardex.
+   - Observado: compra.estado es forzado a 'RECIBIDO', incrementa stock inmediatamente y genera movimiento en Kardex.
+   - Fallo: AssertionError: expected 'RECIBIDO' to be 'PENDIENTE'
+
+2. E4-REP-02: falta de operación recepcionarCompra en erpStore
+   - Esperado: s.recepcionarCompra(id) debe transicionar de PENDIENTE a RECIBIDO, sumar stock y generar Kardex una sola vez.
+   - Observado: TypeError: s.recepcionarCompra is not a function
+
+3. E4-REP-03: compra PENDIENTE en EFECTIVO descuenta caja por adelantado
+   - Esperado: si una orden de compra se registra como PENDIENTE, no debe descontar dinero de caja hasta su recepción.
+   - Observado: registrarCompra descuenta inmediatamente el dinero de caja aunque la mercadería no haya ingresado (saldo 602 vs 640 esperado).
+
+4. E4-REP-04: falta de atomicidad de recepcionarCompra ante fallo de almacenamiento
+   - Esperado: ante cuota o error de escritura, recepcionarCompra debe revertir en memoria estado, stock, kardex y caja.
+   - Observado: no existe la función recepcionarCompra.
+
+5. Ausencia de interfaz para ver detalle de ítems de compras y accionar la recepción
+   - Observado en ComprasPage.tsx: tabla sin botones de acción por fila ni modal de detalle. No es posible consultar los ítems de compras anteriores ni marcar la recepción de órdenes pendientes.

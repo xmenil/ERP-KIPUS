@@ -40,9 +40,12 @@ import {
   CierreCajaPayload,
 } from '@/features/caja/types/caja.types';
 import { Gasto, NuevoGastoPayload } from '@/features/gastos/types/gastos.types';
-import { Compra, NuevaCompraPayload } from '@/features/compras/types/compras.types';
-import { Cliente, NuevoClientePayload } from '@/features/clientes/types/clientes.types';
+import { Compra, NuevaCompraPayload, EstadoCompra } from '@/features/compras/types/compras.types';
+import { Cliente, NuevoClientePayload, ActualizarClientePayload } from '@/features/clientes/types/clientes.types';
+import { normalizarDocumentoCliente, validarCliente } from '@/features/clientes/utils/clienteValidation';
 import { Proveedor, NuevoProveedorPayload } from '@/features/proveedores/types/proveedores.types';
+import { leerConfiguracion, SERIES_LOCALES } from '@/features/configuracion/services/configuracionStorage';
+import { normalizarRuc, validarProveedor } from '@/features/proveedores/utils/proveedorValidation';
 
 // Clave de almacenamiento local versionada para Minimarket
 const STORAGE_KEY = 'KIPUS_ERP_STORAGE_V2';
@@ -1250,6 +1253,55 @@ let compras: Compra[] = structuredClone(DEFAULT_COMPRAS);
 let clientes: Cliente[] = structuredClone(DEFAULT_CLIENTES);
 let proveedores: Proveedor[] = structuredClone(DEFAULT_PROVEEDORES);
 
+// Todas las mutaciones son síncronas. La operación exterior es la única que
+// escribe y publica; las conversiones anidadas comparten su snapshot.
+let transactionDepth = 0;
+let idSequence = 0;
+const nuevoId = () => `${Date.now()}-${++idSequence}-${Math.random().toString(36).slice(2)}`;
+function snapshotState() {
+  return structuredClone({ productos, ventas, pedidos, cotizaciones, devoluciones, movimientosKardex, ajustesInventario, estadoCaja, cajas, cierresCaja, auditoriaCaja, movimientosCaja, gastos, compras, clientes, proveedores });
+}
+function restoreState(s: ReturnType<typeof snapshotState>) {
+  ({ productos, ventas, pedidos, cotizaciones, devoluciones, movimientosKardex, ajustesInventario, estadoCaja, cajas, cierresCaja, auditoriaCaja, movimientosCaja, gastos, compras, clientes, proveedores } = s);
+}
+function validarNumero(value: number, campo: string, cero = false) {
+  if (!Number.isFinite(value) || (cero ? value < 0 : value <= 0)) throw new Error(`Revisa ${campo}: debe ser un número ${cero ? 'mayor o igual a cero' : 'mayor que cero'}.`);
+}
+function exigirCajaAbierta() {
+  if (!estadoCaja.abierta) throw new Error('Abre la caja antes de registrar el pago o movimiento.');
+}
+function exigirSaldoCajaCompra(total: number) {
+  if (estadoCaja.saldoEfectivoEsperado < total) {
+    throw new Error(`Saldo de caja insuficiente. Disponible: S/ ${estadoCaja.saldoEfectivoEsperado.toFixed(2)}; pago requerido: S/ ${total.toFixed(2)}. Ingresa efectivo o cambia la condición de pago antes de recepcionar.`);
+  }
+}
+const medios = ['EFECTIVO', 'YAPE', 'PLIN', 'TARJETA', 'TRANSFERENCIA'] as const;
+function validarPago(metodo: string, venta = true) {
+  if (![...medios, 'CREDITO', ...(venta ? ['MIXTO'] : ['CREDITO_30_DIAS'])].includes(metodo)) throw new Error('Elige un medio de pago válido.');
+}
+function validarItems(items: NuevaVentaPayload['items'], salida: boolean) {
+  if (!items.length) throw new Error('Agrega al menos un producto.');
+  const cantidades = new Map<string, number>();
+  items.forEach(item => {
+    validarNumero(item.cantidad, 'cantidad'); validarNumero(item.precioUnitario, 'precio', true);
+    const producto = productos.find(p => p.id === item.productoId);
+    if (!producto?.activo) throw new Error('Elige un producto existente y activo del catálogo.');
+    const cantidad = (cantidades.get(producto.id) || 0) + item.cantidad;
+    validarNumero(cantidad * item.precioUnitario, 'importe', true);
+    cantidades.set(producto.id, cantidad);
+    if (salida && cantidad > producto.stock) throw new Error(`Stock insuficiente de ${producto.nombre}. Revisa las cantidades.`);
+  });
+}
+function obtenerPagos(payload: NuevaVentaPayload, total: number): { metodo: typeof medios[number]; monto: number }[] {
+  if (payload.metodoPago === 'CREDITO') return [];
+  if (payload.metodoPago !== 'MIXTO') return [{ metodo: payload.metodoPago, monto: total }];
+  if (!payload.desglosePagoMixto) throw new Error('Completa el desglose del pago mixto.');
+  const pagos = medios.map(metodo => ({ metodo, monto: payload.desglosePagoMixto![metodo.toLowerCase() as keyof NonNullable<NuevaVentaPayload['desglosePagoMixto']>] ?? 0 }));
+  pagos.forEach(p => validarNumero(p.monto, 'pago mixto', true));
+  if (Math.abs(pagos.reduce((sum, p) => sum + p.monto, 0) - total) > 0.001) throw new Error('La suma del pago mixto debe coincidir con el total.');
+  return pagos.filter(p => p.monto > 0);
+}
+
 // ==========================================
 // PERSISTENCIA EN LOCALSTORAGE
 // ==========================================
@@ -1261,6 +1313,16 @@ function loadStateFromStorage(): boolean {
     storageReadError = false;
     if (!raw) return false;
     const parsed = JSON.parse(raw);
+    const collections = ['ventas', 'pedidos', 'cotizaciones', 'devoluciones', 'movimientosKardex', 'ajustesInventario', 'cajas', 'cierresCaja', 'auditoriaCaja', 'movimientosCaja', 'gastos', 'compras', 'clientes', 'proveedores'];
+    if (!parsed || collections.some(key => parsed[key] !== undefined && (!Array.isArray(parsed[key]) || parsed[key].some((record: { id?: unknown } | null) => !record || typeof record.id !== 'string')))) throw new Error('Los registros guardados no tienen un formato válido.');
+    if (parsed.estadoCaja !== undefined && (!parsed.estadoCaja || typeof parsed.estadoCaja.abierta !== 'boolean' || !Number.isFinite(parsed.estadoCaja.saldoEfectivoEsperado) || !parsed.estadoCaja.ventasDigitales)) throw new Error('La caja guardada no tiene un formato válido.');
+    const numericFields: Record<string, string[]> = { ventas: ['total', 'subtotal', 'igv'], pedidos: ['total'], cotizaciones: ['total'], devoluciones: ['cantidad', 'montoDevuelto'], movimientosKardex: ['cantidad', 'stockResultante'], ajustesInventario: ['nuevoStock', 'stockAnterior'], movimientosCaja: ['monto'], gastos: ['monto'], compras: ['total', 'itemsCount'], clientes: ['totalCompras', 'saldoPendiente'], proveedores: ['totalCompras', 'saldoPendiente'] };
+    for (const [key, fields] of Object.entries(numericFields)) {
+      if ((parsed[key] || []).some((record: Record<string, unknown>) => fields.some(field => !Number.isFinite(record[field])))) throw new Error(`Hay importes o cantidades ilegibles en ${key}.`);
+    }
+    for (const key of ['ventas', 'pedidos', 'cotizaciones']) {
+      if ((parsed[key] || []).some((record: { items?: NuevaVentaPayload['items'] }) => !Array.isArray(record.items) || record.items.some(item => !item || typeof item.productoId !== 'string' || !Number.isFinite(item.cantidad) || !Number.isFinite(item.precioUnitario)))) throw new Error(`El detalle guardado de ${key} no es válido.`);
+    }
     if (parsed && Array.isArray(parsed.productos) && parsed.productos.every((p: Producto) =>
       p && typeof p.id === 'string' && typeof p.nombre === 'string' && typeof p.sku === 'string' &&
       typeof p.categoria === 'string' && Number.isFinite(p.stock) && Number.isFinite(p.stockMinimo) &&
@@ -1318,7 +1380,7 @@ function saveStateToStorage(nextProductos = productos, strict = false): void {
     console.warn('[erpStore] Error al guardar estado en localStorage:', err);
     if (strict) {
       if (storageReadError) throw err;
-      throw new Error('No se pudo guardar el producto en este navegador. Revisa que tenga espacio disponible y permita guardar datos. Tus cambios siguen en el formulario.');
+      throw new Error('No se pudo guardar en este navegador. Revisa el espacio disponible y los permisos de almacenamiento. Conserva el formulario e inténtalo de nuevo.');
     }
   }
 }
@@ -1338,6 +1400,7 @@ type Listener = () => void;
 const listeners = new Set<Listener>();
 
 function notify(persist = true) {
+  if (transactionDepth > 0) return;
   if (persist) saveStateToStorage();
   listeners.forEach((listener) => {
     try {
@@ -1350,6 +1413,7 @@ function notify(persist = true) {
 
 // El catálogo se publica en memoria y a suscriptores solo después de persistir.
 function commitProductos(next: Producto[]) {
+  if (transactionDepth > 0) { productos = next; return; }
   saveStateToStorage(next, true);
   productos = next;
   notify(false);
@@ -1380,7 +1444,16 @@ if (typeof window !== 'undefined') {
 // ==========================================
 // API UNIFICADA DEL ERP STORE
 // ==========================================
-export const erpStore = {
+function siguienteCorrelativo(serie: string) {
+  return ventas.reduce((max, venta) => {
+    if (!venta.serieCorrelativo.startsWith(`${serie}-`)) return max;
+    const value = Number(venta.serieCorrelativo.slice(serie.length + 1));
+    return Number.isSafeInteger(value) ? Math.max(max, value + 1) : max;
+  }, 501);
+}
+
+const storeOperations = {
+  getSeriesComprobantes: () => SERIES_LOCALES.map(s => ({ ...s, siguienteNumero: siguienteCorrelativo(s.serie) })),
   // Getters
   getProductos: () => [...productos],
   getVentas: () => [...ventas],
@@ -1429,34 +1502,54 @@ export const erpStore = {
    * 6. Actualiza métricas del Dashboard en tiempo real.
    */
   emitirVenta: (payload: NuevaVentaPayload): Venta => {
+    const configuracion = leerConfiguracion();
+    const clienteDocumentoNormalizado = normalizarDocumentoCliente(payload.clienteDocumento || '00000000');
+    const clienteDirectorio = clientes.find(c => normalizarDocumentoCliente(c.numeroDocumento) === clienteDocumentoNormalizado);
+    if (clienteDirectorio?.activo === false) throw new Error('El cliente está inactivo. Elige otro cliente antes de registrar la venta.');
+    validarItems(payload.items, true);
+    validarPago(payload.metodoPago);
+    if (!['BOLETA', 'FACTURA', 'NOTA_VENTA'].includes(payload.tipoComprobante)) throw new Error('Elige un comprobante válido.');
     const subtotalBruto = payload.items.reduce((acc, it) => acc + it.cantidad * it.precioUnitario, 0);
-    const descuento = payload.descuento || 0;
+    const descuento = payload.descuento ?? 0;
     const total = Math.max(0, +(subtotalBruto - descuento).toFixed(2));
+    validarNumero(descuento, 'descuento', true);
+    if (descuento > subtotalBruto) throw new Error('El descuento supera el importe de la venta.');
+    validarNumero(total, 'total');
+    const pagos = obtenerPagos(payload, total);
+    if (pagos.length) exigirCajaAbierta();
+    if (payload.montoRecibido !== undefined) {
+      validarNumero(payload.montoRecibido, 'monto recibido', true);
+      if (payload.metodoPago === 'EFECTIVO' && payload.montoRecibido < total) throw new Error('El efectivo recibido no cubre el total.');
+    }
+    if (payload.vuelto !== undefined) validarNumero(payload.vuelto, 'vuelto', true);
     const subtotal = payload.tipoComprobante === 'NOTA_VENTA' ? total : +(total / 1.18).toFixed(2);
     const igv = +(total - subtotal).toFixed(2);
 
     const prefix = payload.tipoComprobante === 'FACTURA' ? 'F001' : payload.tipoComprobante === 'BOLETA' ? 'B001' : 'NV01';
-    const nextNum = String(ventas.length + 501).padStart(6, '0');
+    const siguiente = siguienteCorrelativo(prefix);
+    if (siguiente > 999999) throw new Error('La serie local agotó sus números. Revisa los comprobantes antes de continuar.');
+    const nextNum = String(siguiente).padStart(6, '0');
     const serieCorrelativo = `${prefix}-${nextNum}`;
     const ahora = new Date().toISOString().replace('T', ' ').slice(0, 16);
 
     const nuevaVenta: Venta = {
-      id: `v-${Date.now()}`,
+      id: `v-${nuevoId()}`,
+      emisor: structuredClone(configuracion.empresa),
       tipoComprobante: payload.tipoComprobante,
       serieCorrelativo,
       clienteNombre: payload.clienteNombre || 'Consumidor Final',
-      clienteDocumento: payload.clienteDocumento || '00000000',
+      clienteDocumento: clienteDocumentoNormalizado,
       fecha: ahora,
       metodoPago: payload.metodoPago,
       desglosePagoMixto: payload.desglosePagoMixto,
-      montoRecibido: payload.montoRecibido || total,
-      vuelto: payload.vuelto || 0,
+      montoRecibido: payload.metodoPago === 'CREDITO' ? 0 : payload.montoRecibido ?? total,
+      vuelto: payload.metodoPago === 'EFECTIVO' ? +((payload.montoRecibido ?? total) - total).toFixed(2) : 0,
       estado: 'COMPLETADA',
       subtotal,
       descuento,
       igv,
       total,
-      sucursal: payload.sucursal || 'Sede Central (Tingo María)',
+      sucursal: payload.sucursal || configuracion.empresa.nombreSede,
       caja: payload.caja || 'Caja 01 - Mostrador',
       vendedor: payload.vendedor || 'Juan Pérez (Cajero)',
       items: payload.items.map((it) => ({
@@ -1470,7 +1563,7 @@ export const erpStore = {
 
     // 2. Descontar Stock & Generar Kardex por cada ítem vendido
     payload.items.forEach((item) => {
-      const prod = productos.find((p) => p.id === item.productoId || p.nombre === item.nombre);
+      const prod = productos.find((p) => p.id === item.productoId);
       const stockAnterior = prod ? prod.stock : 20;
       const stockNuevo = Math.max(0, stockAnterior - item.cantidad);
 
@@ -1480,7 +1573,7 @@ export const erpStore = {
 
       // Registro estricto en Kardex
       const movKardex: MovimientoKardex = {
-        id: `k-${Date.now()}-${Math.random()}`,
+        id: `k-${nuevoId()}-${Math.random()}`,
         fecha: ahora,
         tipo: 'SALIDA',
         motivo: 'VENTA',
@@ -1499,46 +1592,18 @@ export const erpStore = {
     // 3. Impacto en Caja
     const fechaHoy = ahora.slice(0, 10);
     const hora = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
-    const metodoCaja: 'EFECTIVO' | 'YAPE' | 'PLIN' | 'TARJETA' | 'TRANSFERENCIA' =
-      payload.metodoPago === 'MIXTO' || payload.metodoPago === 'CREDITO'
-        ? 'EFECTIVO'
-        : payload.metodoPago;
-
-    const movCaja: MovimientoCaja = {
-      id: `mc-${Date.now()}`,
-      fecha: fechaHoy,
-      hora,
-      tipo: 'INGRESO',
-      concepto: `Cobro ${serieCorrelativo} (${nuevaVenta.clienteNombre})`,
-      metodo: metodoCaja,
-      monto: total,
-      usuario: payload.vendedor || 'Juan Pérez',
-      sucursal: payload.sucursal || estadoCaja.sucursal,
-      cajaNombre: estadoCaja.nombre,
-      origenTipo: 'VENTA',
-      comprobanteRef: serieCorrelativo,
-    };
-    movimientosCaja = [movCaja, ...movimientosCaja];
-
-    if (payload.metodoPago === 'EFECTIVO') {
-      estadoCaja.ventasEfectivo += total;
-      estadoCaja.saldoEfectivoEsperado += total;
-      estadoCaja.totalVentasGeneral += total;
-    } else if (payload.metodoPago === 'MIXTO' && payload.desglosePagoMixto) {
-      const ef = payload.desglosePagoMixto.efectivo || 0;
-      const dig = Math.max(0, total - ef);
-      estadoCaja.ventasEfectivo += ef;
-      estadoCaja.saldoEfectivoEsperado += ef;
-      estadoCaja.totalVentasDigitales += dig;
-      estadoCaja.totalVentasGeneral += total;
-    } else {
-      if (payload.metodoPago === 'YAPE') estadoCaja.ventasDigitales.yape += total;
-      else if (payload.metodoPago === 'PLIN') estadoCaja.ventasDigitales.plin += total;
-      else if (payload.metodoPago === 'TARJETA') estadoCaja.ventasDigitales.tarjeta += total;
-      else if (payload.metodoPago === 'TRANSFERENCIA') estadoCaja.ventasDigitales.transferencia += total;
-      estadoCaja.totalVentasDigitales += total;
-      estadoCaja.totalVentasGeneral += total;
-    }
+    pagos.forEach(({ metodo, monto }) => {
+      movimientosCaja = [{ id: `mc-${nuevoId()}`, fecha: fechaHoy, hora, tipo: 'INGRESO', concepto: `Cobro ${serieCorrelativo} (${nuevaVenta.clienteNombre})`, metodo, monto, usuario: payload.vendedor || 'Cajero', sucursal: payload.sucursal || estadoCaja.sucursal, cajaNombre: estadoCaja.nombre, origenTipo: 'VENTA', comprobanteRef: serieCorrelativo }, ...movimientosCaja];
+      if (metodo === 'EFECTIVO') {
+        estadoCaja.ventasEfectivo += monto;
+        estadoCaja.saldoEfectivoEsperado += monto;
+      } else {
+        const key = metodo.toLowerCase() as keyof EstadoCaja['ventasDigitales'];
+        estadoCaja.ventasDigitales[key] += monto;
+        estadoCaja.totalVentasDigitales += monto;
+      }
+    });
+    estadoCaja.totalVentasGeneral += total;
 
     // Actualizar saldo de la caja activa
     const idxCaja = cajas.findIndex((c) => c.id === estadoCaja.id);
@@ -1549,9 +1614,10 @@ export const erpStore = {
     }
 
     // 4. Actualizar Cliente
-    const cli = clientes.find((c) => c.numeroDocumento === payload.clienteDocumento);
+    const cli = clientes.find((c) => normalizarDocumentoCliente(c.numeroDocumento) === clienteDocumentoNormalizado);
     if (cli) {
       cli.totalCompras += total;
+      if (payload.metodoPago === 'CREDITO') cli.saldoPendiente += total;
     }
 
     notify();
@@ -1561,33 +1627,144 @@ export const erpStore = {
   /**
    * FLUJO 2: REGISTRAR COMPRA A PROVEEDOR
    * 1. Registra la factura o comprobante del proveedor.
-   * 2. Incrementa el stock en el inventario/kardex del producto abastecido.
-   * 3. Si fue pagada en efectivo, descuenta dinero de Caja y añade movimiento de egreso.
+   * 2. Si el estado es RECIBIDO: incrementa el stock en el inventario/kardex del producto abastecido.
+   * 3. Si el estado es RECIBIDO y fue pagada en efectivo: descuenta dinero de Caja y añade movimiento de egreso.
+   * 4. Si el estado es PENDIENTE: no altera stock ni genera movimiento de caja hasta su recepción.
    */
   registrarCompra: (payload: NuevaCompraPayload & { productoId?: string }): Compra => {
+    payload.proveedorRuc = normalizarRuc(payload.proveedorRuc);
+    const serieNormalizada = payload.serieFactura ? payload.serieFactura.trim().toUpperCase() : '';
+    if (!payload.proveedorNombre.trim() || !/^\d{11}$/.test(payload.proveedorRuc.trim()) || !serieNormalizada) {
+      throw new Error('Completa el proveedor, RUC de 11 dígitos y comprobante.');
+    }
+    if (proveedores.some(p => normalizarRuc(p.ruc) === payload.proveedorRuc && p.activo === false)) {
+      throw new Error('El proveedor está inactivo. Actívalo o elige otro proveedor.');
+    }
+    const estado: EstadoCompra = payload.estado || 'RECIBIDO';
+    if (!['RECIBIDO', 'PENDIENTE'].includes(estado)) {
+      throw new Error('El estado de la compra debe ser RECIBIDO o PENDIENTE.');
+    }
+    validarItems(payload.items || [], false);
+    if (payload.items!.some(item => !Number.isFinite(item.subtotal) || Math.abs(item.subtotal - +(item.cantidad * item.precioUnitario).toFixed(2)) > 0.001)) {
+      throw new Error('Revisa los subtotales de los productos de la compra.');
+    }
+    validarPago(payload.metodoPago, false);
+    if (estado === 'RECIBIDO' && payload.metodoPago === 'EFECTIVO') {
+      exigirCajaAbierta();
+    }
+    const totalDetalle = +(payload.items || []).reduce((sum, item) => sum + item.cantidad * item.precioUnitario, 0).toFixed(2);
+    const itemsCountDetalle = (payload.items || []).reduce((sum, item) => sum + item.cantidad, 0);
+    validarNumero(payload.total, 'total');
+    if (estado === 'RECIBIDO' && payload.metodoPago === 'EFECTIVO') exigirSaldoCajaCompra(payload.total);
+    if (Math.abs(totalDetalle - payload.total) > 0.001 || payload.itemsCount !== itemsCountDetalle) {
+      throw new Error('El total y las cantidades deben coincidir con los productos de la compra.');
+    }
+    if (compras.some(c => normalizarRuc(c.proveedorRuc) === payload.proveedorRuc.trim() && c.serieFactura.trim().toUpperCase() === serieNormalizada && c.estado !== 'ANULADO')) {
+      throw new Error('Ese comprobante ya está registrado para el proveedor.');
+    }
     const ahora = new Date().toISOString().slice(0, 10);
     const nuevaCompra: Compra = {
-      id: `c-${Date.now()}`,
+      id: `c-${nuevoId()}`,
       fecha: ahora,
-      estado: 'RECIBIDO',
-      proveedorNombre: payload.proveedorNombre,
+      estado,
+      proveedorNombre: payload.proveedorNombre.trim(),
       proveedorRuc: payload.proveedorRuc,
-      serieFactura: payload.serieFactura,
+      serieFactura: serieNormalizada,
       total: payload.total,
       metodoPago: payload.metodoPago,
       itemsCount: payload.itemsCount,
+      items: structuredClone(payload.items),
+      origenSugerencia: payload.origenSugerencia,
+      observaciones: payload.observaciones?.trim(),
     };
 
     compras = [nuevaCompra, ...compras];
 
-    // Aumentar stock de los productos ingresados en la compra
-    if (payload.items && payload.items.length > 0) {
-      payload.items.forEach((item, index) => {
-        const prod = productos.find((p) => p.id === item.productoId || p.sku === item.sku);
+    // Solo aumenta stock y registra kardex si la compra ingresó como RECIBIDO
+    if (estado === 'RECIBIDO') {
+      if (payload.items && payload.items.length > 0) {
+        payload.items.forEach((item, index) => {
+          const prod = productos.find((p) => p.id === item.productoId);
+          if (prod) {
+            prod.stock += item.cantidad;
+            const movKardex: MovimientoKardex = {
+              id: `k-${nuevoId()}-${index}`,
+              fecha: ahora,
+              tipo: 'ENTRADA',
+              motivo: 'COMPRA',
+              productoNombre: prod.nombre,
+              sku: prod.sku,
+              almacen: 'Almacén Principal',
+              cantidad: item.cantidad,
+              stockResultante: prod.stock,
+              referencia: `Factura Proveedor ${serieNormalizada}`,
+              usuario: 'Carlos Vega',
+              origen: 'Compra',
+            };
+            movimientosKardex = [movKardex, ...movimientosKardex];
+          }
+        });
+      }
+
+      // Si se pagó en efectivo, egreso de caja
+      if (payload.metodoPago === 'EFECTIVO') {
+        const ahoraDate = new Date();
+        const hora = ahoraDate.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+        movimientosCaja = [
+          {
+            id: `mc-${nuevoId()}`,
+            fecha: ahora,
+            hora,
+            tipo: 'EGRESO',
+            concepto: `Pago Factura Compra ${serieNormalizada} (${payload.proveedorNombre.trim()})`,
+            metodo: 'EFECTIVO',
+            monto: payload.total,
+            usuario: 'Carlos Vega',
+            sucursal: estadoCaja.sucursal,
+            cajaNombre: estadoCaja.nombre,
+            origenTipo: 'GASTO',
+            comprobanteRef: serieNormalizada,
+          },
+          ...movimientosCaja,
+        ];
+        estadoCaja.egresosEfectivo += payload.total;
+        estadoCaja.saldoEfectivoEsperado -= payload.total;
+      }
+    }
+
+    notify();
+    return nuevaCompra;
+  },
+
+  /**
+   * FLUJO 2B: RECEPCIONAR COMPRA PENDIENTE
+   * 1. Valida que la compra exista y esté en estado PENDIENTE.
+   * 2. Si el pago fue en efectivo, exige caja abierta y descuenta dinero de Caja.
+   * 3. Incrementa el stock en el inventario de cada producto.
+   * 4. Registra los movimientos de entrada en Kardex con referencia a la factura.
+   * 5. Actualiza el estado a RECIBIDO y fechaRecepcion.
+   */
+  recepcionarCompra: (compraId: string): Compra => {
+    const compra = compras.find(c => c.id === compraId);
+    if (!compra) throw new Error('No se encontró la compra.');
+    if (compra.estado === 'RECIBIDO') throw new Error('Esta compra ya fue recibida.');
+    if (compra.estado !== 'PENDIENTE') throw new Error('Solo se pueden recepcionar compras en estado pendiente.');
+
+    if (compra.metodoPago === 'EFECTIVO') {
+      exigirCajaAbierta();
+      exigirSaldoCajaCompra(compra.total);
+    }
+
+    const ahora = new Date().toISOString().slice(0, 10);
+
+    // Ingresar stock y registrar kardex
+    if (compra.items && compra.items.length > 0) {
+      compra.items.forEach((item, index) => {
+        const prod = productos.find(p => p.id === item.productoId);
         if (prod) {
           prod.stock += item.cantidad;
           const movKardex: MovimientoKardex = {
-            id: `k-${Date.now()}-${index}`,
+            id: `k-${nuevoId()}-${index}`,
             fecha: ahora,
             tipo: 'ENTRADA',
             motivo: 'COMPRA',
@@ -1596,111 +1773,171 @@ export const erpStore = {
             almacen: 'Almacén Principal',
             cantidad: item.cantidad,
             stockResultante: prod.stock,
-            referencia: `Factura Proveedor ${payload.serieFactura}`,
+            referencia: `Factura Proveedor ${compra.serieFactura}`,
             usuario: 'Carlos Vega',
             origen: 'Compra',
           };
           movimientosKardex = [movKardex, ...movimientosKardex];
         }
       });
-    } else {
-      const prod = productos.find((p) => p.id === payload.productoId) || productos[0];
-      if (prod) {
-        prod.stock += payload.itemsCount;
-        const movKardex: MovimientoKardex = {
-          id: `k-${Date.now()}`,
-          fecha: ahora,
-          tipo: 'ENTRADA',
-          motivo: 'COMPRA',
-          productoNombre: prod.nombre,
-          sku: prod.sku,
-          almacen: 'Almacén Principal',
-          cantidad: payload.itemsCount,
-          stockResultante: prod.stock,
-          referencia: `Factura Proveedor ${payload.serieFactura}`,
-          usuario: 'Carlos Vega',
-          origen: 'Compra',
-        };
-        movimientosKardex = [movKardex, ...movimientosKardex];
-      }
     }
 
-    // Si se pagó en efectivo, egreso de caja
-    if (payload.metodoPago === 'EFECTIVO') {
+    // Si fue en efectivo, egreso de caja
+    if (compra.metodoPago === 'EFECTIVO') {
       const ahoraDate = new Date();
       const hora = ahoraDate.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
       movimientosCaja = [
         {
-          id: `mc-${Date.now()}`,
+          id: `mc-${nuevoId()}`,
           fecha: ahora,
           hora,
           tipo: 'EGRESO',
-          concepto: `Pago Factura Compra ${payload.serieFactura} (${payload.proveedorNombre})`,
+          concepto: `Pago Factura Compra ${compra.serieFactura} (${compra.proveedorNombre})`,
           metodo: 'EFECTIVO',
-          monto: payload.total,
+          monto: compra.total,
           usuario: 'Carlos Vega',
           sucursal: estadoCaja.sucursal,
           cajaNombre: estadoCaja.nombre,
           origenTipo: 'GASTO',
-          comprobanteRef: payload.serieFactura,
+          comprobanteRef: compra.serieFactura,
         },
         ...movimientosCaja,
       ];
-      estadoCaja.egresosEfectivo += payload.total;
-      estadoCaja.saldoEfectivoEsperado -= payload.total;
+      estadoCaja.egresosEfectivo += compra.total;
+      estadoCaja.saldoEfectivoEsperado -= compra.total;
     }
 
+    compra.estado = 'RECIBIDO';
+    compra.fechaRecepcion = ahora;
+
     notify();
-    return nuevaCompra;
+    return compra;
   },
 
   /**
    * FLUJO 3: REGISTRAR GASTO OPERATIVO
    * 1. Registra el egreso en el módulo de Gastos.
-   * 2. Si es en efectivo, descuenta inmediatamente de Caja y genera registro de auditoría.
+   * 2. Si es en efectivo, exige caja abierta, valida saldo suficiente y descuenta inmediatamente de Caja.
+   * 3. Si es digital/bancario, registra el egreso contable sin descontar saldo físico de caja.
    */
   registrarGasto: (payload: NuevoGastoPayload): Gasto => {
-    const ahora = new Date().toISOString().slice(0, 10);
+    validarNumero(payload.monto, 'monto');
+    validarPago(payload.metodoPago, false);
+    if (!payload.descripcion?.trim()) throw new Error('Ingresa el concepto o descripción del gasto.');
+    if (!['ALQUILER', 'SERVICIOS_BASICOS', 'PLANILLA', 'LOGISTICA', 'MANTENIMIENTO', 'MARKETING', 'OTROS'].includes(payload.categoria)) {
+      throw new Error('Elige una categoría de gasto válida.');
+    }
+    const monto = +payload.monto.toFixed(2);
+    if (monto <= 0) throw new Error('El monto del egreso debe ser mayor a S/ 0.00.');
+
+    if (payload.metodoPago === 'EFECTIVO') {
+      exigirCajaAbierta();
+      if (estadoCaja.saldoEfectivoEsperado < monto) {
+        throw new Error(`El saldo disponible en caja en efectivo (S/ ${estadoCaja.saldoEfectivoEsperado.toFixed(2)}) es insuficiente para cubrir este gasto de S/ ${monto.toFixed(2)}.`);
+      }
+    }
+
+    const ahoraDate = new Date();
+    const fecha = payload.fecha && /^\d{4}-\d{2}-\d{2}$/.test(payload.fecha) ? payload.fecha : ahoraDate.toISOString().slice(0, 10);
+    const hora = ahoraDate.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+    const beneficiario = payload.beneficiario?.trim() || 'Varios';
+    const comprobante = payload.comprobante?.trim() || 'Sin comprobante';
+    const descripcion = payload.descripcion.trim();
+
     const nuevoGasto: Gasto = {
-      id: `g-${Date.now()}`,
-      fecha: ahora,
-      ...payload,
+      id: `g-${nuevoId()}`,
+      fecha,
+      hora,
+      categoria: payload.categoria,
+      descripcion,
+      beneficiario,
+      comprobante,
+      monto,
+      metodoPago: payload.metodoPago,
+      usuario: estadoCaja.responsable || 'Administrador',
+      sucursal: estadoCaja.sucursal || 'Sede Central',
+      cajaNombre: estadoCaja.nombre || 'Caja Principal',
+      estado: 'REGISTRADO',
     };
     gastos = [nuevoGasto, ...gastos];
 
     if (payload.metodoPago === 'EFECTIVO') {
-      const hora = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
       movimientosCaja = [
         {
-          id: `mc-${Date.now()}`,
-          fecha: ahora,
+          id: `mc-${nuevoId()}`,
+          fecha,
           hora,
           tipo: 'EGRESO',
-          concepto: `Gasto: ${payload.descripcion}`,
+          concepto: `Gasto: ${descripcion} (${beneficiario})`,
           metodo: 'EFECTIVO',
-          monto: payload.monto,
-          usuario: 'Administrador',
+          monto,
+          usuario: nuevoGasto.usuario || 'Administrador',
           sucursal: estadoCaja.sucursal,
           cajaNombre: estadoCaja.nombre,
           origenTipo: 'GASTO',
           categoria: payload.categoria,
-          comprobanteRef: payload.comprobante,
+          comprobanteRef: comprobante,
         },
         ...movimientosCaja,
       ];
-      estadoCaja.egresosEfectivo += payload.monto;
-      estadoCaja.saldoEfectivoEsperado -= payload.monto;
+      estadoCaja.egresosEfectivo += monto;
+      estadoCaja.saldoEfectivoEsperado -= monto;
     }
 
     notify();
     return nuevoGasto;
   },
 
+  anularGasto: (id: string, motivo?: string): Gasto => {
+    const gasto = gastos.find((g) => g.id === id);
+    if (!gasto) throw new Error('El gasto no fue encontrado.');
+    if (gasto.estado === 'ANULADO') throw new Error('Este gasto ya se encuentra anulado.');
+
+    if (gasto.metodoPago === 'EFECTIVO') {
+      exigirCajaAbierta();
+      const ahoraDate = new Date();
+      const fecha = ahoraDate.toISOString().slice(0, 10);
+      const hora = ahoraDate.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+
+      movimientosCaja = [
+        {
+          id: `mc-${nuevoId()}`,
+          fecha,
+          hora,
+          tipo: 'INGRESO',
+          concepto: `Anulación Gasto: ${gasto.descripcion} (${gasto.comprobante})`,
+          metodo: 'EFECTIVO',
+          monto: gasto.monto,
+          usuario: estadoCaja.responsable || 'Administrador',
+          sucursal: estadoCaja.sucursal,
+          cajaNombre: estadoCaja.nombre,
+          origenTipo: 'INGRESO_MANUAL',
+          categoria: gasto.categoria,
+          comprobanteRef: gasto.comprobante,
+          observaciones: motivo?.trim() || 'Reembolso a caja por anulación de gasto',
+        },
+        ...movimientosCaja,
+      ];
+      estadoCaja.saldoEfectivoEsperado += gasto.monto;
+      estadoCaja.egresosEfectivo = Math.max(0, estadoCaja.egresosEfectivo - gasto.monto);
+    }
+
+    gasto.estado = 'ANULADO';
+    gasto.fechaAnulacion = new Date().toISOString().slice(0, 10);
+    gasto.motivoAnulacion = motivo?.trim() || 'Anulación por usuario';
+
+    notify();
+    return gasto;
+  },
+
   /**
    * FLUJO 4: MOVIMIENTO MANUAL DE ALMACÉN
    */
   registrarMovimientoAlmacen: (payload: NuevoMovimientoPayload): MovimientoKardex => {
+    validarNumero(payload.cantidad, 'cantidad', payload.tipo === 'AJUSTE');
+    if (!productos.some(p => p.sku === payload.sku && p.activo)) throw new Error('Elige un producto activo del catálogo.');
     const prod = productos.find((p) => p.sku === payload.sku || p.nombre === payload.productoNombre);
+    if (payload.tipo === 'SALIDA' && prod && payload.cantidad > prod.stock) throw new Error('La salida supera el stock disponible.');
     let nuevoStock = prod ? prod.stock : 10;
 
     if (payload.tipo === 'ENTRADA') {
@@ -1716,7 +1953,7 @@ export const erpStore = {
     }
 
     const nuevo: MovimientoKardex = {
-      id: `k-${Date.now()}`,
+      id: `k-${nuevoId()}`,
       fecha: new Date().toISOString().replace('T', ' ').slice(0, 16),
       tipo: payload.tipo,
       motivo: payload.motivo,
@@ -1739,11 +1976,13 @@ export const erpStore = {
    * FLUJO 5: OPERACIÓN DIRECTA DE CAJA (Ingreso / Retiro de efectivo)
    */
   registrarOperacionCaja: (payload: NuevaOperacionCajaPayload): MovimientoCaja => {
+    exigirCajaAbierta(); validarNumero(payload.monto, 'monto'); validarPago(payload.metodo, false);
+    if (!['INGRESO', 'EGRESO'].includes(payload.tipo) || !payload.concepto.trim()) throw new Error('Indica el tipo y concepto del movimiento.');
     const ahora = new Date();
     const fecha = ahora.toISOString().slice(0, 10);
     const hora = ahora.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
     const nuevo: MovimientoCaja = {
-      id: `mc-${Date.now()}`,
+      id: `mc-${nuevoId()}`,
       fecha,
       hora,
       tipo: payload.tipo,
@@ -1768,20 +2007,12 @@ export const erpStore = {
         estadoCaja.egresosEfectivo += payload.monto;
         estadoCaja.saldoEfectivoEsperado -= payload.monto;
       }
-    } else {
-      if (payload.tipo === 'INGRESO') {
-        if (payload.metodo === 'YAPE') estadoCaja.ventasDigitales.yape += payload.monto;
-        else if (payload.metodo === 'PLIN') estadoCaja.ventasDigitales.plin += payload.monto;
-        else if (payload.metodo === 'TARJETA') estadoCaja.ventasDigitales.tarjeta += payload.monto;
-        else if (payload.metodo === 'TRANSFERENCIA') estadoCaja.ventasDigitales.transferencia += payload.monto;
-        estadoCaja.totalVentasDigitales += payload.monto;
-      }
     }
 
     // Auditoría
     auditoriaCaja = [
       {
-        id: `aud-${Date.now()}`,
+        id: `aud-${nuevoId()}`,
         usuario: estadoCaja.responsable || 'Juan Pérez',
         accion: payload.tipo,
         fecha,
@@ -1858,8 +2089,12 @@ export const erpStore = {
   // CLIENTES Y PROVEEDORES
   // ==========================================
   crearCliente: (payload: NuevoClientePayload): Cliente => {
+    payload = validarCliente(payload);
+    if (clientes.some(c => normalizarDocumentoCliente(c.numeroDocumento) === payload.numeroDocumento)) {
+      throw new Error('Ya existe un cliente con ese documento. Busca el registro para actualizar sus datos.');
+    }
     const nuevo: Cliente = {
-      id: `cli-${Date.now()}`,
+      id: `cli-${nuevoId()}`,
       ...payload,
       totalCompras: 0,
       saldoPendiente: 0,
@@ -1870,18 +2105,48 @@ export const erpStore = {
     return nuevo;
   },
 
+  actualizarCliente: (id: string, cambios: ActualizarClientePayload): Cliente => {
+    const indice = clientes.findIndex(c => c.id === id);
+    if (indice < 0) throw new Error('No se encontró el cliente. Actualiza la lista e inténtalo de nuevo.');
+    const anterior = clientes[indice];
+    if (normalizarDocumentoCliente(anterior.numeroDocumento) === '00000000') throw new Error('Consumidor Final es un registro reservado y no se puede editar.');
+    const validado = validarCliente({ ...anterior, ...cambios });
+    if (validado.numeroDocumento !== normalizarDocumentoCliente(anterior.numeroDocumento)
+      && ventas.some(v => normalizarDocumentoCliente(v.clienteDocumento) === normalizarDocumentoCliente(anterior.numeroDocumento))) {
+      throw new Error('Este cliente tiene comprobantes emitidos. Conserva su documento para mantener el historial; puedes editar los demás datos.');
+    }
+    if (clientes.some(c => c.id !== id && normalizarDocumentoCliente(c.numeroDocumento) === validado.numeroDocumento)) {
+      throw new Error('Ese documento ya pertenece a otro cliente del directorio.');
+    }
+    const actualizado: Cliente = { ...anterior, ...validado };
+    clientes = clientes.map(c => c.id === id ? actualizado : c);
+    notify();
+    return actualizado;
+  },
+
+  toggleEstadoCliente: (id: string): Cliente => {
+    const indice = clientes.findIndex(c => c.id === id);
+    if (indice < 0) throw new Error('No se encontró el cliente. Actualiza la lista e inténtalo de nuevo.');
+    if (normalizarDocumentoCliente(clientes[indice].numeroDocumento) === '00000000') throw new Error('Consumidor Final es un registro reservado y debe permanecer activo.');
+    const actualizado = { ...clientes[indice], activo: clientes[indice].activo === false };
+    clientes = clientes.map(c => c.id === id ? actualizado : c);
+    notify();
+    return actualizado;
+  },
+
   crearProveedor: (payload: NuevoProveedorPayload): Proveedor => {
-    const nextNum = String(proveedores.length + 1).padStart(3, '0');
+    payload = validarProveedor(payload);
+    if (proveedores.some(p => normalizarRuc(p.ruc) === payload.ruc)) throw new Error('El RUC ya pertenece a un proveedor, incluido el directorio inactivo. Busca el registro para editarlo o activarlo.');
+    const nextNum = String(proveedores.reduce((max, p) => Math.max(max, Number(p.codigo?.replace('PRV-', '')) || 0), 0) + 1).padStart(3, '0');
     const nuevo: Proveedor = {
-      id: `prov-${Date.now()}`,
+      id: `prov-${nuevoId()}`,
       codigo: `PRV-${nextNum}`,
       ...payload,
-      direccion: payload.direccion || 'Sin dirección registrada',
-      ciudad: payload.ciudad || 'Tingo María',
+      direccion: payload.direccion ?? '',
+      ciudad: payload.ciudad ?? '',
       totalCompras: 0,
       saldoPendiente: 0,
       activo: true,
-      calificacion: 5,
       fechaRegistro: new Date().toISOString().slice(0, 10),
     };
     proveedores = [nuevo, ...proveedores];
@@ -1892,15 +2157,21 @@ export const erpStore = {
   actualizarProveedor: (id: string, payload: Partial<NuevoProveedorPayload>): Proveedor => {
     const idx = proveedores.findIndex((p) => p.id === id);
     if (idx === -1) throw new Error('Proveedor no encontrado');
+    const validado = validarProveedor({ ...proveedores[idx], ...payload });
+    if (proveedores.some(p => p.id !== id && normalizarRuc(p.ruc) === validado.ruc)) throw new Error('El RUC ya pertenece a otro proveedor, incluso si está inactivo.');
+    if (validado.ruc !== normalizarRuc(proveedores[idx].ruc) && compras.some(c => normalizarRuc(c.proveedorRuc) === normalizarRuc(proveedores[idx].ruc))) throw new Error('El RUC tiene compras registradas y debe conservarse para mantener el historial.');
     proveedores[idx] = {
       ...proveedores[idx],
-      ...payload,
+      ...validado,
     };
     notify();
     return proveedores[idx];
   },
 
   eliminarProveedor: (id: string): boolean => {
+    const p = proveedores.find(p => p.id === id);
+    if (!p) throw new Error('Proveedor no encontrado');
+    if (compras.some(c => normalizarRuc(c.proveedorRuc) === normalizarRuc(p.ruc)) || (p.saldoPendiente || 0) > 0) throw new Error('Este proveedor tiene compras o saldo pendiente. Desactívalo para conservar su historial.');
     proveedores = proveedores.filter((p) => p.id !== id);
     notify();
     return true;
@@ -1909,7 +2180,7 @@ export const erpStore = {
   toggleEstadoProveedor: (id: string): Proveedor => {
     const prov = proveedores.find((p) => p.id === id);
     if (!prov) throw new Error('Proveedor no encontrado');
-    prov.activo = !prov.activo;
+    prov.activo = prov.activo === false;
     notify();
     return prov;
   },
@@ -1918,6 +2189,9 @@ export const erpStore = {
    * RECEPCIÓN DE MERCADERÍA
    */
   recepcionarMercancia: (payload: RecepcionMercanciaPayload): MovimientoKardex => {
+    validarNumero(payload.cantidad, 'cantidad');
+    if (payload.costoUnitario !== undefined) validarNumero(payload.costoUnitario, 'costo', true);
+    if (!productos.some(p => p.activo && (p.id === payload.productoId || p.sku === payload.sku))) throw new Error('Elige un producto activo del catálogo.');
     const prod = productos.find((p) => p.id === payload.productoId || p.sku === payload.sku || p.nombre === payload.productoNombre);
     const ahora = new Date().toISOString().replace('T', ' ').slice(0, 16);
 
@@ -1936,7 +2210,7 @@ export const erpStore = {
     }
 
     const movKardex: MovimientoKardex = {
-      id: `k-${Date.now()}`,
+      id: `k-${nuevoId()}`,
       fecha: ahora,
       tipo: 'ENTRADA',
       motivo: 'COMPRA',
@@ -1959,6 +2233,8 @@ export const erpStore = {
    * AUDITORÍA Y AJUSTE DE CONTEO FÍSICO
    */
   registrarAjusteAuditoria: (payload: AjusteAuditoriaPayload): MovimientoKardex => {
+    validarNumero(payload.stockReal, 'stock físico', true);
+    if (!productos.some(p => p.id === payload.productoId && p.activo)) throw new Error('Elige un producto activo del catálogo.');
     const prod = productos.find((p) => p.id === payload.productoId);
     const ahora = new Date().toISOString().replace('T', ' ').slice(0, 16);
     const stockAnterior = prod ? prod.stock : 0;
@@ -1978,7 +2254,7 @@ export const erpStore = {
       `Cotejo físico: Sistema (${stockAnterior}) vs Físico (${nuevoStock}) · Dif: ${diferencia >= 0 ? '+' : ''}${diferencia}`;
 
     const movKardex: MovimientoKardex = {
-      id: `k-${Date.now()}`,
+      id: `k-${nuevoId()}`,
       fecha: ahora,
       tipo,
       motivo,
@@ -2003,8 +2279,10 @@ export const erpStore = {
   getAjustesInventario: (): AjusteInventario[] => [...ajustesInventario],
 
   registrarAjusteInventario: (payload: NuevoAjustePayload): AjusteInventario => {
+    validarNumero(payload.nuevoStock, 'stock físico', true);
     const prod = productos.find((p) => p.id === payload.productoId);
     if (!prod) throw new Error('Producto no encontrado');
+    if (!prod.activo) throw new Error('Elige un producto activo del catálogo.');
 
     const ahora = new Date().toISOString().replace('T', ' ').slice(0, 16);
     const stockAnterior = prod.stock;
@@ -2014,7 +2292,7 @@ export const erpStore = {
     prod.stock = nuevoStock;
 
     const nuevoAjuste: AjusteInventario = {
-      id: `aj-${Date.now()}`,
+      id: `aj-${nuevoId()}`,
       productoId: prod.id,
       productoNombre: prod.nombre,
       sku: prod.sku,
@@ -2034,7 +2312,7 @@ export const erpStore = {
       diferencia > 0 ? 'ENTRADA' : diferencia < 0 ? 'SALIDA' : 'AJUSTE';
 
     const movKardex: MovimientoKardex = {
-      id: `k-${Date.now()}`,
+      id: `k-${nuevoId()}`,
       fecha: ahora,
       tipo,
       motivo: diferencia < 0 ? 'MERMA' : 'AUDITORIA_CONTEO',
@@ -2054,6 +2332,8 @@ export const erpStore = {
   },
 
   aplicarAjustesFisicos: (items: { productoId: string; stockFisico: number; motivo?: string }[]): AjusteInventario[] => {
+    items.forEach(item => { validarNumero(item.stockFisico, 'stock físico', true); if (!productos.some(p => p.id === item.productoId && p.activo)) throw new Error('Elige un producto activo del catálogo.'); });
+    if (new Set(items.map(item => item.productoId)).size !== items.length) throw new Error('El conteo contiene productos repetidos.');
     const ahora = new Date().toISOString().replace('T', ' ').slice(0, 16);
     const nuevosAjustes: AjusteInventario[] = [];
 
@@ -2070,7 +2350,7 @@ export const erpStore = {
       prod.stock = nuevoStock;
 
       const aj: AjusteInventario = {
-        id: `aj-${Date.now()}-${prod.id}`,
+        id: `aj-${nuevoId()}-${prod.id}`,
         productoId: prod.id,
         productoNombre: prod.nombre,
         sku: prod.sku,
@@ -2090,7 +2370,7 @@ export const erpStore = {
         diferencia > 0 ? 'ENTRADA' : 'SALIDA';
 
       const movKardex: MovimientoKardex = {
-        id: `k-${Date.now()}-${prod.id}`,
+        id: `k-${nuevoId()}-${prod.id}`,
         fecha: ahora,
         tipo,
         motivo: 'AUDITORIA_CONTEO',
@@ -2122,7 +2402,7 @@ export const erpStore = {
 
   crearPedido: (payload: Omit<Pedido, 'id' | 'codigo' | 'fecha'>): Pedido => {
     const nuevo: Pedido = {
-      id: `ped-${Date.now()}`,
+      id: `ped-${nuevoId()}`,
       codigo: `PED-${String(pedidos.length + 43).padStart(4, '0')}`,
       fecha: new Date().toISOString().replace('T', ' ').slice(0, 16),
       ...payload,
@@ -2140,6 +2420,7 @@ export const erpStore = {
   convertirPedidoAVenta: (pedidoId: string): Venta => {
     const pedido = pedidos.find((p) => p.id === pedidoId);
     if (!pedido) throw new Error('Pedido no encontrado');
+    if (pedido.estado === 'ENTREGADO' || pedido.estado === 'CANCELADO') throw new Error('El pedido ya fue entregado o cancelado.');
 
     const venta = erpStore.emitirVenta({
       tipoComprobante: 'BOLETA',
@@ -2167,7 +2448,7 @@ export const erpStore = {
 
   crearCotizacion: (payload: Omit<Cotizacion, 'id' | 'numero' | 'fecha'>): Cotizacion => {
     const nueva: Cotizacion = {
-      id: `cot-${Date.now()}`,
+      id: `cot-${nuevoId()}`,
       numero: `COT-${String(cotizaciones.length + 19).padStart(4, '0')}`,
       fecha: new Date().toISOString().slice(0, 10),
       ...payload,
@@ -2180,6 +2461,7 @@ export const erpStore = {
   convertirCotizacionAVenta: (cotizacionId: string): Venta => {
     const cot = cotizaciones.find((c) => c.id === cotizacionId);
     if (!cot) throw new Error('Cotización no encontrada');
+    if (cot.estado === 'CONVERTIDA' || cot.estado === 'VENCIDA') throw new Error('La cotización ya fue convertida o está vencida.');
 
     const venta = erpStore.emitirVenta({
       tipoComprobante: cot.clienteDocumento.length === 11 ? 'FACTURA' : 'BOLETA',
@@ -2212,7 +2494,13 @@ export const erpStore = {
     retornaAInventario: boolean;
     afectaCaja: boolean;
   }): Devolucion => {
+    validarNumero(payload.cantidad, 'cantidad');
     const venta = ventas.find((v) => v.id === payload.ventaId);
+    if (!venta || venta.estado === 'ANULADA') throw new Error('Elige una venta vigente.');
+    const vendido = venta.items.filter(i => i.productoId === payload.productoId).reduce((sum, i) => sum + i.cantidad, 0);
+    const devuelto = devoluciones.filter(d => d.ventaId === venta.id && d.productoId === payload.productoId).reduce((sum, d) => sum + d.cantidad, 0);
+    if (payload.cantidad > vendido - devuelto) throw new Error('La devolución supera la cantidad vendida pendiente de devolver.');
+    if (payload.afectaCaja) exigirCajaAbierta();
     const prod = productos.find((p) => p.id === payload.productoId);
     const ahora = new Date().toISOString().replace('T', ' ').slice(0, 16);
 
@@ -2221,8 +2509,9 @@ export const erpStore = {
     const montoTotalDevuelto = +(montoUnitario * payload.cantidad).toFixed(2);
 
     const nuevaDevolucion: Devolucion = {
-      id: `dev-${Date.now()}`,
+      id: `dev-${nuevoId()}`,
       ventaId: payload.ventaId,
+      productoId: payload.productoId,
       serieCorrelativo: venta?.serieCorrelativo || 'V-S/N',
       fecha: ahora,
       productoNombre: prod?.nombre || itemVenta?.nombre || 'Artículo',
@@ -2241,7 +2530,7 @@ export const erpStore = {
     if (payload.retornaAInventario && prod) {
       prod.stock += payload.cantidad;
       const movKardex: MovimientoKardex = {
-        id: `k-${Date.now()}`,
+        id: `k-${nuevoId()}`,
         fecha: ahora,
         tipo: 'ENTRADA',
         motivo: 'AUDITORIA_CONTEO',
@@ -2264,7 +2553,7 @@ export const erpStore = {
       const hora = ahoraDate.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
       movimientosCaja = [
         {
-          id: `mc-${Date.now()}`,
+          id: `mc-${nuevoId()}`,
           fecha,
           hora,
           tipo: 'EGRESO',
@@ -2290,6 +2579,10 @@ export const erpStore = {
   anularVenta: (id: string, motivo: string): Venta => {
     const venta = ventas.find((v) => v.id === id);
     if (!venta) throw new Error('Venta no encontrada');
+    if (venta.estado === 'ANULADA') throw new Error('La venta ya está anulada.');
+    if (devoluciones.some(d => d.ventaId === id)) throw new Error('La venta tiene devoluciones. Revisa su historial antes de anular.');
+    if (!motivo.trim()) throw new Error('Indica el motivo de anulación.');
+    if (venta.metodoPago === 'EFECTIVO' || venta.metodoPago === 'MIXTO') exigirCajaAbierta();
 
     venta.estado = 'ANULADA';
     venta.motivoAnulacion = motivo;
@@ -2301,7 +2594,7 @@ export const erpStore = {
       if (prod) {
         prod.stock += item.cantidad;
         const movKardex: MovimientoKardex = {
-          id: `k-${Date.now()}-${Math.random()}`,
+          id: `k-${nuevoId()}-${Math.random()}`,
           fecha: ahora,
           tipo: 'ENTRADA',
           motivo: 'AUDITORIA_CONTEO',
@@ -2325,7 +2618,7 @@ export const erpStore = {
       const hora = ahoraDate.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
       movimientosCaja = [
         {
-          id: `mc-${Date.now()}`,
+          id: `mc-${nuevoId()}`,
           fecha,
           hora,
           tipo: 'EGRESO',
@@ -2352,6 +2645,8 @@ export const erpStore = {
   // OPERACIONES DE CAJA (APERTURA, CIERRE, ARQUEO)
   // ==========================================
   abrirCaja: (payload: AperturaCajaPayload): EstadoCaja => {
+    if (estadoCaja.abierta) throw new Error('La caja ya está abierta.');
+    validarNumero(payload.saldoInicial, 'saldo inicial', true);
     const ahora = new Date();
     const fecha = ahora.toISOString().slice(0, 10);
     const hora = ahora.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
@@ -2377,7 +2672,7 @@ export const erpStore = {
     };
 
     const movApertura: MovimientoCaja = {
-      id: `mc-${Date.now()}`,
+      id: `mc-${nuevoId()}`,
       fecha,
       hora,
       tipo: 'INGRESO',
@@ -2403,7 +2698,7 @@ export const erpStore = {
 
     auditoriaCaja = [
       {
-        id: `aud-${Date.now()}`,
+        id: `aud-${nuevoId()}`,
         usuario: payload.responsable,
         accion: 'APERTURA',
         fecha,
@@ -2423,12 +2718,14 @@ export const erpStore = {
   },
 
   cerrarCaja: (payload: CierreCajaPayload): CierreCaja => {
+    exigirCajaAbierta(); validarNumero(payload.saldoContado, 'saldo contado', true);
+    if (!Number.isFinite(payload.diferencia)) throw new Error('Revisa la diferencia del arqueo.');
     const ahora = new Date();
     const fecha = ahora.toISOString().slice(0, 10);
     const hora = ahora.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
 
     const nuevoCierre: CierreCaja = {
-      id: `cie-${Date.now()}`,
+      id: `cie-${nuevoId()}`,
       cajaId: estadoCaja.id,
       cajaNombre: estadoCaja.nombre,
       sucursal: estadoCaja.sucursal,
@@ -2464,7 +2761,7 @@ export const erpStore = {
 
     auditoriaCaja = [
       {
-        id: `aud-${Date.now()}`,
+        id: `aud-${nuevoId()}`,
         usuario: estadoCaja.responsable,
         accion: 'CIERRE',
         fecha,
@@ -2490,7 +2787,7 @@ export const erpStore = {
 
     auditoriaCaja = [
       {
-        id: `aud-${Date.now()}`,
+        id: `aud-${nuevoId()}`,
         usuario: arqueo.responsable,
         accion: 'ARQUEO',
         fecha,
@@ -2506,3 +2803,38 @@ export const erpStore = {
     notify();
   },
 };
+
+function transactional<T extends unknown[], R>(operation: (...args: T) => R): (...args: T) => R {
+  return (...args) => {
+    if (transactionDepth > 0) return operation(...args);
+    const before = snapshotState();
+    if (storageReadError) throw new Error('No se pudieron leer los datos guardados. Conserva el almacenamiento para recuperarlo antes de guardar.');
+    transactionDepth++;
+    try {
+      const result = operation(...structuredClone(args));
+      const active = cajas.find(c => c.id === estadoCaja.id);
+      if (active) active.saldoActualEfectivo = estadoCaja.abierta ? estadoCaja.saldoEfectivoEsperado : 0;
+      saveStateToStorage(productos, true);
+      transactionDepth--;
+      notify(false);
+      return structuredClone(result);
+    } catch (error) {
+      restoreState(before);
+      transactionDepth--;
+      throw error;
+    }
+  };
+}
+
+// El tipo público se conserva; los getters devuelven copias para que ningún
+// consumidor cambie accidentalmente el estado sin una operación confirmada.
+export const erpStore: typeof storeOperations = Object.fromEntries(
+  Object.entries(storeOperations).map(([name, operation]) => [name,
+    name.startsWith('get')
+      ? (...args: unknown[]) => {
+        if (storageReadError) throw new Error('No se pudieron leer los datos guardados. Conserva el almacenamiento del navegador para recuperarlos.');
+        return structuredClone((operation as (...args: unknown[]) => unknown)(...args));
+      }
+      : transactional(operation as (...args: unknown[]) => unknown),
+  ]),
+) as typeof storeOperations;

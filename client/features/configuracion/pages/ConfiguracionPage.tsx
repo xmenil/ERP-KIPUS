@@ -1,309 +1,449 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { PageHeader } from '@/components/common/PageHeader';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useForm, Resolver } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { PageHeader } from "@/components/common/PageHeader";
+import { FormError } from "@/components/common/FormError";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { configuracionService } from '../services/configuracionService';
-import { ConfiguracionSistema } from '../types/configuracion.types';
-import { Settings, Save, Building, FileCheck, CheckCircle2, RotateCcw, ShieldCheck, ArrowRight } from 'lucide-react';
-import { APP_ROUTES } from '@/constants/routes';
-import { erpStore } from '@/services/erp/erpStore';
-import { toast } from 'sonner';
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import { configuracionService } from "../services/configuracionService";
+import { configuracionSchema } from "../services/configuracionStorage";
+import {
+  ConfiguracionSistema,
+  DatosEmpresa,
+  SerieComprobante,
+} from "../types/configuracion.types";
+import { erpStore, subscribeToErp } from "@/services/erp/erpStore";
+import { toast } from "sonner";
 
-export const ConfiguracionPage: React.FC = () => {
-  const [config, setConfig] = useState<ConfiguracionSistema | null>(null);
+type Formulario = ConfiguracionSistema;
+const campos: {
+  key: keyof DatosEmpresa;
+  label: string;
+  optional?: boolean;
+  mode?: "numeric" | "email" | "tel";
+}[] = [
+  { key: "ruc", label: "RUC", mode: "numeric" },
+  { key: "razonSocial", label: "Razón social" },
+  { key: "nombreComercial", label: "Nombre comercial", optional: true },
+  { key: "nombreSede", label: "Nombre de la sede" },
+  { key: "direccionFiscal", label: "Dirección fiscal" },
+  { key: "correo", label: "Correo de contacto", optional: true, mode: "email" },
+  { key: "telefono", label: "Teléfono", optional: true, mode: "tel" },
+  { key: "regimenTributario", label: "Régimen tributario", optional: true },
+];
+
+export const ConfiguracionPage = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [series, setSeries] = useState<SerieComprobante[]>([]);
+  const [seriesError, setSeriesError] = useState("");
+  const [reload, setReload] = useState(0);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState("");
+  const [leaving, setLeaving] = useState<string | null>(null);
+  const saving = useRef(false);
+  const resetLock = useRef(false);
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isDirty, isSubmitting },
+  } = useForm<Formulario>({
+    resolver: zodResolver(configuracionSchema) as Resolver<Formulario>,
+    mode: "onBlur",
+    shouldFocusError: true,
+  });
 
   useEffect(() => {
-    configuracionService.getConfiguracion().then((data) => {
-      setConfig(data);
-      setLoading(false);
-    });
+    let active = true;
+    setLoading(true);
+    setLoadError("");
+    configuracionService
+      .getConfiguracion()
+      .then((data) => {
+        if (active) reset(configuracionSchema.parse(data));
+      })
+      .catch((error) => {
+        if (active) setLoadError(error.message);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [reload, reset]);
+  useEffect(() => {
+    const update = () => {
+      try {
+        setSeries(erpStore.getSeriesComprobantes());
+        setSeriesError("");
+      } catch (error) {
+        setSeriesError(
+          error instanceof Error
+            ? error.message
+            : "No se pudieron leer las series.",
+        );
+      }
+    };
+    update();
+    return subscribeToErp(update);
   }, []);
+  useEffect(() => {
+    if (!isDirty) return;
+    const unload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    const click = (event: MouseEvent) => {
+      const link = (event.target as Element)?.closest?.("a[href]");
+      if (!link || event.ctrlKey || event.metaKey || event.button !== 0) return;
+      const href = link.getAttribute("href");
+      if (href && href.startsWith("/") && href !== location.pathname) {
+        event.preventDefault();
+        event.stopPropagation();
+        setLeaving(href);
+      }
+    };
+    window.addEventListener("beforeunload", unload);
+    document.addEventListener("click", click, true);
+    return () => {
+      window.removeEventListener("beforeunload", unload);
+      document.removeEventListener("click", click, true);
+    };
+  }, [isDirty]);
 
-  const handleUpdateEmpresa = (field: string, val: string) => {
-    if (!config) return;
-    setConfig({
-      ...config,
-      empresa: {
-        ...config.empresa,
-        [field]: val,
-      },
-    });
-  };
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!config) return;
-    setIsSaving(true);
+  const save = async (data: Formulario) => {
+    if (saving.current) return;
+    saving.current = true;
+    setSaveError("");
     try {
-      await configuracionService.guardarConfiguracion(config);
-      toast.success('Configuración de la empresa guardada correctamente');
-    } catch {
-      toast.error('Error al guardar la configuración');
+      const saved = await configuracionService.guardarConfiguracion(data);
+      reset(configuracionSchema.parse(saved));
+      toast.success("Configuración guardada en este navegador");
+    } catch (error) {
+      setSaveError(
+        error instanceof Error
+          ? error.message
+          : "No se pudo guardar. Conserva los campos e inténtalo de nuevo.",
+      );
     } finally {
-      setIsSaving(false);
+      saving.current = false;
     }
   };
-
-  if (loading || !config) {
-    return (
-      <div className="space-y-4">
-        <div className="h-10 w-48 bg-muted/40 rounded animate-pulse" />
-        <div className="h-64 bg-muted/20 rounded-xl animate-pulse" />
-      </div>
-    );
-  }
+  const restoreDemo = async () => {
+    if (resetLock.current) return;
+    resetLock.current = true;
+    setResetting(true);
+    setResetError("");
+    try {
+      erpStore.restablecerDatosMinimarket();
+      setResetOpen(false);
+      toast.success(
+        "Datos de demostración restablecidos. La empresa y las cuentas se conservaron.",
+      );
+    } catch (error) {
+      setResetError(
+        error instanceof Error
+          ? error.message
+          : "No se pudieron restablecer los datos. Inténtalo de nuevo.",
+      );
+    } finally {
+      resetLock.current = false;
+      setResetting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Configuración de la Empresa y Parámetros"
-        description="Datos de facturación electrónica, series de comprobantes y preferencias generales del sistema"
-        badge="Parámetros Globales"
-      />
-
-      <form onSubmit={handleSave} className="space-y-6">
-        {/* Datos de la Empresa */}
-        <Card className="border-border/80">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-bold flex items-center gap-2">
-              <Building className="h-5 w-5 text-primary" />
-              Datos Fiscales de la Empresa (Emisor SUNAT)
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Esta información se imprime en el encabezado de las boletas y facturas electrónicas
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">RUC del Negocio</Label>
-                <Input
-                  value={config.empresa.ruc}
-                  onChange={(e) => handleUpdateEmpresa('ruc', e.target.value)}
-                  className="h-8 text-xs font-mono font-semibold"
-                  required
-                />
-              </div>
-              <div className="space-y-1 sm:col-span-2">
-                <Label className="text-xs">Razón Social Legal</Label>
-                <Input
-                  value={config.empresa.razonSocial}
-                  onChange={(e) => handleUpdateEmpresa('razonSocial', e.target.value)}
-                  className="h-8 text-xs font-semibold"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Nombre Comercial / Marca</Label>
-                <Input
-                  value={config.empresa.nombreComercial}
-                  onChange={(e) => handleUpdateEmpresa('nombreComercial', e.target.value)}
-                  className="h-8 text-xs"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Régimen Tributario</Label>
-                <Input
-                  value={config.empresa.regimenTributario}
-                  onChange={(e) => handleUpdateEmpresa('regimenTributario', e.target.value)}
-                  className="h-8 text-xs"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="space-y-1 sm:col-span-2">
-                <Label className="text-xs">Dirección Fiscal / Establecimiento Anexo</Label>
-                <Input
-                  value={config.empresa.direccionFiscal}
-                  onChange={(e) => handleUpdateEmpresa('direccionFiscal', e.target.value)}
-                  className="h-8 text-xs"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Teléfonos de Contacto</Label>
-                <Input
-                  value={config.empresa.telefono}
-                  onChange={(e) => handleUpdateEmpresa('telefono', e.target.value)}
-                  className="h-8 text-xs"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Series de Comprobantes */}
-        <Card className="border-border/80">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-bold flex items-center gap-2">
-              <FileCheck className="h-5 w-5 text-primary" />
-              Series de Facturación y Correlativos Activos
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Series autorizadas para la emisión de comprobantes en este punto de venta
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto rounded-lg border border-border/60">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent bg-muted/40">
-                    <TableHead className="text-xs font-semibold">Tipo de Comprobante</TableHead>
-                    <TableHead className="text-xs font-semibold text-center">Serie</TableHead>
-                    <TableHead className="text-xs font-semibold text-center">
-                      Próximo Correlativo
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold text-center">Estado</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {config.series.map((s, idx) => (
-                    <TableRow key={idx} className="text-xs">
-                      <TableCell className="font-semibold text-foreground">{s.tipo}</TableCell>
-                      <TableCell className="text-center font-mono font-bold text-primary">
-                        {s.serie}
-                      </TableCell>
-                      <TableCell className="text-center font-mono font-bold">
-                        {String(s.siguienteNumero).padStart(6, '0')}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                          Activo
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Parámetros Generales */}
-        <Card className="border-border/80">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-bold flex items-center gap-2">
-              <Settings className="h-5 w-5 text-primary" />
-              Parámetros Operativos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <Label className="text-xs">Tasa del Impuesto General a las Ventas (IGV)</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    value={config.tasaIgv}
-                    readOnly
-                    className="h-8 text-xs w-24 bg-muted/40 font-bold"
-                  />
-                  <span className="text-xs text-muted-foreground">% (Estándar Nacional Perú)</span>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs">Moneda Principal del Sistema</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    value="PEN (Soles - S/)"
-                    readOnly
-                    className="h-8 text-xs w-48 bg-muted/40 font-bold"
-                  />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Zona de Usuarios y Seguridad */}
-        <Card className="border-border/80 bg-gradient-to-r from-card to-purple-500/5">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-bold flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-primary" />
-              Gestión de Usuarios, Roles y Seguridad
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Crea cuentas para tu personal, asigna roles (Administrador, Cajero, Supervisor) y define sucursales.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="text-xs text-muted-foreground">
-              Directorio de usuarios con control de contraseñas, permisos de auditoría y revocación de accesos.
-            </div>
-            <Button
-              type="button"
-              asChild
-              className="h-9 text-xs gap-2 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs"
-            >
-              <Link to={APP_ROUTES.USUARIOS}>
-                <span>Administrar Usuarios</span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Zona de Simulación y Datos Demo */}
-        <Card className="border-border/80">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-bold flex items-center gap-2">
-              <RotateCcw className="h-5 w-5 text-primary" />
-              Simulación y Datos de Demostración (Minimarket / Bodega)
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Todos los módulos (Ventas, Inventario, Kardex, Caja, Compras y Gastos) están interconectados y sincronizados.
-              Puedes restablecer los datos de ejemplo del minimarket en cualquier momento.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="text-xs text-muted-foreground">
-              Catálogo actual: <span className="font-semibold text-foreground">30 productos de abarrotes, lácteos, bebidas, snacks y limpieza</span> con stock, kardex y caja inicial sincronizados.
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                erpStore.restablecerDatosMinimarket();
-                toast.success('Datos del Minimarket restablecidos al estado inicial');
-              }}
-              className="h-9 text-xs gap-2 shrink-0 border-border"
-            >
-              <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
-              Restablecer Datos Demo Minimarket
-            </Button>
-          </CardContent>
-        </Card>
-
-        <div className="flex justify-end pt-2">
+        title="Configuración"
+        description="Datos del negocio y parámetros de este navegador."
+      >
+        {!loading && !loadError && (
           <Button
+            form="configuracion-form"
             type="submit"
-            disabled={isSaving}
-            className="gap-2 bg-primary text-primary-foreground font-semibold px-6 shadow-sm"
+            disabled={isSubmitting}
+            className="h-11 md:h-9"
           >
-            <Save className="h-4 w-4" />
-            <span>{isSaving ? 'Guardando...' : 'Guardar Todos los Cambios'}</span>
+            {isSubmitting ? "Guardando…" : "Guardar configuración"}
+          </Button>
+        )}
+      </PageHeader>
+      {loading ? (
+        <div
+          aria-label="Cargando configuración"
+          className="max-w-2xl space-y-4"
+        >
+          <div className="h-8 w-48 animate-pulse rounded-md bg-muted" />
+          <div className="h-64 animate-pulse rounded-md bg-muted" />
+        </div>
+      ) : loadError ? (
+        <div
+          role="alert"
+          className="max-w-2xl space-y-4 rounded-md border border-destructive bg-danger-soft p-4 text-sm text-danger-text"
+        >
+          <p>{loadError}</p>
+          <Button
+            variant="outline"
+            onClick={() => setReload((value) => value + 1)}
+          >
+            Reintentar lectura
           </Button>
         </div>
-      </form>
+      ) : (
+        <>
+          <form
+            id="configuracion-form"
+            noValidate
+            onSubmit={handleSubmit(save)}
+            className="max-w-2xl space-y-6"
+          >
+            <p role="status" className="text-sm text-muted-foreground">
+              {isDirty
+                ? "Tienes cambios sin guardar."
+                : "Los datos se comparten en este navegador. No se sincronizan con otros equipos."}
+            </p>
+            <FormError message={saveError} />
+            <section
+              aria-labelledby="empresa-titulo"
+              className="space-y-4 rounded-md border border-border bg-card p-4 md:p-6"
+            >
+              <h2 id="empresa-titulo" className="text-lg font-semibold">
+                Empresa
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                El nombre y RUC aparecen en la navegación. Las nuevas ventas
+                conservan una copia de estos datos del emisor.
+              </p>
+              <fieldset
+                disabled={isSubmitting}
+                className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2"
+              >
+                {campos.map(({ key, label, optional, mode }) => {
+                  const error = errors.empresa?.[key];
+                  const id = `config-${key}`;
+                  return (
+                    <div
+                      key={key}
+                      className={
+                        key === "direccionFiscal"
+                          ? "space-y-2 md:col-span-2"
+                          : "space-y-2"
+                      }
+                    >
+                      <Label htmlFor={id}>
+                        {label}
+                        {optional ? " (opcional)" : ""}
+                      </Label>
+                      <Input
+                        id={id}
+                        inputMode={mode}
+                        {...register(`empresa.${key}`)}
+                        aria-invalid={!!error}
+                        aria-describedby={error ? `${id}-error` : undefined}
+                        className={
+                          key === "ruc"
+                            ? "h-11 md:h-9 text-base md:text-sm font-mono"
+                            : "h-11 md:h-9 text-base md:text-sm"
+                        }
+                      />
+                      {error && (
+                        <p
+                          id={`${id}-error`}
+                          className="text-sm text-danger-text"
+                        >
+                          {error.message}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </fieldset>
+            </section>
+            <section
+              aria-labelledby="comprobantes-titulo"
+              className="space-y-4 rounded-md border border-border bg-card p-4 md:p-6"
+            >
+              <h2 id="comprobantes-titulo" className="text-lg font-semibold">
+                Comprobantes
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Series locales fijas. El siguiente número se calcula desde las
+                ventas guardadas; no se modifica manualmente. Son comprobantes
+                de demostración, sin autorización SUNAT.
+              </p>
+              {seriesError ? (
+                <FormError message={seriesError} />
+              ) : (
+                <ul className="divide-y divide-border">
+                  {series.map((s) => (
+                    <li
+                      key={s.serie}
+                      className="flex flex-wrap justify-between gap-3 py-3 text-sm"
+                    >
+                      <span>{s.tipo}</span>
+                      <span className="font-mono tabular-nums">
+                        {s.serie}-{String(s.siguienteNumero).padStart(6, "0")}{" "}
+                        <span className="font-sans text-xs text-muted-foreground">
+                          siguiente
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+            <section
+              aria-labelledby="preferencias-titulo"
+              className="space-y-4 rounded-md border border-border bg-card p-4 md:p-6"
+            >
+              <h2 id="preferencias-titulo" className="text-lg font-semibold">
+                Preferencias
+              </h2>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="config-moneda">Moneda</Label>
+                  <Input
+                    id="config-moneda"
+                    value="PEN · Soles (S/)"
+                    readOnly
+                    className="h-11 md:h-9 text-base md:text-sm bg-muted"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="config-igv">IGV incluido en precios</Label>
+                  <Input
+                    id="config-igv"
+                    value="18 %"
+                    readOnly
+                    className="h-11 md:h-9 text-base md:text-sm bg-muted"
+                  />
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Moneda y tasa fijas para los cálculos actuales. La nota de venta
+                no desglosa IGV.
+              </p>
+              <p className="text-sm">
+                <span className="font-medium">
+                  Venta sin stock: no permitida.
+                </span>{" "}
+                La opción permanece fija hasta que todos los flujos admitan
+                stock negativo de forma coherente.
+              </p>
+            </section>
+          </form>
+          <section className="max-w-2xl space-y-3 border-t border-border pt-6">
+            <h2 className="text-lg font-semibold">Cuentas del equipo</h2>
+            <p className="text-sm text-muted-foreground">
+              Gestiona las cuentas locales del prototipo.
+            </p>
+            <Button variant="outline" asChild>
+              <Link to="/usuarios">Administrar usuarios</Link>
+            </Button>
+          </section>
+          <section className="max-w-2xl space-y-3 border-t border-border pt-6">
+            <h2 className="text-lg font-semibold">Datos de demostración</h2>
+            <p className="text-sm text-muted-foreground">
+              Reemplaza los registros operativos por los ejemplos iniciales.
+              Conserva la configuración de empresa y las cuentas.
+            </p>
+            <Button
+              variant="outline"
+              disabled={isSubmitting}
+              onClick={() => {
+                setResetError("");
+                setResetOpen(true);
+              }}
+            >
+              Restablecer datos de demostración
+            </Button>
+          </section>
+        </>
+      )}
+      <AlertDialog
+        open={resetOpen}
+        onOpenChange={(value) => {
+          if (!resetLock.current) setResetOpen(value);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              ¿Restablecer los datos de demostración?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Se reemplazarán productos, ventas, pedidos, cotizaciones,
+              devoluciones, inventario, kardex, caja, compras, gastos, clientes
+              y proveedores de este navegador. Esta acción elimina sus registros
+              actuales. La configuración de empresa, las cuentas y la sesión se
+              conservarán.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <FormError message={resetError} />
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={resetting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={resetting}
+              onClick={(event) => {
+                event.preventDefault();
+                void restoreDemo();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {resetting
+                ? "Restableciendo…"
+                : "Restablecer datos de demostración"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog
+        open={leaving !== null}
+        onOpenChange={(value) => {
+          if (!value) setLeaving(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tienes cambios sin guardar</AlertDialogTitle>
+            <AlertDialogDescription>
+              Si sales de Configuración se perderán los cambios que aún no
+              guardaste.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Seguir editando</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const destination = leaving;
+                setLeaving(null);
+                if (destination) navigate(destination);
+              }}
+            >
+              Salir sin guardar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
-
 export default ConfiguracionPage;

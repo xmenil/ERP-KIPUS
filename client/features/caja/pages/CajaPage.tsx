@@ -135,8 +135,8 @@ export const CajaPage: React.FC = () => {
       toast.success(
         `Caja abierta con sencillo inicial de ${formatCurrency(payload.saldoInicial)}`,
       );
-    } catch {
-      toast.error('No se pudo abrir la caja');
+    } catch (error) {
+      throw error;
     }
   };
 
@@ -155,8 +155,8 @@ export const CajaPage: React.FC = () => {
           payload.monto,
         )} registrado correctamente`,
       );
-    } catch {
-      toast.error('Error al registrar la operación');
+    } catch (error) {
+      throw error;
     }
   };
 
@@ -171,8 +171,8 @@ export const CajaPage: React.FC = () => {
             : `Diferencia de ${formatCurrency(arqueo.diferencia)} registrada`
         }`,
       );
-    } catch {
-      toast.error('No se pudo guardar el arqueo');
+    } catch (error) {
+      throw error;
     }
   };
 
@@ -187,8 +187,8 @@ export const CajaPage: React.FC = () => {
       setUltimoCierreRealizado(res);
       setModalResultadoCierreOpen(true);
       toast.success('Turno de caja cerrado exitosamente.');
-    } catch {
-      toast.error('Error al procesar el cierre de caja');
+    } catch (error) {
+      throw error;
     }
   };
 

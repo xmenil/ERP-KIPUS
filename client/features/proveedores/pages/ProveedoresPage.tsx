@@ -1,691 +1,482 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { PageHeader } from '@/components/common/PageHeader';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { useMemo, useRef, useState } from "react";
+import { MoreHorizontal } from "lucide-react";
+import { PageHeader } from "@/components/common/PageHeader";
+import { QueryError } from "@/components/common/QueryError";
+import { FormError } from "@/components/common/FormError";
+import { useErpQuery } from "@/hooks/useErpQuery";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
   TableHeader,
+  TableBody,
   TableRow,
-} from '@/components/ui/table';
-import { MetricCard } from '@/components/common/MetricCard';
-import { ProveedorFormDialog } from '../components/ProveedorFormDialog';
-import { ProveedorDetalleModal } from '../components/ProveedorDetalleModal';
-import { proveedoresService } from '../services/proveedoresService';
-import { Proveedor, NuevoProveedorPayload } from '../types/proveedores.types';
-import { subscribeToErp } from '@/services/erp/erpStore';
-import { formatCurrency, formatNumber } from '@/utils/formatters';
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 import {
-  Building2,
-  Search,
-  Plus,
-  Phone,
-  Mail,
-  CreditCard,
-  Download,
-  Eye,
-  Edit,
-  Trash2,
-  MapPin,
-  Store,
-  Copy,
-  Check,
-  LayoutGrid,
-  List,
-  MessageSquare,
-  Sparkles,
-  ExternalLink,
-  ShieldCheck,
-  X,
-} from 'lucide-react';
-import { toast } from 'sonner';
-
-type FiltroTab = 'TODOS' | 'CREDITO' | 'CONTADO' | 'CON_DEUDA';
-type TipoVista = 'TABLA' | 'TARJETAS';
-
-export const ProveedoresPage: React.FC = () => {
-  const [proveedores, setProveedores] = useState<Proveedor[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filtroTab, setFiltroTab] = useState<FiltroTab>('TODOS');
-  const [tipoVista, setTipoVista] = useState<TipoVista>('TABLA');
-
-  // Modales
-  const [formModalOpen, setFormModalOpen] = useState(false);
-  const [proveedorAEditar, setProveedorAEditar] = useState<Proveedor | null>(null);
-  const [detalleModalOpen, setDetalleModalOpen] = useState(false);
-  const [proveedorSeleccionado, setProveedorSeleccionado] = useState<Proveedor | null>(null);
-  const [copiadoId, setCopiadoId] = useState<string | null>(null);
-
-  const fetchProveedores = async () => {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import { proveedoresService } from "../services/proveedoresService";
+import { ProveedorFormDialog } from "../components/ProveedorFormDialog";
+import { ProveedorDetalleModal } from "../components/ProveedorDetalleModal";
+import type {
+  Proveedor,
+  NuevoProveedorPayload,
+} from "../types/proveedores.types";
+import { crearCsvProveedores } from "../utils/proveedoresCsv";
+import { normalizarRuc } from "../utils/proveedorValidation";
+import { erpStore } from "@/services/erp/erpStore";
+import { toast } from "sonner";
+const PAGE_SIZE = 20;
+const isCredit = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .includes("credito");
+export function ProveedoresPage() {
+  const {
+    data: proveedores,
+    loading,
+    error,
+    refresh,
+  } = useErpQuery(proveedoresService.getProveedores);
+  const [search, setSearch] = useState("");
+  const [estado, setEstado] = useState("TODOS");
+  const [pago, setPago] = useState("TODOS");
+  const [page, setPage] = useState(0);
+  const [editing, setEditing] = useState<Proveedor | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [confirmation, setConfirmation] = useState<{
+    p: Proveedor;
+    action: "borrar" | "estado";
+  } | null>(null);
+  const [actionError, setActionError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const lock = useRef(false);
+  const compras = useMemo(() => {
+    if (error) return [];
     try {
-      const data = await proveedoresService.getProveedores();
-      setProveedores(data);
+      return erpStore.getCompras();
     } catch {
-      toast.error('Error al cargar proveedores');
-    } finally {
-      setLoading(false);
+      return [];
     }
-  };
-
-  useEffect(() => {
-    fetchProveedores();
-    const unsubscribe = subscribeToErp(() => {
-      fetchProveedores();
-    });
-    return unsubscribe;
-  }, []);
-
-  // Guardar (Crear o Editar)
-  const handleGuardarProveedor = async (payload: NuevoProveedorPayload, id?: string) => {
-    try {
-      if (id) {
-        const actualizado = await proveedoresService.actualizarProveedor(id, payload);
-        toast.success(`Proveedor "${actualizado.razonSocial}" actualizado correctamente`);
-      } else {
-        const nuevo = await proveedoresService.registrarProveedor(payload);
-        toast.success(`Proveedor "${nuevo.razonSocial}" registrado exitosamente`);
-      }
-      fetchProveedores();
-    } catch {
-      toast.error('Error al procesar la operación');
-    }
-  };
-
-  // Eliminar
-  const handleEliminarProveedor = async (prov: Proveedor) => {
-    if (
-      !window.confirm(
-        `¿Estás seguro de eliminar a "${prov.nombreComercial || prov.razonSocial}" del directorio?`
-      )
-    ) {
-      return;
-    }
-    try {
-      await proveedoresService.eliminarProveedor(prov.id);
-      toast.success('Proveedor eliminado del directorio');
-      fetchProveedores();
-    } catch {
-      toast.error('No se pudo eliminar el proveedor');
-    }
-  };
-
-  // Copiar RUC
-  const handleCopiarRuc = (e: React.MouseEvent, ruc: string, id: string) => {
-    e.stopPropagation();
-    navigator.clipboard.writeText(ruc);
-    setCopiadoId(id);
-    toast.success(`RUC ${ruc} copiado al portapapeles`);
-    setTimeout(() => setCopiadoId(null), 2000);
-  };
-
-  // Exportar CSV
-  const handleExportarCsv = () => {
-    const encabezados = 'Código,RUC,Nombre Comercial,Razón Social,Rubro,Teléfono,Correo,Ciudad,Condición Pago,Saldo Pendiente\n';
-    const filas = proveedores
-      .map(
+  }, [proveedores, error]);
+  const comprasDe = (p: Proveedor) =>
+    compras.filter(
+      (c) => normalizarRuc(c.proveedorRuc) === normalizarRuc(p.ruc),
+    );
+  const referenced = (p: Proveedor) =>
+    comprasDe(p).length > 0 || (p.saldoPendiente || 0) > 0;
+  const filtered = useMemo(() => {
+    const term = search.trim().toLocaleLowerCase("es");
+    const ruc = normalizarRuc(term);
+    return proveedores
+      .filter(
         (p) =>
-          `"${p.codigo || ''}","${p.ruc}","${p.nombreComercial || ''}","${p.razonSocial}","${p.rubro}","${p.telefono}","${p.correo}","${p.ciudad}","${p.condicionPago}","${p.saldoPendiente || 0}"`
+          (!term ||
+            `${p.razonSocial} ${p.nombreComercial || ""} ${p.contacto}`
+              .toLocaleLowerCase("es")
+              .includes(term) ||
+            normalizarRuc(p.ruc).includes(ruc)) &&
+          (estado === "TODOS" ||
+            (p.activo !== false) === (estado === "ACTIVO")) &&
+          (pago === "TODOS" ||
+            isCredit(p.condicionPago) === (pago === "CREDITO")),
       )
-      .join('\n');
-    const blob = new Blob([encabezados + filas], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `Proveedores_KIPUS_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success('Directorio de proveedores exportado en CSV');
+      .sort((a, b) => a.razonSocial.localeCompare(b.razonSocial, "es"));
+  }, [proveedores, search, estado, pago]);
+  const currentPage = Math.min(
+    page,
+    Math.max(0, Math.ceil(filtered.length / PAGE_SIZE) - 1),
+  );
+  const rows = filtered.slice(
+    currentPage * PAGE_SIZE,
+    (currentPage + 1) * PAGE_SIZE,
+  );
+  const edit = (p: Proveedor | null) => {
+    setEditing(p);
+    setFormOpen(true);
   };
-
-  // Filtros
-  const proveedoresFiltrados = useMemo(() => {
-    return proveedores.filter((p) => {
-      // Filtro por tab
-      if (filtroTab === 'CREDITO' && !p.condicionPago.includes('Crédito')) return false;
-      if (filtroTab === 'CONTADO' && p.condicionPago.includes('Crédito')) return false;
-      if (filtroTab === 'CON_DEUDA' && (!p.saldoPendiente || p.saldoPendiente <= 0)) return false;
-
-      // Filtro por texto
-      if (searchTerm.trim()) {
-        const q = searchTerm.toLowerCase();
-        const coincideRuc = p.ruc.includes(q);
-        const coincideRazon = p.razonSocial.toLowerCase().includes(q);
-        const coincideComercial = p.nombreComercial?.toLowerCase().includes(q) || false;
-        const coincideCiudad = p.ciudad.toLowerCase().includes(q);
-        const coincideRubro = p.rubro.toLowerCase().includes(q);
-        const coincideContacto = p.contacto.toLowerCase().includes(q);
-        return (
-          coincideRuc ||
-          coincideRazon ||
-          coincideComercial ||
-          coincideCiudad ||
-          coincideRubro ||
-          coincideContacto
+  const save = async (data: NuevoProveedorPayload, id?: string) => {
+    const p = id
+      ? await proveedoresService.actualizarProveedor(id, data)
+      : await proveedoresService.registrarProveedor(data);
+    setSearch(p.ruc);
+    setEstado("TODOS");
+    setPago("TODOS");
+    setPage(0);
+    toast.success(
+      `Proveedor ${p.razonSocial} ${id ? "actualizado" : "registrado"}`,
+    );
+  };
+  const execute = async () => {
+    if (!confirmation || lock.current) return;
+    lock.current = true;
+    setBusy(true);
+    setActionError("");
+    try {
+      if (confirmation.action === "borrar") {
+        await proveedoresService.eliminarProveedor(confirmation.p.id);
+        toast.success(`Proveedor ${confirmation.p.razonSocial} eliminado`);
+      } else {
+        const p = await proveedoresService.toggleEstadoProveedor(
+          confirmation.p.id,
+        );
+        toast.success(
+          `Proveedor ${p.razonSocial} ${p.activo === false ? "desactivado" : "activado"}`,
         );
       }
-      return true;
-    });
-  }, [proveedores, filtroTab, searchTerm]);
-
-  // Métricas Consolidadas
-  const totalProveedores = proveedores.length;
-  const aCredito = proveedores.filter((p) => p.condicionPago.includes('Crédito')).length;
-  const totalComprasAcumuladas = proveedores.reduce((acc, p) => acc + (p.totalCompras || 0), 0);
-  const totalCuentasPorPagar = proveedores.reduce((acc, p) => acc + (p.saldoPendiente || 0), 0);
-
-  return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      {/* 1. Header Principal */}
-      <PageHeader
-        title="Directorio de Proveedores"
-        description="Gestión integral de empresas proveedoras, datos fiscales, canales de contacto y acuerdos de pago"
-        badge="Catálogo Homologado"
+      setConfirmation(null);
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "No se pudo guardar el cambio. Inténtalo de nuevo.",
+      );
+    } finally {
+      lock.current = false;
+      setBusy(false);
+    }
+  };
+  const exportCsv = () => {
+    const url = URL.createObjectURL(
+      new Blob([crearCsvProveedores(filtered)], {
+        type: "text/csv;charset=utf-8",
+      }),
+    );
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "proveedores-filtrados.csv";
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  const status = (p: Proveedor) => (
+    <span
+      className={
+        p.activo === false
+          ? "rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground"
+          : "rounded-md bg-success-soft px-2 py-1 text-xs text-success-text"
+      }
+    >
+      {p.activo === false ? "Inactivo" : "Activo"}
+    </span>
+  );
+  const actions = (p: Proveedor) => (
+    <div className="flex shrink-0 items-center gap-1">
+      <Button
+        variant="ghost"
+        onClick={() => setDetailId(p.id)}
+        aria-label={`Ver detalle de ${p.razonSocial}`}
       >
-        <div className="flex items-center gap-2">
-          {/* Botón Exportar */}
+        Ver detalle
+      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
           <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportarCsv}
-            className="h-9 text-xs font-semibold gap-1.5"
-            title="Exportar directorio de proveedores"
+            variant="ghost"
+            size="icon"
+            aria-label={`Acciones de ${p.razonSocial}`}
           >
-            <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Exportar</span>
+            <MoreHorizontal className="h-4 w-4" />
           </Button>
-
-          {/* Botón Nuevo Proveedor */}
-          <Button
-            size="sm"
-            onClick={() => {
-              setProveedorAEditar(null);
-              setFormModalOpen(true);
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          className="[&_[role=menuitem]]:min-h-11 md:[&_[role=menuitem]]:min-h-9"
+        >
+          <DropdownMenuItem onSelect={() => edit(p)}>
+            Editar proveedor
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={() => {
+              setActionError("");
+              setConfirmation({ p, action: "estado" });
             }}
-            className="h-9 font-semibold text-xs gap-1.5 shadow-sm"
           >
-            <Plus className="h-4 w-4" />
-            <span>Nuevo proveedor</span>
-          </Button>
-        </div>
-      </PageHeader>
-
-      {/* 2. Cuatro Tarjetas de Métricas Clave */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {/* Proveedores en Cartera */}
-        <MetricCard
-          title="Proveedores en Cartera"
-          value={formatNumber(totalProveedores)}
-          subtitle="Empresas con RUC verificado"
-          icon={Building2}
-          iconColor="text-primary bg-primary/10"
-        />
-
-        {/* Proveedores a Crédito */}
-        <MetricCard
-          title="Proveedores a Crédito"
-          value={formatNumber(aCredito)}
-          subtitle="Con líneas de 15 a 60 días"
-          icon={CreditCard}
-          iconColor="text-primary bg-primary/10"
-        />
-
-        {/* Compras Acumuladas */}
-        <MetricCard
-          title="Compras Acumuladas"
-          value={formatCurrency(totalComprasAcumuladas)}
-          subtitle="Volumen histórico facturado"
-          icon={Store}
-          iconColor="text-success-text bg-success-soft"
-        />
-
-        {/* Cuentas por Pagar */}
-        <MetricCard
-          title="Cuentas por Pagar"
-          value={formatCurrency(totalCuentasPorPagar)}
-          subtitle="Saldos pendientes a liquidar"
-          icon={CreditCard}
-          iconColor="text-danger-text bg-danger-soft"
-        />
-      </div>
-
-      {/* 3. Barra de Búsqueda y Filtros con Switcher de Vista */}
-      <Card className="border border-border/80 shadow-xs bg-card">
-        <CardContent className="p-4 space-y-3">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-            {/* Buscador en Vivo con botón de limpiar */}
-            <div className="relative w-full md:w-96">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por RUC, nombre, ciudad, rubro o contacto..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="h-9 pl-9 pr-8 text-xs"
-              />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-
-            {/* Chips de Filtro Rápido */}
-            <div className="flex items-center gap-1 p-1 bg-muted/60 rounded-lg border border-border/60 overflow-x-auto w-full md:w-auto">
-              {(
-                [
-                  { id: 'TODOS', label: `Todos (${totalProveedores})` },
-                  { id: 'CREDITO', label: `A Crédito (${aCredito})` },
-                  { id: 'CONTADO', label: `Al Contado (${totalProveedores - aCredito})` },
-                  {
-                    id: 'CON_DEUDA',
-                    label: `Con Saldo (${proveedores.filter((p) => (p.saldoPendiente || 0) > 0).length})`,
-                  },
-                ] as const
-              ).map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setFiltroTab(tab.id)}
-                  className={`px-3 py-1 rounded text-xs font-semibold transition-all whitespace-nowrap ${
-                    filtroTab === tab.id
-                      ? 'bg-card text-foreground shadow-xs border border-border font-bold'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Selector de Vista: Tabla vs Tarjetas */}
-            <div className="flex items-center gap-1 border border-border rounded-lg p-0.5 bg-muted/30 shrink-0">
-              <button
-                type="button"
-                onClick={() => setTipoVista('TABLA')}
-                className={`p-1.5 rounded transition-colors ${
-                  tipoVista === 'TABLA'
-                    ? 'bg-card text-foreground shadow-xs'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-                title="Vista en tabla"
-              >
-                <List className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setTipoVista('TARJETAS')}
-                className={`p-1.5 rounded transition-colors ${
-                  tipoVista === 'TARJETAS'
-                    ? 'bg-card text-foreground shadow-xs'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-                title="Vista en tarjetas"
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 4. Contenedor de Resultados (Tabla o Tarjetas) */}
-      {proveedoresFiltrados.length === 0 ? (
-        <Card className="border border-border/80 shadow-xs bg-card p-12 text-center space-y-3">
-          <Building2 className="h-10 w-10 text-muted-foreground/40 mx-auto" />
-          <div className="space-y-1">
-            <h3 className="text-sm font-bold text-foreground">
-              No se encontraron proveedores
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              No hay resultados que coincidan con "{searchTerm}" o el filtro seleccionado.
-            </p>
-          </div>
-          {searchTerm && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSearchTerm('')}
-              className="text-xs"
-            >
-              Limpiar búsqueda
-            </Button>
-          )}
-        </Card>
-      ) : tipoVista === 'TABLA' ? (
-        /* VISTA 1: TABLA MODERNA Y LIMPIA */
-        <Card className="border border-border/80 shadow-sm bg-card overflow-hidden">
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table className="w-full min-w-[850px]">
-                <TableHeader>
-                  <TableRow className="text-xs bg-muted/40">
-                    <TableHead className="w-12 text-center whitespace-nowrap">ID</TableHead>
-                    <TableHead className="whitespace-nowrap">Proveedor (Nombre y Razón Social)</TableHead>
-                    <TableHead className="w-36 whitespace-nowrap">RUC / Doc</TableHead>
-                    <TableHead className="whitespace-nowrap">Ubicación (Ciudad • Dirección)</TableHead>
-                    <TableHead className="whitespace-nowrap">Contacto & Canales</TableHead>
-                    <TableHead className="whitespace-nowrap">Condición Pago</TableHead>
-                    <TableHead className="text-right whitespace-nowrap">Saldo Pendiente</TableHead>
-                    <TableHead className="w-24 text-center whitespace-nowrap">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {proveedoresFiltrados.map((prov) => {
-                    const cleanPhone = prov.telefono ? prov.telefono.replace(/\s+/g, '') : '';
-                    return (
-                      <TableRow
-                        key={prov.id}
-                        className="text-xs hover:bg-muted/20 cursor-pointer transition-colors"
-                        onClick={() => {
-                          setProveedorSeleccionado(prov);
-                          setDetalleModalOpen(true);
-                        }}
-                      >
-                        {/* ID / Código */}
-                        <TableCell className="text-center font-mono text-[11px] text-muted-foreground whitespace-nowrap">
-                          {prov.codigo || prov.id.slice(-3)}
-                        </TableCell>
-
-                        {/* Proveedor con Avatar e Identidad */}
-                        <TableCell>
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary font-bold flex items-center justify-center text-xs shrink-0">
-                              {(prov.nombreComercial || prov.razonSocial).slice(0, 2).toUpperCase()}
-                            </div>
-                            <div className="space-y-0.5">
-                              <span className="font-bold text-foreground block line-clamp-1">
-                                {prov.nombreComercial || prov.razonSocial}
-                              </span>
-                              <span className="text-[10px] text-muted-foreground block line-clamp-1">
-                                {prov.razonSocial}
-                              </span>
-                            </div>
-                          </div>
-                        </TableCell>
-
-                        {/* RUC con Copiar */}
-                        <TableCell onClick={(e) => e.stopPropagation()} className="whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={(e) => handleCopiarRuc(e, prov.ruc, prov.id)}
-                            className="inline-flex items-center gap-1 font-mono font-bold text-foreground hover:text-primary transition-colors text-[11px] cursor-pointer"
-                            title="Copiar RUC"
-                          >
-                            <span>{prov.ruc}</span>
-                            {copiadoId === prov.id ? (
-                              <Check className="h-3 w-3 text-success-text" />
-                            ) : (
-                              <Copy className="h-3 w-3 text-muted-foreground" />
-                            )}
-                          </button>
-                          <span className="text-[10px] text-primary block">{prov.rubro}</span>
-                        </TableCell>
-
-                        {/* Ubicación */}
-                        <TableCell>
-                          <div className="text-foreground font-medium flex items-center gap-1 line-clamp-1">
-                            <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
-                            <span>{prov.ciudad}</span>
-                          </div>
-                          <span className="text-[10px] text-muted-foreground line-clamp-1">
-                            {prov.direccion}
-                          </span>
-                        </TableCell>
-
-                        {/* Contacto & Teléfono */}
-                        <TableCell onClick={(e) => e.stopPropagation()} className="whitespace-nowrap">
-                          <div className="space-y-0.5">
-                            <span className="font-medium text-foreground block">
-                              {prov.contacto || 'Contacto'}
-                            </span>
-                            <div className="flex items-center gap-2 text-[11px]">
-                              {cleanPhone && (
-                                <a
-                                  href={`tel:${cleanPhone}`}
-                                  className="text-muted-foreground hover:text-primary flex items-center gap-1 font-mono"
-                                  title="Llamar"
-                                >
-                                  <Phone className="h-3 w-3" />
-                                  <span>{prov.telefono}</span>
-                                </a>
-                              )}
-                              {cleanPhone && (
-                                <a
-                                  href={`https://wa.me/51${cleanPhone}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-success-text hover:text-success"
-                                  title="WhatsApp"
-                                >
-                                  <MessageSquare className="h-3 w-3" />
-                                </a>
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-
-                        {/* Condición de Pago */}
-                        <TableCell className="whitespace-nowrap">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${
-                              prov.condicionPago.includes('Crédito')
-                                ? 'bg-muted/70 text-foreground border border-border/60'
-                                : 'bg-muted text-muted-foreground border border-border/40'
-                            }`}
-                          >
-                            {prov.condicionPago}
-                          </span>
-                        </TableCell>
-
-                        {/* Saldo Pendiente */}
-                        <TableCell className="text-right whitespace-nowrap">
-                          <span
-                            className={`font-bold tabular-nums font-mono text-xs ${
-                              (prov.saldoPendiente || 0) > 0 ? 'text-danger-text' : 'text-muted-foreground'
-                            }`}
-                          >
-                            {formatCurrency(prov.saldoPendiente || 0)}
-                          </span>
-                        </TableCell>
-
-                        {/* Acciones */}
-                        <TableCell className="text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-center gap-1">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                              onClick={() => {
-                                setProveedorSeleccionado(prov);
-                                setDetalleModalOpen(true);
-                              }}
-                              title="Ver ficha completa"
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                              onClick={() => {
-                                setProveedorAEditar(prov);
-                                setFormModalOpen(true);
-                              }}
-                              title="Editar proveedor"
-                            >
-                              <Edit className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 text-muted-foreground hover:text-danger-text"
-                              onClick={() => handleEliminarProveedor(prov)}
-                              title="Eliminar proveedor"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        /* VISTA 2: TARJETAS (CARDS) MODERNAS */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {proveedoresFiltrados.map((prov) => {
-            const cleanPhone = prov.telefono ? prov.telefono.replace(/\s+/g, '') : '';
-            return (
-              <Card
-                key={prov.id}
-                className="border border-border/80 shadow-xs hover:border-primary/50 transition-all bg-card cursor-pointer"
-                onClick={() => {
-                  setProveedorSeleccionado(prov);
-                  setDetalleModalOpen(true);
-                }}
-              >
-                <CardContent className="p-5 space-y-4">
-                  {/* Cabecera de la Tarjeta */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary font-bold flex items-center justify-center text-sm shrink-0">
-                        {(prov.nombreComercial || prov.razonSocial).slice(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-foreground text-sm line-clamp-1">
-                          {prov.nombreComercial || prov.razonSocial}
-                        </h4>
-                        <span className="text-[11px] text-muted-foreground font-mono block">
-                          RUC: {prov.ruc}
-                        </span>
-                      </div>
-                    </div>
-
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-muted text-primary border border-border">
-                      {prov.rubro}
-                    </span>
-                  </div>
-
-                  {/* Datos Clave */}
-                  <div className="space-y-1.5 text-xs p-3 rounded-lg bg-muted/30 border border-border/60">
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground flex items-center gap-1">
-                        <MapPin className="h-3 w-3" /> Ciudad:
-                      </span>
-                      <span className="font-semibold text-foreground">{prov.ciudad}</span>
-                    </div>
-
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground flex items-center gap-1">
-                        <CreditCard className="h-3 w-3" /> Condición:
-                      </span>
-                      <span className="font-semibold text-foreground">{prov.condicionPago}</span>
-                    </div>
-
-                    <div className="flex justify-between items-center pt-1 border-t border-border/40">
-                      <span className="text-muted-foreground">Saldo pendiente:</span>
-                      <span
-                        className={`font-bold tabular-nums font-mono ${
-                          (prov.saldoPendiente || 0) > 0 ? 'text-danger-text' : 'text-success-text'
-                        }`}
-                      >
-                        {formatCurrency(prov.saldoPendiente || 0)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Botones de Acción Directa */}
-                  <div className="flex items-center justify-between pt-1" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center gap-2">
-                      {cleanPhone && (
-                        <a
-                          href={`tel:${cleanPhone}`}
-                          className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-primary transition-colors"
-                          title="Llamar"
-                        >
-                          <Phone className="h-3.5 w-3.5" />
-                        </a>
-                      )}
-                      {cleanPhone && (
-                        <a
-                          href={`https://wa.me/51${cleanPhone}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="p-1.5 rounded-lg border border-border text-success-text hover:bg-success-soft transition-colors"
-                          title="WhatsApp"
-                        >
-                          <MessageSquare className="h-3.5 w-3.5" />
-                        </a>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-7 px-2 text-xs font-semibold"
-                        onClick={() => {
-                          setProveedorAEditar(prov);
-                          setFormModalOpen(true);
-                        }}
-                      >
-                        <Edit className="h-3 w-3 mr-1" />
-                        Editar
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0 text-muted-foreground hover:text-danger-text"
-                        onClick={() => handleEliminarProveedor(prov)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Modal de Formulario (Crear / Editar) */}
-      <ProveedorFormDialog
-        open={formModalOpen}
-        onOpenChange={setFormModalOpen}
-        onGuardar={handleGuardarProveedor}
-        proveedorAEditar={proveedorAEditar}
-      />
-
-      {/* Modal de Ficha 360° Detallada */}
-      <ProveedorDetalleModal
-        open={detalleModalOpen}
-        onOpenChange={setDetalleModalOpen}
-        proveedor={proveedorSeleccionado}
-        onEditarClick={(prov) => {
-          setProveedorAEditar(prov);
-          setFormModalOpen(true);
-        }}
-      />
+            {p.activo === false ? "Activar proveedor" : "Desactivar proveedor"}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={referenced(p)}
+            onSelect={() => {
+              setActionError("");
+              setConfirmation({ p, action: "borrar" });
+            }}
+            className="text-danger-text"
+          >
+            {referenced(p)
+              ? "Eliminar no disponible: tiene historial o saldo"
+              : "Eliminar proveedor"}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
-};
-
+  const detail = proveedores.find((p) => p.id === detailId) || null;
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Proveedores"
+        description="Contactos y condiciones de pago para tus compras."
+      >
+        <Button
+          variant="outline"
+          disabled={loading || !!error || !filtered.length}
+          onClick={exportCsv}
+        >
+          Exportar CSV
+        </Button>
+        <Button onClick={() => edit(null)} disabled={!!error}>
+          Nuevo proveedor
+        </Button>
+      </PageHeader>
+      <QueryError
+        message={error}
+        retry={() => {
+          void refresh();
+        }}
+      />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="space-y-2">
+          <Label htmlFor="proveedores-busqueda">Buscar por nombre o RUC</Label>
+          <Input
+            id="proveedores-busqueda"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(0);
+            }}
+            placeholder="Ej. Distribuidora o 20100055237"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="proveedores-estado">Estado</Label>
+          <select
+            id="proveedores-estado"
+            value={estado}
+            onChange={(e) => {
+              setEstado(e.target.value);
+              setPage(0);
+            }}
+            className="h-11 md:h-9 w-full rounded-md border border-input bg-card px-3 text-base md:text-sm focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="TODOS">Todos</option>
+            <option value="ACTIVO">Activos</option>
+            <option value="INACTIVO">Inactivos</option>
+          </select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="proveedores-pago">Condición de pago</Label>
+          <select
+            id="proveedores-pago"
+            value={pago}
+            onChange={(e) => {
+              setPago(e.target.value);
+              setPage(0);
+            }}
+            className="h-11 md:h-9 w-full rounded-md border border-input bg-card px-3 text-base md:text-sm focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="TODOS">Todas</option>
+            <option value="CONTADO">Contado</option>
+            <option value="CREDITO">Crédito</option>
+          </select>
+        </div>
+      </div>
+      {error ? null : loading ? (
+        <div
+          aria-label="Cargando proveedores"
+          className="h-48 animate-pulse rounded-md border border-border bg-muted"
+        />
+      ) : !filtered.length ? (
+        <div className="space-y-3 rounded-md border border-border bg-card p-6 text-sm">
+          <p>
+            {proveedores.length
+              ? "No hay proveedores con estos filtros."
+              : "Aún no registraste proveedores. Agrega el primero para seleccionarlo en Compras."}
+          </p>
+          {proveedores.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSearch("");
+                setEstado("TODOS");
+                setPago("TODOS");
+                setPage(0);
+              }}
+            >
+              Limpiar filtros
+            </Button>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="hidden rounded-md border border-border bg-card md:block">
+            <Table>
+              <TableHeader className="sticky top-0 bg-card">
+                <TableRow>
+                  <TableHead>Razón social / RUC</TableHead>
+                  <TableHead>Contacto</TableHead>
+                  <TableHead>Condición</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>
+                    <span className="sr-only">Acciones</span>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell>
+                      <p className="font-medium">{p.razonSocial}</p>
+                      <p className="font-mono text-xs text-muted-foreground">
+                        {p.ruc}
+                      </p>
+                    </TableCell>
+                    <TableCell>
+                      <p>{p.contacto || "Sin contacto"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {p.telefono || p.correo || "Sin teléfono ni correo"}
+                      </p>
+                    </TableCell>
+                    <TableCell>{p.condicionPago}</TableCell>
+                    <TableCell>{status(p)}</TableCell>
+                    <TableCell>{actions(p)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <ul className="divide-y divide-border rounded-md border border-border bg-card md:hidden">
+            {rows.map((p) => (
+              <li key={p.id} className="space-y-3 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="break-words text-sm font-medium">
+                      {p.razonSocial}
+                    </p>
+                    <p className="font-mono text-xs text-muted-foreground">
+                      {p.ruc}
+                    </p>
+                  </div>
+                  {status(p)}
+                </div>
+                <p className="break-words text-sm">
+                  {p.contacto || "Sin contacto"} · {p.condicionPago}
+                </p>
+                {actions(p)}
+              </li>
+            ))}
+          </ul>
+          <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+            <p className="tabular-nums">
+              Mostrando {currentPage * PAGE_SIZE + 1}–
+              {Math.min((currentPage + 1) * PAGE_SIZE, filtered.length)} de{" "}
+              {filtered.length}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                disabled={currentPage === 0}
+                onClick={() => setPage(currentPage - 1)}
+              >
+                Anterior
+              </Button>
+              <Button
+                variant="outline"
+                disabled={(currentPage + 1) * PAGE_SIZE >= filtered.length}
+                onClick={() => setPage(currentPage + 1)}
+              >
+                Siguiente
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
+      <ProveedorFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        proveedorAEditar={editing}
+        rucBloqueado={!!editing && comprasDe(editing).length > 0}
+        onGuardar={save}
+      />
+      <ProveedorDetalleModal
+        open={!!detailId}
+        onOpenChange={(open) => {
+          if (!open) setDetailId(null);
+        }}
+        proveedor={detail}
+        onEditarClick={edit}
+        compras={detail ? comprasDe(detail) : []}
+      />
+      <AlertDialog
+        open={!!confirmation}
+        onOpenChange={(value) => {
+          if (!value && !lock.current) setConfirmation(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmation?.action === "borrar"
+                ? "¿Eliminar"
+                : confirmation?.p.activo === false
+                  ? "¿Activar"
+                  : "¿Desactivar"}{" "}
+              a {confirmation?.p.razonSocial}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmation?.action === "borrar"
+                ? "Se eliminará del directorio de este navegador. Esta acción no se puede deshacer."
+                : confirmation?.p.activo === false
+                  ? "Volverá a estar disponible para nuevas compras."
+                  : "Se conservarán sus datos e historial. No estará disponible para nuevas compras."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <FormError message={actionError} />
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className={
+                confirmation?.action === "borrar"
+                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  : undefined
+              }
+              disabled={busy}
+              onClick={(event) => {
+                event.preventDefault();
+                void execute();
+              }}
+            >
+              {busy
+                ? "Guardando…"
+                : confirmation?.action === "borrar"
+                  ? "Eliminar proveedor"
+                  : confirmation?.p.activo === false
+                    ? "Activar proveedor"
+                    : "Desactivar proveedor"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
 export default ProveedoresPage;

@@ -2,6 +2,7 @@ export interface DatosEmpresa {
   ruc: string;
   razonSocial: string;
   nombreComercial: string;
+  nombreSede: string;
   direccionFiscal: string;
   telefono: string;
   correo: string;

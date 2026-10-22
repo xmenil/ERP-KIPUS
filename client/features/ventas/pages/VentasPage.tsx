@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PosTerminalView } from '../components/PosTerminalView';
+import { useConfiguracion } from '@/features/configuracion/hooks/useConfiguracion';
 import { VentasDashboardView } from '../components/VentasDashboardView';
 import { VentasHistorialView } from '../components/VentasHistorialView';
 import { VentaDetalleModal } from '../components/VentaDetalleModal';
@@ -49,6 +50,7 @@ import {
 import { toast } from 'sonner';
 
 export const VentasPage: React.FC = () => {
+  const { config: configuracion } = useConfiguracion();
   // Estado de navegación
   const [tabActiva, setTabActiva] = useState<string>('pos');
 
@@ -57,9 +59,9 @@ export const VentasPage: React.FC = () => {
     useState<NivelComplejidadNegocio>('COMERCIO_MEDIANO');
 
   // Sucursal y caja activa
-  const [sucursalActiva, setSucursalActiva] = useState(
-    'Sede Central (Tingo María)',
-  );
+  const [otraSucursal, setSucursalActiva] = useState('');
+  const sedePrincipal = configuracion?.empresa.nombreSede || '';
+  const sucursalActiva = otraSucursal || sedePrincipal;
   const [cajaActiva, setCajaActiva] = useState('Caja 01 - Mostrador');
 
   // Datos principales
@@ -222,7 +224,7 @@ export const VentasPage: React.FC = () => {
                 onChange={(e) => setSucursalActiva(e.target.value)}
                 className="h-11 md:h-9 max-w-full bg-transparent text-base md:text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <option value="Sede Central (Tingo María)">Sede Central</option>
+                <option value={sedePrincipal}>{sedePrincipal || 'Revisa Configuración'}</option>
                 <option value="Tienda Mostrador (Tingo María)">
                   Tienda Mostrador
                 </option>

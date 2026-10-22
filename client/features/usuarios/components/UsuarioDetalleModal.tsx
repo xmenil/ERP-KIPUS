@@ -15,7 +15,6 @@ import {
   Phone,
   Building,
   Calendar,
-  Clock,
   Edit,
   Trash2,
   CheckCircle2,
@@ -37,17 +36,17 @@ const ROLES_BADGES: Record<string, { label: string; color: string; desc: string 
   ADMINISTRADOR: {
     label: 'Administrador General',
     color: 'bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 border-purple-300 dark:border-purple-800',
-    desc: 'Acceso total a finanzas, costos, reportes, usuarios y configuración global.',
+    desc: 'Todos los módulos: ventas, caja, catálogo, inventario, compras, gastos, reportes, usuarios y configuración.',
   },
   SUPERVISOR: {
     label: 'Supervisor de Almacén',
     color: 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border-blue-300 dark:border-blue-800',
-    desc: 'Gestión de inventario, recepción de compras, movimientos de kardex y catálogo.',
+    desc: 'Resumen, productos, inventario, compras, proveedores y clientes.',
   },
   CAJERO: {
     label: 'Cajero / Punto de Venta',
     color: 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border-amber-300 dark:border-amber-800',
-    desc: 'Emisión de comprobantes, apertura/cierre de caja chica y cobros en POS.',
+    desc: 'Resumen, ventas, caja y clientes.',
   },
 };
 
@@ -71,10 +70,11 @@ export const UsuarioDetalleModal: React.FC<UsuarioDetalleModalProps> = ({
   const esAdminPrincipal = usuario.id === 'user-admin';
 
   const handleCopiarEmail = () => {
-    navigator.clipboard.writeText(usuario.email);
-    setCopiado(true);
-    toast.success(`Correo ${usuario.email} copiado al portapapeles`);
-    setTimeout(() => setCopiado(false), 2000);
+    void navigator.clipboard.writeText(usuario.email).then(() => {
+      setCopiado(true);
+      toast.success(`Correo ${usuario.email} copiado al portapapeles`);
+      setTimeout(() => setCopiado(false), 2000);
+    }).catch(() => toast.error('No se pudo copiar el correo. Selecciónalo y cópialo manualmente.'));
   };
 
   return (
@@ -112,7 +112,7 @@ export const UsuarioDetalleModal: React.FC<UsuarioDetalleModalProps> = ({
               Alcance de Permisos
             </span>
             <p className="text-foreground leading-relaxed">
-              {usuario.descripcion || roleInfo.desc}
+              {roleInfo.desc} El acceso se aplica en la navegación local de este prototipo.
             </p>
           </div>
 
@@ -178,13 +178,6 @@ export const UsuarioDetalleModal: React.FC<UsuarioDetalleModalProps> = ({
               </span>
             </div>
 
-            <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/50">
-              <span className="text-muted-foreground flex items-center gap-1.5 shrink-0">
-                <Clock className="h-3.5 w-3.5" />
-                Último Acceso
-              </span>
-              <span className="font-mono text-foreground">{usuario.ultimoAcceso || 'Nunca'}</span>
-            </div>
           </div>
         </div>
 

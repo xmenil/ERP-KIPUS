@@ -687,7 +687,7 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
                         <SelectItem value="consumidor-final" className="text-xs">
                           Consumidor Final (Venta rápida sin datos)
                         </SelectItem>
-                        {clientes.map((c) => (
+                        {clientes.filter(c => c.activo !== false && c.numeroDocumento.replace(/[\s-]/g, '') !== '00000000').map((c) => (
                           <SelectItem key={c.id} value={c.id} className="text-xs">
                             {c.nombre} · {c.documentoTipo}: {c.numeroDocumento}
                           </SelectItem>
@@ -697,16 +697,19 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
 
                     <div className="grid grid-cols-2 gap-2">
                       <Input
+                        aria-label="Nombre o razón social del cliente para este comprobante"
                         placeholder="Nombre / Razón social"
                         value={clienteNombre}
                         onChange={(e) => setClienteNombre(e.target.value)}
-                        className="h-7 text-xs bg-card"
+                        className="h-11 text-base bg-card md:h-9 md:text-sm"
                       />
                       <Input
+                        aria-label="Documento del cliente para este comprobante"
                         placeholder="DNI o RUC"
                         value={clienteDocumento}
                         onChange={(e) => setClienteDocumento(e.target.value)}
-                        className="h-7 text-xs font-mono bg-card"
+                        inputMode="numeric"
+                        className="h-11 text-base font-mono bg-card md:h-9 md:text-sm"
                       />
                     </div>
                   </div>

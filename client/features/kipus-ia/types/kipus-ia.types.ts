@@ -1,15 +1,17 @@
+import type { PeriodoReporte } from "@/features/reportes/types/reportes.types";
+export type PeriodoConsulta =
+  | PeriodoReporte
+  | "HOY"
+  | "AYER"
+  | "ULTIMOS_7_DIAS"
+  | "ULTIMOS_30_DIAS";
 export interface ChatMessage {
   id: string;
-  sender: 'user' | 'assistant';
+  sender: "user" | "assistant";
   content: string;
   timestamp: string;
+  fuente?: string;
+  alcance?: string;
   dataPoints?: { label: string; value: string }[];
-}
-
-export interface InsightPredictivo {
-  id: string;
-  tipo: 'STOCK' | 'FINANZAS' | 'CLIENTE';
-  titulo: string;
-  descripcion: string;
-  accionSugerida: string;
+  enlace?: { label: string; ruta: string };
 }

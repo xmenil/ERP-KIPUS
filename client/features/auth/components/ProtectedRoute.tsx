@@ -3,13 +3,14 @@ import { Navigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { APP_ROUTES } from '@/constants/routes';
 import { Store, Loader2 } from 'lucide-react';
+import { canAccessPath, defaultRouteForRole } from '../permissions/rolePermissions';
 
 interface ProtectedRouteProps {
   children?: React.ReactNode;
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -30,6 +31,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   if (!isAuthenticated) {
     return <Navigate to={APP_ROUTES.LOGIN} state={{ from: location }} replace />;
+  }
+
+  if (user && !canAccessPath(user.rol, location.pathname)) {
+    return <Navigate to={defaultRouteForRole(user.rol)} replace state={{ denied: true }} />;
   }
 
   return children ? <>{children}</> : <Outlet />;

@@ -11,4 +11,9 @@ export const gastosService = {
     const gasto = erpStore.registrarGasto(payload);
     return simulateDelay(gasto);
   },
+
+  async anularGasto(id: string, motivo?: string): Promise<Gasto> {
+    const gasto = erpStore.anularGasto(id, motivo);
+    return simulateDelay(gasto);
+  },
 };

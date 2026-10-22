@@ -1,0 +1,180 @@
+E1: operaciones con almacenamiento normal y fallido
+E1: formulario de gasto
+E1: formulario de compra
+E1: cobro
+E1: ingreso de caja
+E1: ajuste de inventario
+{
+  "results": [
+    {
+      "route": "/compras",
+      "width": 1440,
+      "pageWidth": 1440,
+      "title": "Gestión de Compras y Abastecimiento",
+      "error": false
+    },
+    {
+      "route": "/gastos",
+      "width": 1440,
+      "pageWidth": 1440,
+      "title": "Gastos y Egresos Operativos",
+      "error": false
+    },
+    {
+      "route": "/ventas",
+      "width": 1440,
+      "pageWidth": 1434,
+      "title": "Ventas",
+      "error": false
+    },
+    {
+      "route": "/caja",
+      "width": 1440,
+      "pageWidth": 1434,
+      "title": "Caja",
+      "error": false
+    },
+    {
+      "route": "/inventario",
+      "width": 1440,
+      "pageWidth": 1434,
+      "title": "Inventario",
+      "error": false
+    },
+    {
+      "route": "/compras",
+      "width": 390,
+      "pageWidth": 384,
+      "title": "Gestión de Compras y Abastecimiento",
+      "error": false
+    },
+    {
+      "route": "/gastos",
+      "width": 390,
+      "pageWidth": 384,
+      "title": "Gastos y Egresos Operativos",
+      "error": false
+    },
+    {
+      "route": "/ventas",
+      "width": 390,
+      "pageWidth": 384,
+      "title": "Ventas",
+      "error": false
+    },
+    {
+      "route": "/caja",
+      "width": 390,
+      "pageWidth": 384,
+      "title": "Caja",
+      "error": false
+    },
+    {
+      "route": "/inventario",
+      "width": 390,
+      "pageWidth": 384,
+      "title": "Inventario",
+      "error": false
+    },
+    {
+      "route": "/compras",
+      "width": 720,
+      "pageWidth": 714,
+      "title": "Gestión de Compras y Abastecimiento",
+      "error": false
+    },
+    {
+      "route": "/gastos",
+      "width": 720,
+      "pageWidth": 720,
+      "title": "Gastos y Egresos Operativos",
+      "error": false
+    },
+    {
+      "route": "/ventas",
+      "width": 720,
+      "pageWidth": 714,
+      "title": "Ventas",
+      "error": false
+    },
+    {
+      "route": "/caja",
+      "width": 720,
+      "pageWidth": 714,
+      "title": "Caja",
+      "error": false
+    },
+    {
+      "route": "/inventario",
+      "width": 720,
+      "pageWidth": 714,
+      "title": "Inventario",
+      "error": false
+    }
+  ],
+  "operations": {
+    "logic": [
+      {
+        "name": "venta",
+        "rejected": true,
+        "rolledBack": true,
+        "saved": true
+      },
+      {
+        "name": "compra",
+        "rejected": true,
+        "rolledBack": true,
+        "saved": true
+      },
+      {
+        "name": "gasto",
+        "rejected": true,
+        "rolledBack": true,
+        "saved": true
+      },
+      {
+        "name": "ajuste",
+        "rejected": true,
+        "rolledBack": true,
+        "saved": true
+      },
+      {
+        "name": "caja",
+        "rejected": true,
+        "rolledBack": true,
+        "saved": true
+      }
+    ],
+    "reloaded": true,
+    "failure": {
+      "draft": "E1 formulario con reintento",
+      "unchanged": true,
+      "focus": "alert",
+      "dialog": true
+    },
+    "retryCount": 1,
+    "purchaseFailure": {
+      "draft": "E1-FORM-COMPRA",
+      "unchanged": true,
+      "dialog": true
+    },
+    "purchaseCount": 1,
+    "saleFailure": {
+      "unchanged": true,
+      "dialog": true,
+      "focus": "combobox"
+    },
+    "saleCount": 1,
+    "cashFailure": {
+      "unchanged": true,
+      "draft": "E1 ingreso formulario"
+    },
+    "cashCount": 1,
+    "adjustmentFailure": {
+      "unchanged": true,
+      "confirmation": true
+    },
+    "adjustmentCount": 1
+  },
+  "exceptions": []
+}

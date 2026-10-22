@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -59,10 +59,22 @@ export const CobroModal: React.FC<CobroModalProps> = ({
   const [metodoPago, setMetodoPago] = useState<MetodoPago>('EFECTIVO');
   const [montoRecibido, setMontoRecibido] = useState<number>(total);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitting = useRef(false);
+  const [errorCobro, setErrorCobro] = useState('');
+  const errorRef = useRef<HTMLParagraphElement>(null);
 
   // Pago Mixto
   const [pagoEfectivoMixto, setPagoEfectivoMixto] = useState<number>(Math.floor(total / 2));
   const [pagoDigitalMixto, setPagoDigitalMixto] = useState<number>(Math.ceil(total / 2));
+
+  useEffect(() => {
+    if (!open || submitting.current) return;
+    const efectivo = +(total / 2).toFixed(2);
+    setMontoRecibido(total);
+    setPagoEfectivoMixto(efectivo);
+    setPagoDigitalMixto(+(total - efectivo).toFixed(2));
+    setErrorCobro('');
+  }, [open, total]);
 
   // Billetes peruanos sugeridos
   const billetesSugeridos = [10, 20, 50, 100, 200].filter((b) => b >= total);
@@ -80,6 +92,8 @@ export const CobroModal: React.FC<CobroModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting.current) return;
+    setErrorCobro('');
 
     if (metodoPago === 'EFECTIVO' && montoRecibido < total) {
       toast.error(`El monto recibido (S/ ${montoRecibido}) es menor al total a cobrar (S/ ${total})`);
@@ -94,6 +108,7 @@ export const CobroModal: React.FC<CobroModalProps> = ({
       }
     }
 
+    submitting.current = true;
     setIsSubmitting(true);
     try {
       await onConfirmarCobro({
@@ -106,9 +121,11 @@ export const CobroModal: React.FC<CobroModalProps> = ({
             : undefined,
       });
       onOpenChange(false);
-    } catch {
-      toast.error('Ocurrió un error al procesar el cobro');
+    } catch (error) {
+      setErrorCobro(error instanceof Error ? error.message : 'No se pudo guardar el cobro. Conserva los datos e inténtalo de nuevo.');
+      requestAnimationFrame(() => errorRef.current?.focus());
     } finally {
+      submitting.current = false;
       setIsSubmitting(false);
     }
   };
@@ -123,7 +140,7 @@ export const CobroModal: React.FC<CobroModalProps> = ({
   ];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={value => { if (!submitting.current) onOpenChange(value); }}>
       <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
         <DialogHeader className="pb-2 border-b border-border/70">
           <div className="flex items-center justify-between">
@@ -143,6 +160,7 @@ export const CobroModal: React.FC<CobroModalProps> = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+          {errorCobro && <p ref={errorRef} tabIndex={-1} role="alert" className="rounded-md border border-destructive bg-danger-soft p-3 text-sm text-danger-text">{errorCobro}</p>}
           {/* Tipo de Comprobante SUNAT */}
           <div className="space-y-1">
             <Label className="text-xs font-semibold">Tipo de Comprobante a emitir</Label>

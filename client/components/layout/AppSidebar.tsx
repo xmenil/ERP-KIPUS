@@ -1,4 +1,5 @@
 import React from 'react';
+import { useConfiguracion } from '@/features/configuracion/hooks/useConfiguracion';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -30,6 +31,8 @@ import {
   SidebarRail,
 } from '@/components/ui/sidebar';
 import { APP_ROUTES } from '@/constants/routes';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { canAccessPath } from '@/features/auth/permissions/rolePermissions';
 
 interface NavItemConfig {
   name: string;
@@ -68,16 +71,21 @@ const sistemaItems: NavItemConfig[] = [
 ];
 
 export const AppSidebar: React.FC = () => {
+  const { config } = useConfiguracion();
   const location = useLocation();
+  const { user } = useAuth();
 
-  const renderNavGroup = (title: string, items: NavItemConfig[]) => (
+  const renderNavGroup = (title: string, items: NavItemConfig[]) => {
+    const visibleItems = items.filter(item => canAccessPath(user?.rol, item.path));
+    if (!visibleItems.length) return null;
+    return (
     <SidebarGroup className="py-1 px-2">
       <SidebarGroupLabel className="text-xs uppercase tracking-wider text-muted-foreground font-semibold px-2 h-6 select-none">
         {title}
       </SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu className="gap-0.5">
-          {items.map((item) => {
+          {visibleItems.map((item) => {
             const Icon = item.icon;
             const isActive =
               location.pathname === item.path ||
@@ -121,7 +129,8 @@ export const AppSidebar: React.FC = () => {
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
-  );
+    );
+  };
 
   return (
     <Sidebar
@@ -168,18 +177,14 @@ export const AppSidebar: React.FC = () => {
       {/* Pie de Panel: Empresa activa */}
       <SidebarFooter className="border-t border-border p-2">
         <div className="flex items-center gap-2 rounded p-1.5 bg-muted/40 border border-border/60">
-          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-semibold text-[10px]">
-            KC
-          </div>
           <div className="flex flex-col overflow-hidden text-left text-xs">
             <span className="font-semibold text-foreground text-[11px] truncate">
-              Comercial Los Andes S.A.C.
+              {config ? config.empresa.nombreComercial || config.empresa.razonSocial : 'Configuración no disponible'}
             </span>
             <span className="text-[10px] text-muted-foreground truncate">
-              RUC: 20608821941
+              {config ? `RUC: ${config.empresa.ruc}` : 'Revisa Configuración'}
             </span>
           </div>
-          <ShieldCheck className="ml-auto h-3.5 w-3.5 text-emerald-600 shrink-0" />
         </div>
       </SidebarFooter>
 

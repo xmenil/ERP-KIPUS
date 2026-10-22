@@ -59,6 +59,7 @@ export const VentaCompletadaModal: React.FC<VentaCompletadaModalProps> = ({
 
         {/* Resumen de cobro */}
         <div className="space-y-3 py-2">
+          {venta.emisor && <div className="space-y-1 text-sm"><p className="font-medium">{venta.emisor.nombreComercial || venta.emisor.razonSocial}</p><p className="font-mono">RUC: {venta.emisor.ruc}</p><p>{venta.emisor.nombreSede}</p></div>}
           {/* Tarjeta de Total y Vuelto */}
           <div className="rounded-lg border border-border bg-muted/30 p-3.5 space-y-2.5">
             <div className="flex justify-between items-baseline text-xs">

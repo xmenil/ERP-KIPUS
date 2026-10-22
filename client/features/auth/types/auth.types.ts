@@ -1,4 +1,5 @@
-export type UserRole = 'ADMINISTRADOR' | 'CAJERO' | 'SUPERVISOR';
+import type { UserRole } from '@/features/usuarios/types/usuarios.types';
+export type { UserRole } from '@/features/usuarios/types/usuarios.types';
 
 export interface AuthUser {
   id: string;

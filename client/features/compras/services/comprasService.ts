@@ -11,4 +11,9 @@ export const comprasService = {
     const compra = erpStore.registrarCompra(payload);
     return simulateDelay(compra);
   },
+
+  async recepcionarCompra(compraId: string): Promise<Compra> {
+    const compra = erpStore.recepcionarCompra(compraId);
+    return simulateDelay(compra);
+  },
 };

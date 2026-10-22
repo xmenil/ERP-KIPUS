@@ -53,6 +53,11 @@ export class SessionStore {
     return user;
   }
 
+  replaceUser(user: AuthUser): void {
+    const storage = this.storage();
+    if (storage.getItem(AUTH_STORAGE_KEY)) storage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+  }
+
   remaining(now = Date.now()): number {
     return Math.max(0, SESSION_IDLE_TIMEOUT_MS - (now - Number(this.storage().getItem(AUTH_ACTIVITY_KEY))));
   }

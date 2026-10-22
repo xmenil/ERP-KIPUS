@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -67,6 +67,8 @@ export const CierreCajaDialog: React.FC<CierreCajaDialogProps> = ({
   );
   const [pasoConfirmacion, setPasoConfirmacion] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitting = useRef(false);
+  const [saveError, setSaveError] = useState('');
 
   // Diferencia calculada en tiempo real
   const diferencia = +(Number(saldoContado || 0) - saldoEsperado).toFixed(2);
@@ -77,6 +79,9 @@ export const CierreCajaDialog: React.FC<CierreCajaDialogProps> = ({
   };
 
   const handleEjecutarCierre = async () => {
+    if (submitting.current) return;
+    submitting.current = true;
+    setSaveError('');
     setIsSubmitting(true);
     try {
       await onCierreConfirmado({
@@ -88,14 +93,18 @@ export const CierreCajaDialog: React.FC<CierreCajaDialogProps> = ({
       });
       setPasoConfirmacion(false);
       onOpenChange(false);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'No se pudo guardar. Conserva los campos e inténtalo de nuevo.');
     } finally {
+      submitting.current = false;
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={value => { if (!submitting.current) onOpenChange(value); }}>
       <DialogContent className="w-[95vw] sm:max-w-md p-0 overflow-hidden max-h-[92vh] flex flex-col">
+        {saveError && <p role="alert" className="m-4 rounded-md border border-destructive bg-danger-soft p-3 text-sm text-danger-text">{saveError}</p>}
         {/* Cabecera */}
         <DialogHeader className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-border/60 bg-muted/20 shrink-0">
           <div className="flex items-center gap-2 text-xs font-medium text-danger-text">

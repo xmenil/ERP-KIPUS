@@ -19,3 +19,5 @@ export interface NuevoClientePayload {
   correo: string;
   direccion: string;
 }
+
+export type ActualizarClientePayload = Partial<NuevoClientePayload>;

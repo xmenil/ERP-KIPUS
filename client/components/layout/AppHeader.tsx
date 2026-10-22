@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useConfiguracion } from '@/features/configuracion/hooks/useConfiguracion';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/features/auth/context/AuthContext';
@@ -24,6 +25,7 @@ import { toast } from 'sonner';
 
 export const AppHeader: React.FC = () => {
   const { user, logout } = useAuth();
+  const { config } = useConfiguracion();
   const [isDark, setIsDark] = useState<boolean>(() => {
     return document.documentElement.classList.contains('dark');
   });
@@ -69,7 +71,7 @@ export const AppHeader: React.FC = () => {
           <Building className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="font-semibold text-foreground">Sucursal:</span>
           <span className="text-muted-foreground">
-            {user?.sucursal || 'Sede Central'}
+            {config?.empresa.nombreSede || 'Revisa Configuración'}
           </span>
         </div>
 

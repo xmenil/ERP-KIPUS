@@ -1,0 +1,173 @@
+{
+  "results": [
+    {
+      "route": "/configuracion",
+      "width": 1440,
+      "pageWidth": 1434,
+      "title": "Configuración de la Empresa y Parámetros",
+      "error": false
+    },
+    {
+      "route": "/proveedores",
+      "width": 1440,
+      "pageWidth": 1434,
+      "title": "Directorio de Proveedores",
+      "error": false
+    },
+    {
+      "route": "/compras",
+      "width": 1440,
+      "pageWidth": 1440,
+      "title": "Gestión de Compras y Abastecimiento",
+      "error": false
+    },
+    {
+      "route": "/gastos",
+      "width": 1440,
+      "pageWidth": 1440,
+      "title": "Gastos y Egresos Operativos",
+      "error": false
+    },
+    {
+      "route": "/clientes",
+      "width": 1440,
+      "pageWidth": 1440,
+      "title": "Directorio de Clientes",
+      "error": false
+    },
+    {
+      "route": "/usuarios",
+      "width": 1440,
+      "pageWidth": 1440,
+      "title": "Usuarios y Seguridad del Sistema",
+      "error": false
+    },
+    {
+      "route": "/reportes",
+      "width": 1440,
+      "pageWidth": 1440,
+      "title": "Reportes gerenciales y tributarios",
+      "error": false
+    },
+    {
+      "route": "/kipus-ia",
+      "width": 1440,
+      "pageWidth": 1440,
+      "title": "KIPU'S IA — Copiloto de Inteligencia de Negocio",
+      "error": false
+    },
+    {
+      "route": "/configuracion",
+      "width": 390,
+      "pageWidth": 384,
+      "title": "Configuración de la Empresa y Parámetros",
+      "error": false
+    },
+    {
+      "route": "/proveedores",
+      "width": 390,
+      "pageWidth": 384,
+      "title": "Directorio de Proveedores",
+      "error": false
+    },
+    {
+      "route": "/compras",
+      "width": 390,
+      "pageWidth": 384,
+      "title": "Gestión de Compras y Abastecimiento",
+      "error": false
+    },
+    {
+      "route": "/gastos",
+      "width": 390,
+      "pageWidth": 384,
+      "title": "Gastos y Egresos Operativos",
+      "error": false
+    },
+    {
+      "route": "/clientes",
+      "width": 390,
+      "pageWidth": 384,
+      "title": "Directorio de Clientes",
+      "error": false
+    },
+    {
+      "route": "/usuarios",
+      "width": 390,
+      "pageWidth": 384,
+      "title": "Usuarios y Seguridad del Sistema",
+      "error": false
+    },
+    {
+      "route": "/reportes",
+      "width": 390,
+      "pageWidth": 384,
+      "title": "Reportes gerenciales y tributarios",
+      "error": false
+    },
+    {
+      "route": "/kipus-ia",
+      "width": 390,
+      "pageWidth": 384,
+      "title": "KIPU'S IA — Copiloto de Inteligencia de Negocio",
+      "error": false
+    },
+    {
+      "route": "/configuracion",
+      "width": 720,
+      "pageWidth": 714,
+      "title": "Configuración de la Empresa y Parámetros",
+      "error": false
+    },
+    {
+      "route": "/proveedores",
+      "width": 720,
+      "pageWidth": 714,
+      "title": "Directorio de Proveedores",
+      "error": false
+    },
+    {
+      "route": "/compras",
+      "width": 720,
+      "pageWidth": 714,
+      "title": "Gestión de Compras y Abastecimiento",
+      "error": false
+    },
+    {
+      "route": "/gastos",
+      "width": 720,
+      "pageWidth": 720,
+      "title": "Gastos y Egresos Operativos",
+      "error": false
+    },
+    {
+      "route": "/clientes",
+      "width": 720,
+      "pageWidth": 714,
+      "title": "Directorio de Clientes",
+      "error": false
+    },
+    {
+      "route": "/usuarios",
+      "width": 720,
+      "pageWidth": 714,
+      "title": "Usuarios y Seguridad del Sistema",
+      "error": false
+    },
+    {
+      "route": "/reportes",
+      "width": 720,
+      "pageWidth": 714,
+      "title": "Reportes gerenciales y tributarios",
+      "error": false
+    },
+    {
+      "route": "/kipus-ia",
+      "width": 720,
+      "pageWidth": 714,
+      "title": "KIPU'S IA — Copiloto de Inteligencia de Negocio",
+      "error": false
+    }
+  ],
+  "exceptions": []
+}

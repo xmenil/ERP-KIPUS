@@ -11,14 +11,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { MetricCard } from '@/components/common/MetricCard';
 import { UsuarioFormDialog } from '../components/UsuarioFormDialog';
 import { UsuarioDetalleModal } from '../components/UsuarioDetalleModal';
 import { usuariosService } from '../services/usuariosService';
 import { Usuario, NuevoUsuarioPayload, UserRole } from '../types/usuarios.types';
 import {
   Users,
-  ShieldCheck,
   Search,
   Plus,
   Phone,
@@ -26,7 +24,6 @@ import {
   Building,
   Eye,
   Edit,
-  Trash2,
   Copy,
   Check,
   LayoutGrid,
@@ -34,19 +31,20 @@ import {
   Sparkles,
   Download,
   Lock,
-  KeyRound,
   CheckCircle2,
   XCircle,
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { QueryError } from '@/components/common/QueryError';
 
-type FiltroTab = 'TODOS' | 'ADMINISTRADOR' | 'CAJERO' | 'SUPERVISOR' | 'ACTIVO';
+type FiltroTab = 'TODOS' | 'ADMINISTRADOR' | 'CAJERO' | 'SUPERVISOR' | 'ACTIVO' | 'INACTIVO';
 type TipoVista = 'TABLA' | 'TARJETAS';
 
 export const UsuariosPage: React.FC = () => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroTab, setFiltroTab] = useState<FiltroTab>('TODOS');
   // Iniciar en vista de tarjetas en pantallas móviles para máxima legibilidad, o tabla en desktop
@@ -68,8 +66,9 @@ export const UsuariosPage: React.FC = () => {
     try {
       const data = await usuariosService.getUsuarios();
       setUsuarios(data);
-    } catch {
-      toast.error('Error al cargar la lista de usuarios');
+      setLoadError('');
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : 'Revisa el almacenamiento e inténtalo de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -89,7 +88,7 @@ export const UsuariosPage: React.FC = () => {
         const nuevo = await usuariosService.crearUsuario(payload);
         toast.success(`Usuario "${nuevo.nombreCompleto}" registrado exitosamente`);
       }
-      fetchUsuarios();
+      await fetchUsuarios();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al procesar la operación';
       toast.error(msg);
@@ -105,7 +104,7 @@ export const UsuariosPage: React.FC = () => {
     }
 
     const confirmacion = window.confirm(
-      `¿Estás seguro de eliminar el usuario "${user.nombreCompleto}" (@${user.username})?\n\nEsta acción revocará su acceso al sistema de forma permanente.`
+      `¿Deseas retirar el acceso de "${user.nombreCompleto}" (@${user.username})? Los usuarios demo se desactivan para evitar que vuelvan a aparecer activos.`
     );
     if (!confirmacion) return;
 
@@ -116,7 +115,7 @@ export const UsuariosPage: React.FC = () => {
         setDetalleModalOpen(false);
         setUsuarioSeleccionado(null);
       }
-      fetchUsuarios();
+      await fetchUsuarios();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'No se pudo eliminar el usuario';
       toast.error(msg);
@@ -144,19 +143,21 @@ export const UsuariosPage: React.FC = () => {
   // Copiar correo
   const handleCopiarEmail = (e: React.MouseEvent, email: string, id: string) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(email);
-    setCopiadoId(id);
-    toast.success(`Correo ${email} copiado`);
-    setTimeout(() => setCopiadoId(null), 2000);
+    void navigator.clipboard.writeText(email).then(() => {
+      setCopiadoId(id);
+      toast.success(`Correo ${email} copiado`);
+      setTimeout(() => setCopiadoId(null), 2000);
+    }).catch(() => toast.error('No se pudo copiar el correo. Selecciónalo y cópialo manualmente.'));
   };
 
   // Exportar CSV
   const handleExportarCsv = () => {
-    const encabezados = 'ID,Nombre Completo,Usuario,Email,Rol,Sucursal,Teléfono,Estado,Último Acceso\n';
+    const encabezados = 'ID,Nombre Completo,Usuario,Email,Rol,Sucursal,Teléfono,Estado\n';
+    const csv = (value: string) => `"${String(value).replace(/"/g, '""')}"`;
     const filas = usuarios
       .map(
         (u) =>
-          `"${u.id}","${u.nombreCompleto}","${u.username}","${u.email}","${u.rol}","${u.sucursal}","${u.telefono || ''}","${u.estado}","${u.ultimoAcceso || ''}"`
+          [u.id, u.nombreCompleto, u.username, u.email, u.rol, u.sucursal, u.telefono || '', u.estado].map(csv).join(',')
       )
       .join('\n');
     const blob = new Blob([encabezados + filas], { type: 'text/csv;charset=utf-8;' });
@@ -177,7 +178,7 @@ export const UsuariosPage: React.FC = () => {
       if (filtroTab === 'ADMINISTRADOR' && u.rol !== 'ADMINISTRADOR') return false;
       if (filtroTab === 'CAJERO' && u.rol !== 'CAJERO') return false;
       if (filtroTab === 'SUPERVISOR' && u.rol !== 'SUPERVISOR') return false;
-      if (filtroTab === 'ACTIVO' && u.estado !== 'ACTIVO') return false;
+      if ((filtroTab === 'ACTIVO' || filtroTab === 'INACTIVO') && u.estado !== filtroTab) return false;
 
       // Filtro por texto
       if (searchTerm.trim()) {
@@ -229,7 +230,7 @@ export const UsuariosPage: React.FC = () => {
     <div className="space-y-6">
       {/* Encabezado */}
       <PageHeader
-        title="Usuarios y Seguridad del Sistema"
+        title="Usuarios"
         description="Gestión de cuentas, roles de acceso, contraseñas y asignación de sucursales para el personal"
         badge="Seguridad KIPU'S"
       >
@@ -249,44 +250,17 @@ export const UsuariosPage: React.FC = () => {
             className="h-9 text-xs gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs"
           >
             <Plus className="h-4 w-4" />
-            <span>Nuevo Usuario</span>
+            <span>Nuevo usuario</span>
           </Button>
         </div>
       </PageHeader>
 
-      {/* Tarjetas Métricas Responsivas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <MetricCard
-          title="Total Usuarios Activos"
-          value={totalActivos}
-          subtitle="Cuentas habilitadas con login"
-          icon={ShieldCheck}
-          iconColor="text-emerald-700 bg-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-400"
-        />
-        <MetricCard
-          title="Administradores"
-          value={totalAdmins}
-          subtitle="Acceso completo al ERP"
-          icon={KeyRound}
-          iconColor="text-purple-700 bg-purple-100 dark:bg-purple-950/60 dark:text-purple-400"
-        />
-        <MetricCard
-          title="Cajeros y POS"
-          value={totalCajeros}
-          subtitle="Operaciones de caja y ventas"
-          icon={Users}
-          iconColor="text-amber-700 bg-amber-100 dark:bg-amber-950/60 dark:text-amber-400"
-        />
-        <MetricCard
-          title="Supervisores / Almacén"
-          value={totalSupervisores}
-          subtitle="Control de stock y kardex"
-          icon={Building}
-          iconColor="text-blue-700 bg-blue-100 dark:bg-blue-950/60 dark:text-blue-400"
-        />
-      </div>
+      <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+        Este prototipo guarda las cuentas y contraseñas en el almacenamiento local de este navegador. Los roles limitan la navegación de la interfaz; no equivalen a controles de seguridad de servidor.
+      </p>
 
       {/* Contenedor Principal: Filtros y Tabla / Tarjetas */}
+      {loadError && <QueryError message={loadError} retry={() => { setLoading(true); void fetchUsuarios(); }} />}
       <Card className="border-border bg-card">
         <CardContent className="p-3 sm:p-4 space-y-4">
           {/* Barra de Filtros */}
@@ -361,6 +335,7 @@ export const UsuariosPage: React.FC = () => {
                   { id: 'CAJERO', label: `Cajeros (${totalCajeros})` },
                   { id: 'SUPERVISOR', label: `Supervisores (${totalSupervisores})` },
                   { id: 'ACTIVO', label: `Solo Activos (${totalActivos})` },
+                  { id: 'INACTIVO', label: `Inactivos (${usuarios.filter(u => u.estado === 'INACTIVO').length})` },
                 ] as const
               ).map((tab) => (
                 <button
@@ -380,7 +355,7 @@ export const UsuariosPage: React.FC = () => {
           </div>
 
           {/* Listado de Usuarios */}
-          {loading ? (
+          {loadError ? null : loading ? (
             <div className="py-12 text-center text-xs text-muted-foreground">
               Cargando directorio de usuarios...
             </div>
@@ -543,17 +518,6 @@ export const UsuariosPage: React.FC = () => {
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            {user.id !== 'user-admin' && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEliminarUsuario(user)}
-                                title="Eliminar usuario"
-                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-danger-soft"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -640,16 +604,6 @@ export const UsuariosPage: React.FC = () => {
                         <Edit className="h-3 w-3" />
                         <span>Editar</span>
                       </Button>
-                      {user.id !== 'user-admin' && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEliminarUsuario(user)}
-                          className="h-7 text-xs px-2.5 gap-1 text-destructive hover:bg-danger-soft border-destructive/30"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      )}
                     </div>
                   </div>
                 </div>

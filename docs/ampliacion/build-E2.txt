@@ -1,0 +1,108 @@
+
+> fusion-starter@ build C:\Users\ThikPad\Desktop\PROYECTOS\ERP-KIPUS
+> npm run build:client && npm run build:server
+
+
+> build:client
+> vite build
+
+vite v7.1.2 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 14 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 3696 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/spa/index.html                                                0.71 kB │ gzip:   0.39 kB
+dist/spa/assets/inter-vietnamese-wght-normal-CBcvBZtf.woff2       10.25 kB
+dist/spa/assets/inter-greek-ext-wght-normal-DlzME5K_.woff2        11.23 kB
+dist/spa/assets/inter-cyrillic-wght-normal-DqGufNeO.woff2         18.75 kB
+dist/spa/assets/inter-greek-wght-normal-CkhJZR-_.woff2            19.00 kB
+dist/spa/assets/inter-cyrillic-ext-wght-normal-BOeWTOD4.woff2     25.96 kB
+dist/spa/assets/inter-latin-wght-normal-Dx4kXJAl.woff2            48.26 kB
+dist/spa/assets/inter-latin-ext-wght-normal-DO1Apj_S.woff2        85.07 kB
+dist/spa/assets/i-0QE6NRrH.png                                   197.03 kB
+dist/spa/assets/s-e5g0SvVI.png                                   291.76 kB
+dist/spa/assets/u-oejnhtDu.png                                   421.64 kB
+dist/spa/assets/p-BijSjMq-.png                                   432.07 kB
+dist/spa/assets/k-D5dlVQwv.png                                   512.95 kB
+dist/spa/assets/kipus-logo-BPB-FCyq.png                        1,577.76 kB
+dist/spa/assets/index-DkUKTi7Z.css                               105.64 kB │ gzip:  17.78 kB
+dist/spa/assets/latestRequest-CzsdMBjh.js                          0.10 kB │ gzip:   0.11 kB
+dist/spa/assets/clientesService-jJr0RRvH.js                        0.22 kB │ gzip:   0.17 kB
+dist/spa/assets/plus-BcUdUqBL.js                                   0.32 kB │ gzip:   0.25 kB
+dist/spa/assets/arrow-right-DSK_Oqrs.js                            0.33 kB │ gzip:   0.26 kB
+dist/spa/assets/arrow-up-right-BHWcqema.js                         0.34 kB │ gzip:   0.26 kB
+dist/spa/assets/clock-DECdCTFj.js                                  0.34 kB │ gzip:   0.27 kB
+dist/spa/assets/trending-up-xY9WG9WE.js                            0.34 kB │ gzip:   0.27 kB
+dist/spa/assets/circle-check-D5kRBDGp.js                           0.35 kB │ gzip:   0.27 kB
+dist/spa/assets/circle-plus-CGIU_wHK.js                            0.38 kB │ gzip:   0.28 kB
+dist/spa/assets/credit-card-MsJ7LROj.js                            0.38 kB │ gzip:   0.29 kB
+dist/spa/assets/mail-B5P4YIFk.js                                   0.38 kB │ gzip:   0.30 kB
+dist/spa/assets/FormError-B9lfMDXV.js                              0.39 kB │ gzip:   0.28 kB
+dist/spa/assets/circle-arrow-down-TAI24wcQ.js                      0.39 kB │ gzip:   0.29 kB
+dist/spa/assets/download-DqHsiy39.js                               0.40 kB │ gzip:   0.29 kB
+dist/spa/assets/arrow-up-down-DnDNgeuV.js                          0.41 kB │ gzip:   0.29 kB
+dist/spa/assets/QueryError-AEZEO_CL.js                             0.42 kB │ gzip:   0.31 kB
+dist/spa/assets/external-link-4pQWtdWd.js                          0.42 kB │ gzip:   0.30 kB
+dist/spa/assets/map-pin-B0fvFOVE.js                                0.43 kB │ gzip:   0.33 kB
+dist/spa/assets/triangle-alert-C_I_AmHS.js                         0.44 kB │ gzip:   0.31 kB
+dist/spa/assets/wallet-COraSAEH.js                                 0.46 kB │ gzip:   0.31 kB
+dist/spa/assets/proveedoresService-CsCh1r3s.js                     0.46 kB │ gzip:   0.22 kB
+dist/spa/assets/send-CEN2nhkX.js                                   0.46 kB │ gzip:   0.33 kB
+dist/spa/assets/textarea-DJoZ1HQk.js                               0.48 kB │ gzip:   0.32 kB
+dist/spa/assets/square-pen-eQXuaL0z.js                             0.49 kB │ gzip:   0.34 kB
+dist/spa/assets/refresh-cw-D3o-9kBq.js                             0.49 kB │ gzip:   0.33 kB
+dist/spa/assets/phone-BhQiNVyI.js                                  0.50 kB │ gzip:   0.34 kB
+dist/spa/assets/productosService-6RdZ745_.js                       0.50 kB │ gzip:   0.24 kB
+dist/spa/assets/bot-CAdry_XI.js                                    0.50 kB │ gzip:   0.33 kB
+dist/spa/assets/trash-2-BofRuHhA.js                                0.50 kB │ gzip:   0.32 kB
+dist/spa/assets/file-text-Ca1oViVS.js                              0.51 kB │ gzip:   0.32 kB
+dist/spa/assets/shopping-bag-BGvSNA7k.js                           0.51 kB │ gzip:   0.35 kB
+dist/spa/assets/cameraDetection-DMNhwswu.js                        0.54 kB │ gzip:   0.40 kB
+dist/spa/assets/file-spreadsheet-DtOB0AWY.js                       0.55 kB │ gzip:   0.33 kB
+dist/spa/assets/StatusBadge-m1cpeK_-.js                            0.56 kB │ gzip:   0.32 kB
+dist/spa/assets/package-check-gB_VxBYn.js                          0.60 kB │ gzip:   0.39 kB
+dist/spa/assets/useErpQuery-DNIUIa3l.js                            0.65 kB │ gzip:   0.41 kB
+dist/spa/assets/SummaryStrip-vXhrnb6x.js                           0.81 kB │ gzip:   0.43 kB
+dist/spa/assets/list-BQqH4jXC.js                                   0.95 kB │ gzip:   0.39 kB
+dist/spa/assets/card-jjR5rBIz.js                                   1.10 kB │ gzip:   0.45 kB
+dist/spa/assets/PageHeader-BqMZKreO.js                             1.34 kB │ gzip:   0.58 kB
+dist/spa/assets/table-B4o_kdH2.js                                  1.49 kB │ gzip:   0.52 kB
+dist/spa/assets/MetricCard-BRZGTHgt.js                             1.79 kB │ gzip:   0.86 kB
+dist/spa/assets/smartphone-DQMnSVHC.js                             1.98 kB │ gzip:   0.68 kB
+dist/spa/assets/tabs-CcNEMd-b.js                                   3.20 kB │ gzip:   1.35 kB
+dist/spa/assets/alert-dialog-C8VPB3cN.js                           4.69 kB │ gzip:   1.71 kB
+dist/spa/assets/KipusIaPage-04Wwl-vJ.js                            9.16 kB │ gzip:   3.76 kB
+dist/spa/assets/useVoiceSearch-py4z2BhX.js                        13.19 kB │ gzip:   4.97 kB
+dist/spa/assets/ClientesPage-B02hPydR.js                          15.49 kB │ gzip:   4.69 kB
+dist/spa/assets/GastosPage-DVWjfhyM.js                            15.56 kB │ gzip:   4.52 kB
+dist/spa/assets/dialog-GYrTd682.js                                23.55 kB │ gzip:   7.95 kB
+dist/spa/assets/DashboardPage-01wAUbky.js                         24.01 kB │ gzip:   7.25 kB
+dist/spa/assets/index-Dc8zq4L0.js                                 26.79 kB │ gzip:   6.94 kB
+dist/spa/assets/formatters-CMnVhaHZ.js                            29.55 kB │ gzip:   8.51 kB
+dist/spa/assets/ReportesPage-B6YxTtKh.js                          36.42 kB │ gzip:   9.64 kB
+dist/spa/assets/ConfiguracionPage-CUviNBcF.js                     36.77 kB │ gzip:  13.35 kB
+dist/spa/assets/ProveedoresPage-CW_eyXG2.js                       36.95 kB │ gzip:   8.73 kB
+dist/spa/assets/UsuariosPage-DYrhKpos.js                          38.02 kB │ gzip:   9.33 kB
+dist/spa/assets/ComprasPage-BMY36Oh5.js                           40.62 kB │ gzip:  10.39 kB
+dist/spa/assets/erpStore-Bux4UBL_.js                              53.02 kB │ gzip:  14.40 kB
+dist/spa/assets/InventarioPage-lVfcLXry.js                        62.78 kB │ gzip:  13.37 kB
+dist/spa/assets/ProductosPage-AAL_ZOJL.js                         70.15 kB │ gzip:  16.54 kB
+dist/spa/assets/CajaPage-DH69MXY2.js                             100.14 kB │ gzip:  19.53 kB
+dist/spa/assets/VentasPage-CZj2oyrV.js                           106.24 kB │ gzip:  22.74 kB
+dist/spa/assets/BarChart-BoeoL9eA.js                             380.37 kB │ gzip: 105.14 kB
+dist/spa/assets/Encoder-Da5HRo8D.js                              431.20 kB │ gzip: 112.31 kB
+dist/spa/assets/index-BpdhIo7v.js                                485.49 kB │ gzip: 148.97 kB
+✓ built in 25.40s
+
+> build:server
+> vite build --config vite.config.server.ts
+
+vite v7.1.2 building SSR bundle for production...
+transforming...
+✓ 3 modules transformed.
+rendering chunks...
+dist/server/node-build.mjs  1.56 kB │ map: 3.51 kB
+✓ built in 1.90s

@@ -1,253 +1,208 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { PageHeader } from '@/components/common/PageHeader';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useCallback, useMemo, useState } from "react";
+import { PageHeader } from "@/components/common/PageHeader";
+import { SummaryStrip } from "@/components/common/SummaryStrip";
+import { QueryError } from "@/components/common/QueryError";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/card';
-import { MetricCard } from '@/components/common/MetricCard';
-import { reportesService } from '../services/reportesService';
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useErpQuery } from "@/hooks/useErpQuery";
+import { reportesService } from "../services/reportesService";
+import type { PeriodoReporte } from "../types/reportes.types";
+import { formatMoney } from "@/utils/formatters";
+import { ReportesSkeleton } from "../components/ReportesSkeleton";
+import { ResumenFinancieroTab } from "../components/ResumenFinancieroTab";
+import { LiquidacionSunatTab } from "../components/LiquidacionSunatTab";
+import { TopProductosTab } from "../components/TopProductosTab";
+import { ExportarReporteModal } from "../components/ExportarReporteModal";
+import { TablaReporte } from "../components/TablaReporte";
 import {
-  ResumenFinanciero,
-  LiquidacionSunat,
-  TopProductoReporte,
-  PeriodoReporte,
-} from '../types/reportes.types';
-import { formatMoney } from '@/utils/formatters';
+  filtrarProductos,
+  seccionesReporte,
+  NOTAS_REPORTE,
+  type OrdenProducto,
+} from "../utils/reporteExport";
 
-// Componentes modulares
-import { ReportesSkeleton } from '../components/ReportesSkeleton';
-import { ResumenFinancieroTab } from '../components/ResumenFinancieroTab';
-import { LiquidacionSunatTab } from '../components/LiquidacionSunatTab';
-import { TopProductosTab } from '../components/TopProductosTab';
-import { ExportarReporteModal } from '../components/ExportarReporteModal';
-
-// Iconos
-import {
-  TrendingUp,
-  Receipt,
-  FileSpreadsheet,
-  Coins,
-  RefreshCw,
-  Download,
-  AlertCircle,
-  PiggyBank,
-  ArrowDownCircle,
-} from 'lucide-react';
-import { toast } from 'sonner';
-
-export const ReportesPage: React.FC = () => {
-  const [periodo, setPeriodo] = useState<PeriodoReporte>('ESTE_MES');
-  const [financiero, setFinanciero] = useState<ResumenFinanciero | null>(null);
-  const [sunat, setSunat] = useState<LiquidacionSunat | null>(null);
-  const [topProductos, setTopProductos] = useState<TopProductoReporte[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [modalExportarOpen, setModalExportarOpen] = useState(false);
-
-  const periodoLabels: Record<PeriodoReporte, string> = {
-    ESTE_MES: 'Mes actual (Octubre 2026)',
-    MES_ANTERIOR: 'Mes anterior (Setiembre 2026)',
-    ANIO_ACTUAL: 'Año 2026 acumulado',
-  };
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [fin, sun, top] = await Promise.all([
-        reportesService.getResumenFinanciero(periodo),
-        reportesService.getLiquidacionSunat(periodo),
-        reportesService.getTopProductos(periodo),
-      ]);
-      setFinanciero(fin);
-      setSunat(sun);
-      setTopProductos(top);
-    } catch {
-      setError('No se pudieron calcular los indicadores de reportes. Revisa la conectividad e inténtalo nuevamente.');
-      toast.error('Error al sincronizar reportes gerenciales');
-    } finally {
-      setLoading(false);
-    }
-  }, [periodo]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
+export default function ReportesPage() {
+  const [periodo, setPeriodo] = useState<PeriodoReporte>("ESTE_MES");
+  const [busqueda, setBusqueda] = useState("");
+  const [orden, setOrden] = useState<OrdenProducto>("IMPORTE");
+  const [exportar, setExportar] = useState(false);
+  const load = useCallback(
+    async () => [await reportesService.getReporte(periodo)],
+    [periodo],
+  );
+  const { data, loading, error, refresh } = useErpQuery(load);
+  const reporte = data[0];
+  const productos = useMemo(
+    () => filtrarProductos(reporte?.productos || [], busqueda, orden),
+    [reporte, busqueda, orden],
+  );
+  const secciones = useMemo(
+    () =>
+      reporte ? seccionesReporte(reporte, productos, busqueda, orden) : [],
+    [reporte, productos, busqueda, orden],
+  );
+  const fin = reporte?.financiero;
   return (
-    <div className="space-y-6">
-      {/* Encabezado con selector de período y acción primaria única */}
+    <div className="space-y-6 min-w-0">
       <PageHeader
-        title="Reportes gerenciales y tributarios"
-        description="Estado de resultados, liquidación mensual de IGV SUNAT y ranking de rotación de mercadería"
-        badge={periodoLabels[periodo]}
+        title="Reportes"
+        description="Ventas, gastos y cobros del periodo, con sus operaciones de respaldo."
       >
-        {/* Selector de Período */}
-        <div className="w-full sm:w-56">
+        <Button
+          variant="outline"
+          className="h-11 md:h-9"
+          onClick={() => void refresh()}
+          disabled={loading}
+        >
+          Actualizar
+        </Button>
+        <Button
+          className="h-11 md:h-9"
+          onClick={() => setExportar(true)}
+          disabled={loading || !!error || !reporte}
+        >
+          Exportar reporte
+        </Button>
+      </PageHeader>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="space-y-2 sm:w-64">
+          <Label htmlFor="reporte-periodo">Periodo</Label>
           <Select
             value={periodo}
-            onValueChange={(val) => setPeriodo(val as PeriodoReporte)}
+            onValueChange={(value) => {
+              setExportar(false);
+              setPeriodo(value as PeriodoReporte);
+            }}
           >
-            <SelectTrigger className="h-9 text-xs bg-card">
-              <SelectValue placeholder="Seleccionar período" />
+            <SelectTrigger id="reporte-periodo" className="h-11 md:h-9">
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ESTE_MES" className="text-xs">
-                Mes actual (Octubre)
+              <SelectItem value="ESTE_MES">Mes actual, hasta hoy</SelectItem>
+              <SelectItem value="MES_ANTERIOR">
+                Mes anterior completo
               </SelectItem>
-              <SelectItem value="MES_ANTERIOR" className="text-xs">
-                Mes anterior (Setiembre)
-              </SelectItem>
-              <SelectItem value="ANIO_ACTUAL" className="text-xs">
-                Año actual (2026)
-              </SelectItem>
+              <SelectItem value="ANIO_ACTUAL">Año actual, hasta hoy</SelectItem>
             </SelectContent>
           </Select>
         </div>
-
-        {/* Botón secundario: Actualizar */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={fetchData}
-          disabled={loading}
-          className="h-9 gap-1.5 text-xs"
-          title="Actualizar datos"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span className="hidden sm:inline">Actualizar</span>
-        </Button>
-
-        {/* Acción Primaria Única: Exportar Reporte */}
-        <Button
-          variant="default"
-          size="sm"
-          onClick={() => setModalExportarOpen(true)}
-          className="h-9 gap-1.5 text-xs font-medium"
-        >
-          <Download className="h-3.5 w-3.5" />
-          <span>Exportar reporte</span>
-        </Button>
-      </PageHeader>
-
-      {/* Estado de Error */}
-      {error && !loading && (
-        <Card className="rounded-md border-destructive/30 bg-danger-soft p-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <AlertCircle className="h-4 w-4 text-danger-text shrink-0" />
-              <p className="text-xs text-danger-text font-medium">{error}</p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={fetchData}
-              className="h-8 text-xs border-destructive/30 text-danger-text hover:bg-destructive/10"
-            >
-              Reintentar carga
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      {/* Estado de Carga: Skeletons */}
+        {reporte && !loading && !error && (
+          <p className="text-xs text-muted-foreground pb-2" role="status">
+            {reporte.rango.label} · Fechas inclusivas · Soles (PEN)
+          </p>
+        )}
+      </div>
       {loading ? (
         <ReportesSkeleton />
-      ) : (
-        <div className="space-y-6">
-          {/* Métricas KPI Gerenciales */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <MetricCard
-              title="Ventas netas facturadas"
-              value={formatMoney(financiero?.ventasTotales ?? 0)}
-              subtitle="Ingresos brutos por comprobantes"
-              icon={TrendingUp}
-              iconColor="text-primary bg-primary-soft"
-            />
-            <MetricCard
-              title="Costo de compras & gastos"
-              value={formatMoney(
-                (financiero?.costoVentas ?? 0) + (financiero?.gastosOperativos ?? 0)
-              )}
-              subtitle="Costo de adquisición + egresos fijos"
-              icon={ArrowDownCircle}
-              iconColor="text-muted-foreground bg-muted"
-            />
-            <MetricCard
-              title="Utilidad neta estimada"
-              value={formatMoney(financiero?.utilidadNeta ?? 0)}
-              subtitle={`Margen de ganancia neto: ${financiero?.margenNetoPorcentaje ?? 0}%`}
-              icon={PiggyBank}
-              iconColor="text-success-text bg-success-soft"
-            />
-            <MetricCard
-              title="IGV estimado a SUNAT"
-              value={formatMoney(sunat?.igvPagar ?? 0)}
-              subtitle={
-                (sunat?.creditoFiscalRemanente ?? 0) > 0
-                  ? `Crédito fiscal a favor: ${formatMoney(sunat?.creditoFiscalRemanente ?? 0)}`
-                  : 'Saldo a declarar en Form. 621'
-              }
-              icon={Receipt}
-              iconColor="text-primary bg-primary-soft"
-            />
-          </div>
-
-          {/* Pestañas de Detalle Gerencial */}
-          <Tabs defaultValue="rentabilidad" className="w-full space-y-4">
-            <TabsList className="bg-muted/50 p-1 border border-border">
-              <TabsTrigger value="rentabilidad" className="text-xs">
-                Rentabilidad & P&L
+      ) : error ? (
+        <QueryError message={error} retry={() => void refresh()} />
+      ) : reporte && fin ? (
+        <>
+          <SummaryStrip
+            items={[
+              {
+                label: "Ventas menos devoluciones",
+                value: formatMoney(fin.ventasTotales),
+                description:
+                  "Incluye crédito e IGV; excluye pendientes y anuladas",
+              },
+              {
+                label: "Cobros netos en Caja",
+                value: formatMoney(fin.cobrosRegistrados),
+                description: "Solo movimientos registrados, menos reembolsos",
+              },
+              {
+                label: "Gastos activos del periodo",
+                value: formatMoney(fin.gastosOperativos),
+                description: "Todos los medios de pago",
+              },
+              {
+                label: "Resultado estimado con IGV",
+                value:
+                  fin.utilidadNeta === null
+                    ? "No disponible"
+                    : formatMoney(fin.utilidadNeta),
+                description: "Costos de compra actuales; sin costo histórico",
+                tone:
+                  fin.utilidadNeta !== null && fin.utilidadNeta < 0
+                    ? "danger"
+                    : undefined,
+              },
+            ]}
+          />
+          <Tabs defaultValue="finanzas" className="space-y-6 min-w-0">
+            <TabsList className="grid h-auto w-full grid-cols-3 sm:w-fit">
+              <TabsTrigger value="finanzas" className="min-h-11 md:min-h-9">
+                Finanzas
               </TabsTrigger>
-              <TabsTrigger value="sunat" className="text-xs">
-                Liquidación IGV SUNAT
+              <TabsTrigger value="productos" className="min-h-11 md:min-h-9">
+                Productos
               </TabsTrigger>
-              <TabsTrigger value="top-productos" className="text-xs">
-                Ranking de rotación
+              <TabsTrigger
+                value="tributario"
+                className="min-h-11 whitespace-normal md:min-h-9"
+              >
+                Tributario demo
               </TabsTrigger>
             </TabsList>
-
-            {/* Pestaña 1: Rentabilidad & Estado de Resultados */}
-            <TabsContent value="rentabilidad" className="space-y-4">
+            <TabsContent value="finanzas">
               <ResumenFinancieroTab
-                financiero={financiero}
-                periodoLabel={periodoLabels[periodo]}
+                financiero={fin}
+                periodoLabel={reporte.rango.label}
+                secciones={secciones}
               />
             </TabsContent>
-
-            {/* Pestaña 2: Liquidación SUNAT */}
-            <TabsContent value="sunat" className="space-y-4">
-              <LiquidacionSunatTab
-                sunat={sunat}
-                periodoLabel={periodoLabels[periodo]}
-              />
-            </TabsContent>
-
-            {/* Pestaña 3: Ranking de Artículos */}
-            <TabsContent value="top-productos" className="space-y-4">
+            <TabsContent value="productos">
               <TopProductosTab
-                productos={topProductos}
-                periodoLabel={periodoLabels[periodo]}
+                seccion={secciones[4]}
+                busqueda={busqueda}
+                orden={orden}
+                onBusqueda={setBusqueda}
+                onOrden={setOrden}
               />
+            </TabsContent>
+            <TabsContent value="tributario">
+              <LiquidacionSunatTab seccion={secciones[3]} />
             </TabsContent>
           </Tabs>
-        </div>
-      )}
-
-      {/* Modal de Exportación */}
-      <ExportarReporteModal
-        open={modalExportarOpen}
-        onOpenChange={setModalExportarOpen}
-        periodoLabel={periodoLabels[periodo]}
-      />
+          <details className="rounded-md border border-border p-4">
+            <summary className="cursor-pointer text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              Operaciones de respaldo ({reporte.operaciones.length})
+            </summary>
+            <div className="mt-4">
+              <p className="mb-4 text-sm text-muted-foreground">
+                Los cobros son movimientos de dinero y se muestran separados de
+                las ventas. No sumes todas las clases como un único total.
+              </p>
+              <TablaReporte {...secciones[5]} />
+            </div>
+          </details>
+          <details className="text-sm">
+            <summary className="cursor-pointer font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              Cómo se calcula este reporte
+            </summary>
+            <ul className="mt-3 space-y-2 list-disc pl-5 text-muted-foreground">
+              {NOTAS_REPORTE.map((n) => (
+                <li key={n}>{n}</li>
+              ))}
+            </ul>
+          </details>
+          <ExportarReporteModal
+            open={exportar}
+            onOpenChange={setExportar}
+            reporte={reporte}
+            secciones={secciones}
+          />
+        </>
+      ) : null}
     </div>
   );
-};
-
-export default ReportesPage;
+}

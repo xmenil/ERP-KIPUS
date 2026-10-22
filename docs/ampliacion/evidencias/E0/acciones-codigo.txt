@@ -1,0 +1,380 @@
+client/features\ventas\pages\VentasPage.tsx:138:  const handleEmitirVenta = async (
+client/features\ventas\pages\VentasPage.tsx:146:  const handleAnularVenta = async (id: string, motivo: string) => {
+client/features\ventas\pages\VentasPage.tsx:150:  const handleRegistrarDevolucion = async (payload: any) => {
+client/features\ventas\pages\VentasPage.tsx:154:  const handleCambiarEstadoPedido = async (
+client/features\ventas\pages\VentasPage.tsx:161:  const handleConvertirPedidoAVenta = async (pedidoId: string) => {
+client/features\ventas\pages\VentasPage.tsx:165:  const handleCrearPedido = async (payload: any) => {
+client/features\ventas\pages\VentasPage.tsx:169:  const handleConvertirCotizacionAVenta = async (cotizacionId: string) => {
+client/features\ventas\pages\VentasPage.tsx:173:  const handleCrearCotizacion = async (payload: any) => {
+client/features\ventas\pages\VentasPage.tsx:177:  const handleVerDetalleVenta = (v: Venta) => {
+client/features\ventas\pages\VentasPage.tsx:182:  const handleIniciarDevolucionDesdeVenta = (v: Venta) => {
+client/features\ventas\pages\VentasPage.tsx:238:            onClick={() => setOpenIaSheet(true)}
+client/features\ventas\pages\VentasPage.tsx:255:          <Button variant="outline" onClick={() => fetchData()}>
+client/features\ventas\pages\VentasPage.tsx:335:            onEmitirVenta={handleEmitirVenta}
+client/features\ventas\pages\VentasPage.tsx:350:            onVerDetalleVenta={handleVerDetalleVenta}
+client/features\ventas\pages\VentasPage.tsx:361:            onVerDetalle={handleVerDetalleVenta}
+client/features\ventas\pages\VentasPage.tsx:362:            onIniciarDevolucion={handleIniciarDevolucionDesdeVenta}
+client/features\ventas\pages\VentasPage.tsx:375:              onCambiarEstado={handleCambiarEstadoPedido}
+client/features\ventas\pages\VentasPage.tsx:376:              onConvertirAVenta={handleConvertirPedidoAVenta}
+client/features\ventas\pages\VentasPage.tsx:377:              onCrearPedido={handleCrearPedido}
+client/features\ventas\pages\VentasPage.tsx:391:              onConvertirAVenta={handleConvertirCotizacionAVenta}
+client/features\ventas\pages\VentasPage.tsx:392:              onCrearCotizacion={handleCrearCotizacion}
+client/features\ventas\pages\VentasPage.tsx:405:              onRegistrarDevolucion={handleRegistrarDevolucion}
+client/features\ventas\pages\VentasPage.tsx:417:        onAnularVenta={handleAnularVenta}
+client/features\ventas\pages\VentasPage.tsx:418:        onIniciarDevolucion={handleIniciarDevolucionDesdeVenta}
+client/features\inventario\pages\InventarioPage.tsx:83:  const handleTabChange = (value: string) => {
+client/features\inventario\pages\InventarioPage.tsx:227:  const handleVerDetalle = (prod: ItemStockDetalle) => {
+client/features\inventario\pages\InventarioPage.tsx:233:  const handleIrAEntradasSalidas = (sku: string, _nombre: string) => {
+client/features\inventario\pages\InventarioPage.tsx:235:    handleTabChange('entradas-salidas');
+client/features\inventario\pages\InventarioPage.tsx:239:  const handleGuardarAjuste = async (payload: NuevoAjustePayload) => {
+client/features\inventario\pages\InventarioPage.tsx:244:  const handleAplicarAjustesFisicos = async (
+client/features\inventario\pages\InventarioPage.tsx:271:            onClick={() => setOpenAjusteModal(true)}
+client/features\inventario\pages\InventarioPage.tsx:306:        onValueChange={handleTabChange}
+client/features\inventario\pages\InventarioPage.tsx:375:                onVerDetalle={handleVerDetalle}
+client/features\inventario\pages\InventarioPage.tsx:434:                  onClick={() => setOpenAjusteModal(true)}
+client/features\inventario\pages\InventarioPage.tsx:472:                onAplicarAjustes={handleAplicarAjustesFisicos}
+client/features\inventario\pages\InventarioPage.tsx:485:        onIrAEntradasSalidas={handleIrAEntradasSalidas}
+client/features\inventario\pages\InventarioPage.tsx:493:        onGuardarAjuste={handleGuardarAjuste}
+client/features\reportes\pages\ReportesPage.tsx:118:          onClick={fetchData}
+client/features\reportes\pages\ReportesPage.tsx:131:          onClick={() => setModalExportarOpen(true)}
+client/features\reportes\pages\ReportesPage.tsx:150:              onClick={fetchData}
+client/features\reportes\components\ExportarReporteModal.tsx:30:  const handleDescargar = () => {
+client/features\reportes\components\ExportarReporteModal.tsx:121:            onClick={() => onOpenChange(false)}
+client/features\reportes\components\ExportarReporteModal.tsx:131:            onClick={handleDescargar}
+client/features\proveedores\pages\ProveedoresPage.tsx:83:  const handleGuardarProveedor = async (payload: NuevoProveedorPayload, id?: string) => {
+client/features\proveedores\pages\ProveedoresPage.tsx:99:  const handleEliminarProveedor = async (prov: Proveedor) => {
+client/features\proveedores\pages\ProveedoresPage.tsx:117:  const handleCopiarRuc = (e: React.MouseEvent, ruc: string, id: string) => {
+client/features\proveedores\pages\ProveedoresPage.tsx:126:  const handleExportarCsv = () => {
+client/features\proveedores\pages\ProveedoresPage.tsx:194:            onClick={handleExportarCsv}
+client/features\proveedores\pages\ProveedoresPage.tsx:205:            onClick={() => {
+client/features\proveedores\pages\ProveedoresPage.tsx:272:                  onClick={() => setSearchTerm('')}
+client/features\proveedores\pages\ProveedoresPage.tsx:296:                  onClick={() => setFiltroTab(tab.id)}
+client/features\proveedores\pages\ProveedoresPage.tsx:312:                onClick={() => setTipoVista('TABLA')}
+client/features\proveedores\pages\ProveedoresPage.tsx:324:                onClick={() => setTipoVista('TARJETAS')}
+client/features\proveedores\pages\ProveedoresPage.tsx:355:              onClick={() => setSearchTerm('')}
+client/features\proveedores\pages\ProveedoresPage.tsx:387:                        onClick={() => {
+client/features\proveedores\pages\ProveedoresPage.tsx:415:                        <TableCell onClick={(e) => e.stopPropagation()} className="whitespace-nowrap">
+client/features\proveedores\pages\ProveedoresPage.tsx:418:                            onClick={(e) => handleCopiarRuc(e, prov.ruc, prov.id)}
+client/features\proveedores\pages\ProveedoresPage.tsx:444:                        <TableCell onClick={(e) => e.stopPropagation()} className="whitespace-nowrap">
+client/features\proveedores\pages\ProveedoresPage.tsx:500:                        <TableCell className="text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+client/features\proveedores\pages\ProveedoresPage.tsx:507:                              onClick={() => {
+client/features\proveedores\pages\ProveedoresPage.tsx:520:                              onClick={() => {
+client/features\proveedores\pages\ProveedoresPage.tsx:533:                              onClick={() => handleEliminarProveedor(prov)}
+client/features\proveedores\pages\ProveedoresPage.tsx:557:                onClick={() => {
+client/features\proveedores\pages\ProveedoresPage.tsx:613:                  <div className="flex items-center justify-between pt-1" onClick={(e) => e.stopPropagation()}>
+client/features\proveedores\pages\ProveedoresPage.tsx:643:                        onClick={() => {
+client/features\proveedores\pages\ProveedoresPage.tsx:656:                        onClick={() => handleEliminarProveedor(prov)}
+client/features\proveedores\pages\ProveedoresPage.tsx:673:        onGuardar={handleGuardarProveedor}
+client/features\proveedores\components\ProveedorFormDialog.tsx:133:  const handleCambioCondicion = (val: string) => {
+client/features\proveedores\components\ProveedorFormDialog.tsx:143:  const handleConsultarSunat = () => {
+client/features\proveedores\components\ProveedorFormDialog.tsx:170:  const handleSubmit = async (e: React.FormEvent) => {
+client/features\proveedores\components\ProveedorFormDialog.tsx:225:        <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
+client/features\proveedores\components\ProveedorFormDialog.tsx:256:                    onClick={handleConsultarSunat}
+client/features\proveedores\components\ProveedorFormDialog.tsx:441:                <Select value={condicionPago} onValueChange={handleCambioCondicion}>
+client/features\proveedores\components\ProveedorFormDialog.tsx:507:              onClick={() => onOpenChange(false)}
+client/features\compras\pages\ComprasPage.tsx:88:  const handleCrearCompra = async (payload: NuevaCompraPayload) => {
+client/features\compras\pages\ComprasPage.tsx:100:  const handleProcederOrden = (
+client/features\compras\pages\ComprasPage.tsx:144:            onClick={() => setModalRecomendacionOpen(true)}
+client/features\compras\pages\ComprasPage.tsx:158:            onClick={() => {
+client/features\compras\pages\ComprasPage.tsx:193:            onClick={() => setModalRecomendacionOpen(true)}
+client/features\compras\pages\ComprasPage.tsx:257:                    onClick={() => setEstadoFiltro(est.id)}
+client/features\compras\pages\ComprasPage.tsx:298:                  onClick={() => setOpenModal(true)}
+client/features\compras\pages\ComprasPage.tsx:430:        onProcederOrden={handleProcederOrden}
+client/features\compras\pages\ComprasPage.tsx:437:        onCompraRegistrada={handleCrearCompra}
+client/features\proveedores\components\ProveedorDetalleModal.tsx:44:  const handleCopiarRuc = () => {
+client/features\proveedores\components\ProveedorDetalleModal.tsx:51:  const handleIrACompras = () => {
+client/features\proveedores\components\ProveedorDetalleModal.tsx:97:                onClick={() => {
+client/features\proveedores\components\ProveedorDetalleModal.tsx:114:              onClick={handleCopiarRuc}
+client/features\proveedores\components\ProveedorDetalleModal.tsx:134:            onClick={() => setActiveTab('DATOS')}
+client/features\proveedores\components\ProveedorDetalleModal.tsx:145:            onClick={() => setActiveTab('COMPRAS')}
+client/features\proveedores\components\ProveedorDetalleModal.tsx:339:                  onClick={handleIrACompras}
+client/features\proveedores\components\ProveedorDetalleModal.tsx:356:            onClick={() => onOpenChange(false)}
+client/features\compras\components\RecomendacionComprasModal.tsx:101:  const handleCambiarCantidad = (productoId: string, nuevaCantidad: number) => {
+client/features\compras\components\RecomendacionComprasModal.tsx:115:  const handleToggleSeleccion = (productoId: string) => {
+client/features\compras\components\RecomendacionComprasModal.tsx:125:  const handleToggleTodos = () => {
+client/features\compras\components\RecomendacionComprasModal.tsx:142:  const handleGenerarOrden = () => {
+client/features\compras\components\RecomendacionComprasModal.tsx:245:                onClick={() => setFiltroTab('TODOS')}
+client/features\compras\components\RecomendacionComprasModal.tsx:258:                onClick={() => setFiltroTab('AGOTADOS')}
+client/features\compras\components\RecomendacionComprasModal.tsx:274:                onClick={() => setFiltroTab('CRITICOS')}
+client/features\compras\components\RecomendacionComprasModal.tsx:290:                onClick={() => setFiltroTab('ROTACION')}
+client/features\compras\components\RecomendacionComprasModal.tsx:344:                        onClick={handleToggleTodos}
+client/features\compras\components\RecomendacionComprasModal.tsx:395:                          onChange={() => handleToggleSeleccion(item.productoId)}
+client/features\compras\components\RecomendacionComprasModal.tsx:467:                              handleCambiarCantidad(item.productoId, Number(e.target.value))
+client/features\compras\components\RecomendacionComprasModal.tsx:516:              onClick={() => onOpenChange(false)}
+client/features\compras\components\RecomendacionComprasModal.tsx:524:              onClick={handleGenerarOrden}
+client/features\compras\components\NuevaCompraDialog.tsx:121:  const handleSelectProveedor = (provId: string) => {
+client/features\compras\components\NuevaCompraDialog.tsx:135:  const handleCambiarCantidadItem = (index: number, cantidad: number) => {
+client/features\compras\components\NuevaCompraDialog.tsx:151:  const handleCambiarPrecioItem = (index: number, precio: number) => {
+client/features\compras\components\NuevaCompraDialog.tsx:167:  const handleEliminarItem = (index: number) => {
+client/features\compras\components\NuevaCompraDialog.tsx:175:  const handleAgregarProducto = () => {
+client/features\compras\components\NuevaCompraDialog.tsx:183:      handleCambiarCantidadItem(indexExistente, itemsCompra[indexExistente].cantidad + 12);
+client/features\compras\components\NuevaCompraDialog.tsx:201:  const handleSubmit = async (e: React.FormEvent) => {
+client/features\compras\components\NuevaCompraDialog.tsx:268:                onClick={onAbrirRecomendacion}
+client/features\compras\components\NuevaCompraDialog.tsx:278:        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+client/features\compras\components\NuevaCompraDialog.tsx:286:                <Select value={proveedorSeleccionadoId} onValueChange={handleSelectProveedor}>
+client/features\compras\components\NuevaCompraDialog.tsx:389:                  onClick={handleAgregarProducto}
+client/features\compras\components\NuevaCompraDialog.tsx:432:                          onChange={(e) => handleCambiarCantidadItem(index, Number(e.target.value))}
+client/features\compras\components\NuevaCompraDialog.tsx:443:                          onChange={(e) => handleCambiarPrecioItem(index, Number(e.target.value))}
+client/features\compras\components\NuevaCompraDialog.tsx:455:                          onClick={() => handleEliminarItem(index)}
+client/features\compras\components\NuevaCompraDialog.tsx:498:            onClick={() => onOpenChange(false)}
+client/features\compras\components\NuevaCompraDialog.tsx:505:            onClick={handleSubmit}
+client/features\proveedores\components\NuevoProveedorDialog.tsx:43:  const handleSubmit = async (e: React.FormEvent) => {
+client/features\proveedores\components\NuevoProveedorDialog.tsx:82:        <form onSubmit={handleSubmit} className="space-y-3 py-1 overflow-y-auto flex-1 pr-0.5">
+client/features\proveedores\components\NuevoProveedorDialog.tsx:169:              onClick={() => onOpenChange(false)}
+client/features\clientes\pages\ClientesPage.tsx:57:  const handleCrearCliente = async (payload: NuevoClientePayload) => {
+client/features\clientes\pages\ClientesPage.tsx:98:          onClick={() => setOpenModal(true)}
+client/features\clientes\pages\ClientesPage.tsx:164:                    onClick={() => setFiltroTipoDoc(f.id)}
+client/features\clientes\pages\ClientesPage.tsx:205:                  onClick={() => setOpenModal(true)}
+client/features\clientes\pages\ClientesPage.tsx:366:        onClienteRegistrado={handleCrearCliente}
+client/features\clientes\components\NuevoClienteDialog.tsx:43:  const handleSubmit = async (e: React.FormEvent) => {
+client/features\clientes\components\NuevoClienteDialog.tsx:105:        <form onSubmit={handleSubmit} className="space-y-3.5 py-1 overflow-y-auto flex-1 pr-0.5">
+client/features\clientes\components\NuevoClienteDialog.tsx:208:              onClick={() => onOpenChange(false)}
+client/features\productos\pages\ProductosPage.tsx:144:  const handleGuardarProducto = async (
+client/features\productos\pages\ProductosPage.tsx:178:  const handleEliminarProducto = (prod: Producto) => {
+client/features\productos\pages\ProductosPage.tsx:206:  const handleNuevoProducto = () => {
+client/features\productos\pages\ProductosPage.tsx:213:  const handleEditarProducto = (prod: Producto) => {
+client/features\productos\pages\ProductosPage.tsx:219:  const handleVerDetalles = (prod: Producto) => {
+client/features\productos\pages\ProductosPage.tsx:295:  const handleSort = (field: SortField) => {
+client/features\productos\pages\ProductosPage.tsx:314:        onClick={() => handleEditarProducto(prod)}
+client/features\productos\pages\ProductosPage.tsx:331:          <DropdownMenuItem onSelect={() => handleVerDetalles(prod)}>
+client/features\productos\pages\ProductosPage.tsx:337:            onSelect={() => handleEliminarProducto(prod)}
+client/features\productos\pages\ProductosPage.tsx:371:          onClick={() => handleSort(field)}
+client/features\productos\pages\ProductosPage.tsx:416:            onClick={() => setEscanerModalOpen(true)}
+client/features\productos\pages\ProductosPage.tsx:424:            onClick={handleNuevoProducto}
+client/features\productos\pages\ProductosPage.tsx:506:                    onClick={() => setSearchTerm('')}
+client/features\productos\pages\ProductosPage.tsx:515:                  onClick={toggleListening}
+client/features\productos\pages\ProductosPage.tsx:550:                  onClick={() => {
+client/features\productos\pages\ProductosPage.tsx:565:                  onClick={() => {
+client/features\productos\pages\ProductosPage.tsx:580:                  onClick={() => {
+client/features\productos\pages\ProductosPage.tsx:630:                    onClick={() => {
+client/features\productos\pages\ProductosPage.tsx:654:                onClick={fetchProductos}
+client/features\productos\pages\ProductosPage.tsx:778:                  <Button onClick={handleNuevoProducto} className="h-9 gap-1.5">
+client/features\productos\pages\ProductosPage.tsx:795:                    onClick={() => {
+client/features\productos\pages\ProductosPage.tsx:869:                          onClick={() => handleVerDetalles(prod)}
+client/features\productos\pages\ProductosPage.tsx:957:                            onClick={(e) => e.stopPropagation()}
+client/features\productos\pages\ProductosPage.tsx:1083:                      onClick={() =>
+client/features\productos\pages\ProductosPage.tsx:1097:                      onClick={() =>
+client/features\productos\pages\ProductosPage.tsx:1135:              onClick={confirmarEliminarProducto}
+client/features\productos\pages\ProductosPage.tsx:1148:        onEditarProducto={handleEditarProducto}
+client/features\productos\pages\ProductosPage.tsx:1150:          await handleGuardarProducto(payload);
+client/features\productos\pages\ProductosPage.tsx:1163:        onGuardar={handleGuardarProducto}
+client/features\productos\pages\ProductosPage.tsx:1165:        onEditarCoincidencia={handleEditarProducto}
+client/features\productos\pages\ProductosPage.tsx:1178:          handleEditarProducto(prod);
+client/features\productos\pages\ProductosPage.tsx:1181:          handleEliminarProducto(prod);
+client/features\caja\pages\CajaPage.tsx:132:  const handleAbrirCaja = async (payload: AperturaCajaPayload) => {
+client/features\caja\pages\CajaPage.tsx:143:  const handleOpenOperacion = (tipo: TipoOperacionCaja) => {
+client/features\caja\pages\CajaPage.tsx:148:  const handleRegistrarOperacion = async (
+client/features\caja\pages\CajaPage.tsx:163:  const handleArqueoGuardado = async (arqueo: ArqueoConteo) => {
+client/features\caja\pages\CajaPage.tsx:179:  const handleProcederCierreDesdeArqueo = (arqueo: ArqueoConteo) => {
+client/features\caja\pages\CajaPage.tsx:184:  const handleCierreConfirmado = async (payload: CierreCajaPayload) => {
+client/features\caja\pages\CajaPage.tsx:235:          onClick={() => {
+client/features\caja\pages\CajaPage.tsx:314:            onClick={() => setModalIAOpen(true)}
+client/features\caja\pages\CajaPage.tsx:326:              onClick={() => setModalAbrirOpen(true)}
+client/features\caja\pages\CajaPage.tsx:345:              onClick={() => setActiveTab(tab.id as TabCaja)}
+client/features\caja\pages\CajaPage.tsx:373:                onOpenIngreso={() => handleOpenOperacion('INGRESO')}
+client/features\caja\pages\CajaPage.tsx:374:                onOpenEgreso={() => handleOpenOperacion('EGRESO')}
+client/features\caja\pages\CajaPage.tsx:415:                onClick={() => setModalArqueoOpen(true)}
+client/features\caja\pages\CajaPage.tsx:458:        onCajaAbierta={handleAbrirCaja}
+client/features\caja\pages\CajaPage.tsx:466:        onOperacionRegistrada={handleRegistrarOperacion}
+client/features\caja\pages\CajaPage.tsx:476:        onArqueoGuardado={handleArqueoGuardado}
+client/features\caja\pages\CajaPage.tsx:477:        onProcederCierre={handleProcederCierreDesdeArqueo}
+client/features\caja\pages\CajaPage.tsx:486:        onCierreConfirmado={handleCierreConfirmado}
+client/features\productos\components\ProductoFormDialog.tsx:197:  const handleSubmit = async (e: React.FormEvent) => {
+client/features\productos\components\ProductoFormDialog.tsx:287:          onSubmit={handleSubmit}
+client/features\productos\components\ProductoFormDialog.tsx:326:                  onClick={() => comprobarCodigo(true)}
+client/features\productos\components\ProductoFormDialog.tsx:367:                        onClick={() => onEditarCoincidencia(coincidencia)}
+client/features\productos\components\ProductoFormDialog.tsx:643:            onClick={() => onOpenChange(false)}
+client/features\productos\components\ProductoDetalleModal.tsx:64:  const handleCopiarSku = () => {
+client/features\productos\components\ProductoDetalleModal.tsx:106:                    onClick={handleCopiarSku}
+client/features\productos\components\ProductoDetalleModal.tsx:134:                onClick={() => {
+client/features\productos\components\ProductoDetalleModal.tsx:147:                onClick={() => {
+client/features\productos\components\ProductoDetalleModal.tsx:281:            onClick={() => onOpenChange(false)}
+client/features\caja\components\OperacionCajaDialog.tsx:75:  const handleCambioTipo = (nuevoTipo: TipoOperacionCaja) => {
+client/features\caja\components\OperacionCajaDialog.tsx:85:  const handleSubmit = async (e: React.FormEvent) => {
+client/features\caja\components\OperacionCajaDialog.tsx:135:        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 flex-1 overflow-y-auto">
+client/features\caja\components\OperacionCajaDialog.tsx:140:              <Select value={tipo} onValueChange={(val: TipoOperacionCaja) => handleCambioTipo(val)}>
+client/features\caja\components\OperacionCajaDialog.tsx:268:              onClick={() => onOpenChange(false)}
+client/features\productos\components\NuevoProductoDialog.tsx:97:  const handleSubmit = async (values: FormValues) => {
+client/features\productos\components\NuevoProductoDialog.tsx:120:  const handleOpenChange = (newOpen: boolean) => {
+client/features\productos\components\NuevoProductoDialog.tsx:128:    <Dialog open={open} onOpenChange={handleOpenChange}>
+client/features\productos\components\NuevoProductoDialog.tsx:140:          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 pt-2">
+client/features\productos\components\NuevoProductoDialog.tsx:356:                onClick={() => handleOpenChange(false)}
+client/features\caja\components\MovimientoDetalleModal.tsx:44:  const handleIrAVenta = () => {
+client/features\caja\components\MovimientoDetalleModal.tsx:171:                onClick={handleIrAVenta}
+client/features\caja\components\MovimientoDetalleModal.tsx:185:            onClick={() => onOpenChange(false)}
+client/features\caja\components\KipusIACajaDialog.tsx:115:  const handleEnviar = (consulta?: string) => {
+client/features\caja\components\KipusIACajaDialog.tsx:200:                onClick={() => handleEnviar(pr)}
+client/features\caja\components\KipusIACajaDialog.tsx:215:            onKeyDown={(e) => e.key === 'Enter' && handleEnviar()}
+client/features\caja\components\KipusIACajaDialog.tsx:222:            onClick={() => handleEnviar()}
+client/features\caja\components\CierreResultadoModal.tsx:42:  const handleImprimir = () => {
+client/features\caja\components\CierreResultadoModal.tsx:46:  const handleNuevaApertura = () => {
+client/features\caja\components\CierreResultadoModal.tsx:164:            onClick={handleImprimir}
+client/features\caja\components\CierreResultadoModal.tsx:176:              onClick={() => onOpenChange(false)}
+client/features\caja\components\CierreResultadoModal.tsx:184:              onClick={handleNuevaApertura}
+client/features\productos\components\EscanerProductoModal.tsx:110:  const handleCodigoEscaneado = async (codigo: string) => {
+client/features\productos\components\EscanerProductoModal.tsx:163:  const handleAgregarRapido = async () => {
+client/features\productos\components\EscanerProductoModal.tsx:218:  const handlePersonalizar = () => {
+client/features\productos\components\EscanerProductoModal.tsx:233:  const handleReset = () => {
+client/features\productos\components\EscanerProductoModal.tsx:270:            onScan={handleCodigoEscaneado}
+client/features\productos\components\EscanerProductoModal.tsx:321:                  onClick={handleReset}
+client/features\productos\components\EscanerProductoModal.tsx:487:                onClick={handlePersonalizar}
+client/features\productos\components\EscanerProductoModal.tsx:501:              onClick={() => onOpenChange(false)}
+client/features\productos\components\EscanerProductoModal.tsx:508:            {resultado?.status === 'existente_en_catalogo' && <Button type="button" variant="outline" onClick={() => { onOpenChange(false); onEditarProducto(resultado.producto); }}>Editar producto registrado</Button>}
+client/features\productos\components\EscanerProductoModal.tsx:512:                onClick={handleAgregarRapido}
+client/features\caja\components\CierreCajaDialog.tsx:75:  const handleProcederPaso = () => {
+client/features\caja\components\CierreCajaDialog.tsx:79:  const handleEjecutarCierre = async () => {
+client/features\caja\components\CierreCajaDialog.tsx:271:                onClick={() => onOpenChange(false)}
+client/features\caja\components\CierreCajaDialog.tsx:279:                onClick={handleProcederPaso}
+client/features\caja\components\CierreCajaDialog.tsx:291:                onClick={() => setPasoConfirmacion(false)}
+client/features\caja\components\CierreCajaDialog.tsx:301:                onClick={handleEjecutarCierre}
+client/features\caja\components\ArqueoConteoDialog.tsx:111:  const handleSetCantidadBillete = (den: number, cant: number) => {
+client/features\caja\components\ArqueoConteoDialog.tsx:115:  const handleSetCantidadMoneda = (den: number, cant: number) => {
+client/features\caja\components\ArqueoConteoDialog.tsx:119:  const handleLlenarEsperado = () => {
+client/features\caja\components\ArqueoConteoDialog.tsx:167:  const handleGuardar = async () => {
+client/features\caja\components\ArqueoConteoDialog.tsx:178:  const handleProcederCierreClick = () => {
+client/features\caja\components\ArqueoConteoDialog.tsx:291:                onClick={() => setModoConteo('CALCULADORA')}
+client/features\caja\components\ArqueoConteoDialog.tsx:301:                onClick={() => setModoConteo('DIRECTO')}
+client/features\caja\components\ArqueoConteoDialog.tsx:313:              onClick={handleLlenarEsperado}
+client/features\caja\components\ArqueoConteoDialog.tsx:342:                          handleSetCantidadBillete(den, parseInt(e.target.value) || 0)
+client/features\caja\components\ArqueoConteoDialog.tsx:375:                          handleSetCantidadMoneda(den, parseInt(e.target.value) || 0)
+client/features\caja\components\ArqueoConteoDialog.tsx:459:              onClick={() => setVerificarDigitales(!verificarDigitales)}
+client/features\caja\components\ArqueoConteoDialog.tsx:562:            onClick={() => onOpenChange(false)}
+client/features\caja\components\ArqueoConteoDialog.tsx:573:              onClick={handleGuardar}
+client/features\caja\components\ArqueoConteoDialog.tsx:584:                onClick={handleProcederCierreClick}
+client/features\caja\components\AbrirCajaDialog.tsx:76:  const handleSubmit = async (e: React.FormEvent) => {
+client/features\caja\components\AbrirCajaDialog.tsx:100:  const handleCerrarModal = () => {
+client/features\caja\components\AbrirCajaDialog.tsx:106:    <Dialog open={open} onOpenChange={handleCerrarModal}>
+client/features\caja\components\AbrirCajaDialog.tsx:153:              onClick={handleCerrarModal}
+client/features\caja\components\AbrirCajaDialog.tsx:161:          <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+client/features\caja\components\AbrirCajaDialog.tsx:242:                    onClick={() => setMostrarCalculadora(!mostrarCalculadora)}
+client/features\caja\components\AbrirCajaDialog.tsx:313:                onClick={handleCerrarModal}
+client/features\kipus-ia\pages\KipusIaPage.tsx:37:  const handleSend = async (textToSend?: string) => {
+client/features\kipus-ia\pages\KipusIaPage.tsx:180:                onClick={() => handleSend(sug)}
+client/features\kipus-ia\pages\KipusIaPage.tsx:189:            onSubmit={(e) => {
+client/features\kipus-ia\pages\KipusIaPage.tsx:191:              handleSend();
+client/features\auth\services\authService.ts:48:      this.session = new SessionStore(localStorage, sessionStorage);
+client/features\auth\services\authService.ts:72:    // Consultar lista dinámica de usuarios guardados en localStorage
+client/features\auth\services\authService.ts:75:      const stored = localStorage.getItem('kipus_erp_users_list');
+client/features\auth\pages\LoginPage.tsx:82:  const handleSubmit = async (e: React.FormEvent) => {
+client/features\auth\pages\LoginPage.tsx:194:            onClick={(e) => {
+client/features\auth\pages\LoginPage.tsx:357:              <form onSubmit={handleSubmit} className="space-y-4">
+client/features\auth\pages\LoginPage.tsx:392:                      onClick={(e) => {
+client/features\auth\pages\LoginPage.tsx:420:                      onClick={() => setShowPassword(!showPassword)}
+client/features\auth\pages\LoginPage.tsx:488:                        onClick={() => fillDemoAccount(demo.username, demo.password)}
+client/features\usuarios\services\usuariosService.ts:65:      const data = localStorage.getItem(STORAGE_KEY);
+client/features\usuarios\services\usuariosService.ts:67:        localStorage.setItem(STORAGE_KEY, JSON.stringify(USUARIOS_INICIALES));
+client/features\usuarios\services\usuariosService.ts:78:      localStorage.setItem(STORAGE_KEY, JSON.stringify(usuarios));
+client/features\usuarios\services\usuariosService.ts:80:      console.error('Error saving users to localStorage:', e);
+client/features\usuarios\pages\UsuariosPage.tsx:83:  const handleGuardarUsuario = async (payload: NuevoUsuarioPayload, id?: string) => {
+client/features\usuarios\pages\UsuariosPage.tsx:101:  const handleEliminarUsuario = async (user: Usuario) => {
+client/features\usuarios\pages\UsuariosPage.tsx:127:  const handleNuevoUsuario = () => {
+client/features\usuarios\pages\UsuariosPage.tsx:133:  const handleEditarUsuario = (user: Usuario) => {
+client/features\usuarios\pages\UsuariosPage.tsx:139:  const handleVerDetalles = (user: Usuario) => {
+client/features\usuarios\pages\UsuariosPage.tsx:145:  const handleCopiarEmail = (e: React.MouseEvent, email: string, id: string) => {
+client/features\usuarios\pages\UsuariosPage.tsx:154:  const handleExportarCsv = () => {
+client/features\usuarios\pages\UsuariosPage.tsx:240:            onClick={handleExportarCsv}
+client/features\usuarios\pages\UsuariosPage.tsx:248:            onClick={handleNuevoUsuario}
+client/features\usuarios\pages\UsuariosPage.tsx:307:                    onClick={() => setSearchTerm('')}
+client/features\usuarios\pages\UsuariosPage.tsx:324:                    onClick={() => setTipoVista('TABLA')}
+client/features\usuarios\pages\UsuariosPage.tsx:337:                    onClick={() => setTipoVista('TARJETAS')}
+client/features\usuarios\pages\UsuariosPage.tsx:369:                  onClick={() => setFiltroTab(tab.id)}
+client/features\usuarios\pages\UsuariosPage.tsx:399:                onClick={() => {
+client/features\usuarios\pages\UsuariosPage.tsx:449:                        onClick={() => handleVerDetalles(user)}
+client/features\usuarios\pages\UsuariosPage.tsx:489:                                onClick={(e) => handleCopiarEmail(e, user.email, user.id)}
+client/features\usuarios\pages\UsuariosPage.tsx:525:                          onClick={(e) => e.stopPropagation()}
+client/features\usuarios\pages\UsuariosPage.tsx:531:                              onClick={() => handleVerDetalles(user)}
+client/features\usuarios\pages\UsuariosPage.tsx:540:                              onClick={() => handleEditarUsuario(user)}
+client/features\usuarios\pages\UsuariosPage.tsx:550:                                onClick={() => handleEliminarUsuario(user)}
+client/features\usuarios\pages\UsuariosPage.tsx:571:                  onClick={() => handleVerDetalles(user)}
+client/features\usuarios\pages\UsuariosPage.tsx:612:                    onClick={(e) => e.stopPropagation()}
+client/features\usuarios\pages\UsuariosPage.tsx:628:                        onClick={() => handleVerDetalles(user)}
+client/features\usuarios\pages\UsuariosPage.tsx:637:                        onClick={() => handleEditarUsuario(user)}
+client/features\usuarios\pages\UsuariosPage.tsx:647:                          onClick={() => handleEliminarUsuario(user)}
+client/features\usuarios\pages\UsuariosPage.tsx:666:        onGuardar={handleGuardarUsuario}
+client/features\usuarios\pages\UsuariosPage.tsx:677:          handleEditarUsuario(user);
+client/features\usuarios\pages\UsuariosPage.tsx:680:          handleEliminarUsuario(user);
+client/features\usuarios\components\UsuarioFormDialog.tsx:108:  const handleNombreChange = (val: string) => {
+client/features\usuarios\components\UsuarioFormDialog.tsx:118:  const handleSubmit = async (e: React.FormEvent) => {
+client/features\usuarios\components\UsuarioFormDialog.tsx:187:        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+client/features\usuarios\components\UsuarioFormDialog.tsx:198:                onChange={(e) => handleNombreChange(e.target.value)}
+client/features\usuarios\components\UsuarioFormDialog.tsx:376:            onClick={() => onOpenChange(false)}
+client/features\usuarios\components\UsuarioFormDialog.tsx:384:            onClick={handleSubmit}
+client/features\usuarios\components\UsuarioDetalleModal.tsx:73:  const handleCopiarEmail = () => {
+client/features\usuarios\components\UsuarioDetalleModal.tsx:130:                  onClick={handleCopiarEmail}
+client/features\usuarios\components\UsuarioDetalleModal.tsx:197:              onClick={() => onEliminarClick(usuario)}
+client/features\usuarios\components\UsuarioDetalleModal.tsx:211:              onClick={() => onOpenChange(false)}
+client/features\usuarios\components\UsuarioDetalleModal.tsx:218:              onClick={() => onEditarClick(usuario)}
+client/features\ventas\components\CobroModal.tsx:73:  const handleSetMontoExacto = () => {
+client/features\ventas\components\CobroModal.tsx:77:  const handleSelectBillete = (monto: number) => {
+client/features\ventas\components\CobroModal.tsx:81:  const handleSubmit = async (e: React.FormEvent) => {
+client/features\ventas\components\CobroModal.tsx:145:        <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+client/features\ventas\components\CobroModal.tsx:181:                    onClick={() => {
+client/features\ventas\components\CobroModal.tsx:234:                  onClick={handleSetMontoExacto}
+client/features\ventas\components\CobroModal.tsx:243:                    onClick={() => handleSelectBillete(billete)}
+client/features\ventas\components\CobroModal.tsx:336:              onClick={() => onOpenChange(false)}
+client/features\gastos\pages\GastosPage.tsx:87:  const handleCrearGasto = async (payload: NuevoGastoPayload) => {
+client/features\gastos\pages\GastosPage.tsx:133:          onClick={() => setOpenModal(true)}
+client/features\gastos\pages\GastosPage.tsx:194:                    onClick={() => setCategoriaFiltro(c.id)}
+client/features\gastos\pages\GastosPage.tsx:235:                  onClick={() => setOpenModal(true)}
+client/features\gastos\pages\GastosPage.tsx:357:        onGastoRegistrado={handleCrearGasto}
+client/features\gastos\components\NuevoGastoDialog.tsx:43:  const handleSubmit = async (e: React.FormEvent) => {
+client/features\gastos\components\NuevoGastoDialog.tsx:93:        <form onSubmit={handleSubmit} className="space-y-3.5 py-1 overflow-y-auto flex-1 pr-0.5">
+client/features\gastos\components\NuevoGastoDialog.tsx:203:              onClick={() => onOpenChange(false)}
+client/features\inventario\components\ConfirmationDialog.tsx:68:            onClick={(e) => {
+client/features\inventario\components\AuditoriaConteoDialog.tsx:56:  const handleSelectProducto = (id: string) => {
+client/features\inventario\components\AuditoriaConteoDialog.tsx:67:  const handleSubmit = async (e: React.FormEvent) => {
+client/features\inventario\components\AuditoriaConteoDialog.tsx:115:        <form onSubmit={handleSubmit} className="space-y-3.5 pt-1">
+client/features\inventario\components\AuditoriaConteoDialog.tsx:121:              onValueChange={handleSelectProducto}
+client/features\inventario\components\AuditoriaConteoDialog.tsx:248:              onClick={() => onOpenChange(false)}
+client/features\dashboard\pages\DashboardPage.tsx:36:          onClick={refetchAll}
+client/features\dashboard\pages\DashboardPage.tsx:49:          onClick={() => navigate(APP_ROUTES.CAJA)}
+client/features\dashboard\pages\DashboardPage.tsx:58:          onClick={() => navigate(APP_ROUTES.VENTAS)}
+client/features\dashboard\pages\DashboardPage.tsx:75:          <Button variant="outline" disabled={isFetching} onClick={refetchAll}>
+client/features\inventario\components\NuevoMovimientoDialog.tsx:75:  const handleTipoChange = (val: TipoMovimiento) => {
+client/features\inventario\components\NuevoMovimientoDialog.tsx:102:  const handleSubmit = async (e: React.FormEvent) => {
+client/features\inventario\components\NuevoMovimientoDialog.tsx:143:        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+client/features\inventario\components\NuevoMovimientoDialog.tsx:187:              <Select value={tipo} onValueChange={(val: TipoMovimiento) => handleTipoChange(val)}>
+client/features\inventario\components\NuevoMovimientoDialog.tsx:322:              onClick={() => onOpenChange(false)}
+client/features\configuracion\pages\ConfiguracionPage.tsx:35:  const handleUpdateEmpresa = (field: string, val: string) => {
+client/features\configuracion\pages\ConfiguracionPage.tsx:46:  const handleSave = async (e: React.FormEvent) => {
+client/features\configuracion\pages\ConfiguracionPage.tsx:77:      <form onSubmit={handleSave} className="space-y-6">
+client/features\configuracion\pages\ConfiguracionPage.tsx:95:                  onChange={(e) => handleUpdateEmpresa('ruc', e.target.value)}
+client/features\configuracion\pages\ConfiguracionPage.tsx:104:                  onChange={(e) => handleUpdateEmpresa('razonSocial', e.target.value)}
+client/features\configuracion\pages\ConfiguracionPage.tsx:116:                  onChange={(e) => handleUpdateEmpresa('nombreComercial', e.target.value)}
+client/features\configuracion\pages\ConfiguracionPage.tsx:124:                  onChange={(e) => handleUpdateEmpresa('regimenTributario', e.target.value)}
+client/features\configuracion\pages\ConfiguracionPage.tsx:135:                  onChange={(e) => handleUpdateEmpresa('direccionFiscal', e.target.value)}
+client/features\configuracion\pages\ConfiguracionPage.tsx:143:                  onChange={(e) => handleUpdateEmpresa('telefono', e.target.value)}
+client/features\configuracion\pages\ConfiguracionPage.tsx:282:              onClick={() => {
+client/features\configuracion\services\configuracionService.ts:4:let mockConfiguracion: ConfiguracionSistema = {
+client/features\configuracion\services\configuracionService.ts:26:    return simulateDelay(mockConfiguracion);
+client/features\configuracion\services\configuracionService.ts:30:    mockConfiguracion = structuredClone(nueva);
+client/features\configuracion\services\configuracionService.ts:31:    return simulateDelay(mockConfiguracion);
+client/features\inventario\components\RecepcionMercanciaDialog.tsx:49:  const handleSelectProducto = (id: string) => {
+client/features\inventario\components\RecepcionMercanciaDialog.tsx:59:  const handleSubmit = async (e: React.FormEvent) => {
+client/features\inventario\components\RecepcionMercanciaDialog.tsx:107:        <form onSubmit={handleSubmit} className="space-y-3.5 pt-1">
+client/features\inventario\components\RecepcionMercanciaDialog.tsx:113:              onValueChange={handleSelectProducto}
+client/features\inventario\components\RecepcionMercanciaDialog.tsx:226:              onClick={() => onOpenChange(false)}
+client/features\ventas\components\VentaCompletadaModal.tsx:30:  const handlePrint = () => {
+client/features\ventas\components\VentaCompletadaModal.tsx:34:  const handleShare = () => {
+client/features\ventas\components\VentaCompletadaModal.tsx:111:              onClick={handlePrint}
+client/features\ventas\components\VentaCompletadaModal.tsx:122:              onClick={handleShare}
+client/features\ventas\components\VentaCompletadaModal.tsx:133:            onClick={onNuevaVenta}
+client/features\ventas\components\NuevaVentaDialog.tsx:68:  const handleSelectProduct = (index: number, prodId: string) => {
+client/features\ventas\components\NuevaVentaDialog.tsx:86:  const handleAddItem = () => {
+client/features\ventas\components\NuevaVentaDialog.tsx:105:  const handleRemoveItem = (index: number) => {
+client/features\ventas\components\NuevaVentaDialog.tsx:109:  const handleUpdateCantidad = (index: number, cant: number) => {
+client/features\ventas\components\NuevaVentaDialog.tsx:119:  const handleSubmit = async (e: React.FormEvent) => {
+client/features\ventas\components\NuevaVentaDialog.tsx:153:        <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+client/features\ventas\components\NuevaVentaDialog.tsx:224:                onClick={handleAddItem}
+client/features\ventas\components\NuevaVentaDialog.tsx:241:                      onValueChange={(val) => handleSelectProduct(idx, val)}
+client/features\ventas\components\NuevaVentaDialog.tsx:263:                        onChange={(e) => handleUpdateCantidad(idx, Number(e.target.value))}
+client/features\ventas\components\NuevaVentaDialog.tsx:279:                        onClick={() => handleRemoveItem(idx)}
+client/features\ventas\components\NuevaVentaDialog.tsx:316:              onClick={() => onOpenChange(false)}
+client/features\ventas\components\VentaDetalleModal.tsx:57:  const handleConfirmarAnulacion = async () => {
+client/features\ventas\components\VentaDetalleModal.tsx:78:  const handlePrint = () => {
+client/features\ventas\components\VentaDetalleModal.tsx:214:                  onClick={() => setMostrarAnulacion(false)}
+client/features\ventas\components\VentaDetalleModal.tsx:223:                  onClick={handleConfirmarAnulacion}
+client/features\ventas\components\VentaDetalleModal.tsx:239:              onClick={handlePrint}
+client/features\ventas\components\VentaDetalleModal.tsx:251:                onClick={() => {
+client/features\ventas\components\VentaDetalleModal.tsx:269:                onClick={() => setMostrarAnulacion(true)}
+client/features\ventas\components\VentaDetalleModal.tsx:280:              onClick={() => onOpenChange(false)}

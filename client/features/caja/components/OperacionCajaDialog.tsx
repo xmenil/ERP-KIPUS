@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -65,6 +65,8 @@ export const OperacionCajaDialog: React.FC<OperacionCajaDialogProps> = ({
   const [monto, setMonto] = useState<number>(50);
   const [observaciones, setObservaciones] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitting = useRef(false);
+  const [saveError, setSaveError] = useState('');
 
   useEffect(() => {
     setTipo(tipoInicial);
@@ -86,6 +88,9 @@ export const OperacionCajaDialog: React.FC<OperacionCajaDialogProps> = ({
     e.preventDefault();
     if (!concepto.trim() || monto <= 0) return;
 
+    if (submitting.current) return;
+    submitting.current = true;
+    setSaveError('');
     setIsSubmitting(true);
     try {
       await onOperacionRegistrada({
@@ -100,14 +105,18 @@ export const OperacionCajaDialog: React.FC<OperacionCajaDialogProps> = ({
       setConcepto('');
       setObservaciones('');
       setMonto(50);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'No se pudo guardar. Conserva los campos e inténtalo de nuevo.');
     } finally {
+      submitting.current = false;
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={value => { if (!submitting.current) onOpenChange(value); }}>
       <DialogContent className="w-[95vw] sm:max-w-md p-0 overflow-hidden max-h-[92vh] flex flex-col">
+        {saveError && <p role="alert" className="m-4 rounded-md border border-destructive bg-danger-soft p-3 text-sm text-danger-text">{saveError}</p>}
         <DialogHeader className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-border/60 bg-muted/20 shrink-0">
           <div className="flex items-center gap-2 text-xs font-semibold">
             {tipo === 'INGRESO' ? (
