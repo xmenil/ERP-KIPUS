@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ClientesPage } from '@/features/clientes/pages/ClientesPage';
 import {
   Table,
   TableBody,
@@ -21,6 +24,7 @@ import {
   PlusCircle,
   Search,
   Receipt,
+  Users,
   TrendingDown,
   Building,
   FileSpreadsheet,
@@ -58,6 +62,36 @@ const CATEGORIAS_CONFIG: { id: string; label: string }[] = [
 ];
 
 export const GastosPage: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+
+  const [activeTab, setActiveTab] = useState<'gastos' | 'clientes'>(() => {
+    return tabParam === 'clientes' ? 'clientes' : 'gastos';
+  });
+
+  useEffect(() => {
+    if (tabParam === 'clientes' || tabParam === 'gastos') {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
+
+  const handleTabChange = (val: string) => {
+    const nextTab = val as 'gastos' | 'clientes';
+    setActiveTab(nextTab);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (nextTab === 'gastos') {
+          next.delete('tab');
+        } else {
+          next.set('tab', nextTab);
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  };
+
   const [gastos, setGastos] = useState<Gasto[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -122,21 +156,38 @@ export const GastosPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Encabezado y Acción Primaria Única */}
+      {/* Encabezado Principal */}
       <PageHeader
-        title="Gastos y Egresos Operativos"
-        description="Control de costos fijos, variables, servicios y proveedores menores del negocio"
-        badge="Flujo Negativo"
+        title="Gastos y Clientes"
+        description="Control de gastos operativos, egresos del negocio y gestión del directorio de clientes."
+        badge="Gastos & Clientes"
       >
-        <Button
-          size="sm"
-          onClick={() => setOpenModal(true)}
-          className="h-9 gap-2 bg-primary text-primary-foreground font-semibold shadow-2xs w-full sm:w-auto"
-        >
-          <PlusCircle className="h-4 w-4" />
-          <span>Registrar gasto</span>
-        </Button>
+        {activeTab === 'gastos' && (
+          <Button
+            size="sm"
+            onClick={() => setOpenModal(true)}
+            className="h-9 gap-2 bg-primary text-primary-foreground font-semibold shadow-2xs w-full sm:w-auto"
+          >
+            <PlusCircle className="h-4 w-4" />
+            <span>Registrar gasto</span>
+          </Button>
+        )}
       </PageHeader>
+
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full space-y-4">
+        <TabsList className="bg-muted/70 p-1 flex overflow-x-auto flex-nowrap sm:flex-wrap h-auto gap-1 border border-border/60 max-w-full scrollbar-none justify-start">
+          <TabsTrigger value="gastos" className="text-xs font-semibold py-1.5 px-3 gap-1.5 shrink-0">
+            <Receipt className="h-3.5 w-3.5" />
+            <span>Registro de Gastos</span>
+          </TabsTrigger>
+
+          <TabsTrigger value="clientes" className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0">
+            <Users className="h-3.5 w-3.5" />
+            <span>Gestión de Clientes</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="gastos" className="space-y-4 m-0 focus-visible:outline-none">
 
       {/* Tarjetas KPI de Resumen */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -349,6 +400,12 @@ export const GastosPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
+      </TabsContent>
+
+      <TabsContent value="clientes" className="space-y-4 m-0 focus-visible:outline-none">
+        <ClientesPage embedded={true} />
+      </TabsContent>
+      </Tabs>
 
       {/* Modal de Registro de Gasto */}
       <NuevoGastoDialog

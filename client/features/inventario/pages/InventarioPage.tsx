@@ -24,7 +24,11 @@ import {
 } from '../types/inventario.types';
 import { subscribeToErp } from '@/services/erp/erpStore';
 import { formatCurrency } from '@/utils/formatters';
-import { Plus } from 'lucide-react';
+import { ProductoFormDialog } from '@/features/productos/components/ProductoFormDialog';
+import { EscanerProductoModal } from '@/features/productos/components/EscanerProductoModal';
+import { productosService } from '@/features/productos/services/productosService';
+import { Producto, NuevoProductoPayload } from '@/features/productos/types/productos.types';
+import { Plus, ScanBarcode, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 type SeccionInventario = 'existencias' | 'entradas-salidas' | 'ajustes' | 'inventario-fisico';
@@ -45,6 +49,7 @@ export const InventarioPage: React.FC = () => {
   const [movimientos, setMovimientos] = useState<MovimientoStock[]>([]);
   const [ajustes, setAjustes] = useState<AjusteInventario[]>([]);
   const [almacenes, setAlmacenes] = useState<AlmacenResumen[]>([]);
+  const [catalogoProductos, setCatalogoProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,6 +92,9 @@ export const InventarioPage: React.FC = () => {
   const [productoSeleccionado, setProductoSeleccionado] = useState<ItemStockDetalle | null>(null);
   const [openDetalleModal, setOpenDetalleModal] = useState(false);
   const [openAjusteModal, setOpenAjusteModal] = useState(false);
+  const [formModalOpen, setFormModalOpen] = useState(false);
+  const [productoAEditar, setProductoAEditar] = useState<Producto | null>(null);
+  const [escanerModalOpen, setEscanerModalOpen] = useState(false);
 
   // Filtro de búsqueda cruzada para Entradas y Salidas
   const [filtroMovimientosProducto, setFiltroMovimientosProducto] = useState<string>('');
@@ -104,16 +112,18 @@ export const InventarioPage: React.FC = () => {
     }
     setError(null);
     try {
-      const [prodsData, movsData, ajustesData, almacenesData] = await Promise.all([
+      const [prodsData, movsData, ajustesData, almacenesData, catData] = await Promise.all([
         inventarioService.getProductosStock(),
         inventarioService.getMovimientos(),
         inventarioService.getAjustes(),
         inventarioService.getAlmacenes(),
+        productosService.getProductos(),
       ]);
       setProductos(prodsData || []);
       setMovimientos(movsData || []);
       setAjustes(ajustesData || []);
       setAlmacenes(almacenesData || []);
+      setCatalogoProductos(catData || []);
     } catch {
       setError('No se pudo cargar la información del inventario. Revisa tu conexión a internet.');
       toast.error('Error al sincronizar inventario');
@@ -211,6 +221,35 @@ export const InventarioPage: React.FC = () => {
     await cargarDatos();
   };
 
+  // Guardar producto nuevo o editado
+  const handleGuardarProducto = async (payload: NuevoProductoPayload, id?: string) => {
+    if (id) {
+      await productosService.actualizarProducto(id, payload);
+      toast.success('Producto actualizado correctamente');
+    } else {
+      await productosService.crearProducto(payload);
+      toast.success('Producto agregado al inventario');
+    }
+    await cargarDatos();
+  };
+
+  const handleEditarProducto = async (prod: ItemStockDetalle) => {
+    try {
+      const full = catalogoProductos.find((p) => p.id === prod.id);
+      setProductoAEditar(full || (prod as unknown as Producto));
+      setFormModalOpen(true);
+    } catch {
+      toast.error('No se pudo cargar la información del producto para editar');
+    }
+  };
+
+  const handleFiltrarStockBajo = () => {
+    setEstadoFiltro('STOCK_BAJO');
+    if (seccionActiva !== 'existencias') {
+      handleTabChange('existencias');
+    }
+  };
+
   // Movimientos filtrados para el modal de detalle del producto seleccionado
   const movimientosDelProductoSeleccionado = useMemo(() => {
     if (!productoSeleccionado) return [];
@@ -226,19 +265,58 @@ export const InventarioPage: React.FC = () => {
       {/* Encabezado Principal según sección 3 */}
       <PageHeader
         title="Inventario"
-        description="Consulta y controla el stock de tus productos."
+        description="Consulta y controla el stock, existencias y movimientos de tus productos."
       >
-        {seccionActiva === 'ajustes' && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setEscanerModalOpen(true)}
+            className="gap-1.5 text-xs font-medium border-border"
+            title="Escanear código de barras"
+          >
+            <ScanBarcode className="h-4 w-4" />
+            <span className="hidden sm:inline">Escanear</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleFiltrarStockBajo}
+            className="gap-1.5 text-xs font-medium border-border text-amber-700 dark:text-amber-400"
+            title="Ver productos con stock bajo o crítico"
+          >
+            <AlertTriangle className="h-4 w-4" />
+            <span className="hidden sm:inline">Stock bajo ({metricas.stockBajo})</span>
+          </Button>
+
+          {seccionActiva === 'ajustes' && (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setOpenAjusteModal(true)}
+              className="gap-1.5 text-xs font-semibold bg-primary text-primary-foreground shadow-xs"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Nuevo ajuste</span>
+            </Button>
+          )}
+
           <Button
             type="button"
             size="sm"
-            onClick={() => setOpenAjusteModal(true)}
+            onClick={() => {
+              setProductoAEditar(null);
+              setFormModalOpen(true);
+            }}
             className="gap-1.5 text-xs font-semibold bg-primary text-primary-foreground shadow-xs"
           >
             <Plus className="h-4 w-4" />
-            <span>Nuevo ajuste</span>
+            <span>Nuevo producto</span>
           </Button>
-        )}
+        </div>
       </PageHeader>
 
       {/* Indicadores Superiores Discretos (Sección 3) */}
@@ -425,6 +503,7 @@ export const InventarioPage: React.FC = () => {
         producto={productoSeleccionado}
         movimientosProducto={movimientosDelProductoSeleccionado}
         onIrAEntradasSalidas={handleIrAEntradasSalidas}
+        onEditarProducto={handleEditarProducto}
       />
 
       {/* Modal: Formulario de Nuevo Ajuste con Confirmación de 2 Fases */}
@@ -434,6 +513,32 @@ export const InventarioPage: React.FC = () => {
         productos={productos}
         onGuardarAjuste={handleGuardarAjuste}
         productoInicialId={productoSeleccionado?.id}
+      />
+
+      {/* Modal: Formulario de Creación / Edición de Producto */}
+      <ProductoFormDialog
+        open={formModalOpen}
+        onOpenChange={setFormModalOpen}
+        onGuardar={handleGuardarProducto}
+        productoAEditar={productoAEditar}
+      />
+
+      {/* Modal: Escáner de Código de Barras */}
+      <EscanerProductoModal
+        open={escanerModalOpen}
+        onOpenChange={setEscanerModalOpen}
+        productosExistentes={catalogoProductos}
+        onGuardarProducto={handleGuardarProducto}
+        onAbrirFormularioCompleto={(payload) => {
+          setProductoAEditar(payload as unknown as Producto);
+          setEscanerModalOpen(false);
+          setFormModalOpen(true);
+        }}
+        onEditarProducto={(prod) => {
+          setProductoAEditar(prod);
+          setEscanerModalOpen(false);
+          setFormModalOpen(true);
+        }}
       />
     </div>
   );

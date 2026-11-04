@@ -70,7 +70,7 @@ export const AppHeader: React.FC = () => {
         <div className="hidden sm:flex items-center gap-2 text-xs text-foreground bg-muted/50 px-2.5 py-1 rounded border border-border">
           <Building className="h-3.5 w-3.5 text-primary" />
           <span className="font-bold text-foreground">Sucursal:</span>
-          <span className="text-muted-foreground">Sede Central (Almacén 01)</span>
+          <span className="text-muted-foreground">{user?.sucursal || 'Sede Central'}</span>
         </div>
 
         <div className="hidden lg:flex items-center gap-1.5 text-xs text-muted-foreground">

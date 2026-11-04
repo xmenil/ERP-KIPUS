@@ -2,9 +2,11 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { DashboardMetrics } from '../types/dashboard.types';
 import { formatCurrency } from '@/utils/formatters';
-import { ArrowUpRight, TrendingUp, TrendingDown, AlertTriangle, Clock } from 'lucide-react';
+import { ArrowUpRight, TrendingUp, TrendingDown, AlertTriangle, Clock, Package, Warehouse } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { APP_ROUTES } from '@/constants/routes';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { isRoleAlmacenero } from '@/features/auth/utils/permissions';
 
 interface DashboardKpiCardsProps {
   metrics?: DashboardMetrics;
@@ -15,6 +17,9 @@ export const DashboardKpiCards: React.FC<DashboardKpiCardsProps> = ({
   metrics,
   isLoading,
 }) => {
+  const { user } = useAuth();
+  const esAlmacenero = isRoleAlmacenero(user?.rol);
+
   if (isLoading || !metrics) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -23,6 +28,88 @@ export const DashboardKpiCards: React.FC<DashboardKpiCardsProps> = ({
           <div className="h-28 rounded-md bg-muted/50 border border-border animate-pulse" />
         </div>
         <div className="h-28 rounded-md bg-muted/50 border border-border animate-pulse" />
+      </div>
+    );
+  }
+
+  // Vista exclusiva para rol Almacenero (sin datos de ventas ni saldos de caja)
+  if (esAlmacenero) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="rounded-md border-border bg-card shadow-xs">
+          <CardContent className="p-4 sm:p-5 flex flex-col justify-between h-full">
+            <div>
+              <span className="text-xs font-medium text-muted-foreground block">
+                Artículos en Almacén
+              </span>
+              <div className="mt-1 flex items-baseline gap-2">
+                <span className="text-2xl font-semibold tabular-nums text-foreground">
+                  {metrics.totalProductosActivos ?? 142} productos
+                </span>
+              </div>
+            </div>
+            <div className="mt-3 pt-2 border-t border-border flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Catálogo homologado</span>
+              <Link
+                to={APP_ROUTES.INVENTARIO}
+                className="text-primary hover:underline font-medium inline-flex items-center gap-0.5"
+              >
+                Ver existencias
+                <ArrowUpRight className="h-3 w-3" />
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-md border-border bg-card shadow-xs">
+          <CardContent className="p-4 sm:p-5 flex flex-col justify-between h-full">
+            <div>
+              <span className="text-xs font-medium text-muted-foreground block">
+                Stock Bajo o Crítico
+              </span>
+              <div className="mt-1 flex items-baseline gap-2">
+                <span className="text-2xl font-semibold tabular-nums text-danger-text">
+                  {metrics.productosBajoStock} ítems
+                </span>
+              </div>
+            </div>
+            <div className="mt-3 pt-2 border-t border-border flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Requieren reposición</span>
+              <Link
+                to={APP_ROUTES.INVENTARIO}
+                className="text-primary hover:underline font-medium inline-flex items-center gap-0.5"
+              >
+                Revisar alertas
+                <ArrowUpRight className="h-3 w-3" />
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-md border-border bg-card shadow-xs">
+          <CardContent className="p-4 sm:p-5 flex flex-col justify-between h-full">
+            <div>
+              <span className="text-xs font-medium text-muted-foreground block">
+                Recepción de Compras
+              </span>
+              <div className="mt-1 flex items-baseline gap-2">
+                <span className="text-2xl font-semibold tabular-nums text-foreground">
+                  {metrics.comprasPendientes ?? metrics.pedidosPendientes ?? 3} órdenes
+                </span>
+              </div>
+            </div>
+            <div className="mt-3 pt-2 border-t border-border flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Por ingresar a stock</span>
+              <Link
+                to={APP_ROUTES.COMPRAS}
+                className="text-primary hover:underline font-medium inline-flex items-center gap-0.5"
+              >
+                Ver órdenes
+                <ArrowUpRight className="h-3 w-3" />
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -89,9 +176,9 @@ export const DashboardKpiCards: React.FC<DashboardKpiCardsProps> = ({
               </div>
             </div>
             <div className="mt-3 pt-2 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-              <span>Turno mañana activo</span>
+              <span>Turno activo</span>
               <Link
-                to={APP_ROUTES.CAJA}
+                to="/ventas?tab=caja"
                 className="text-primary hover:underline font-medium inline-flex items-center gap-0.5"
               >
                 Cuadre de caja
@@ -150,3 +237,4 @@ export const DashboardKpiCards: React.FC<DashboardKpiCardsProps> = ({
     </div>
   );
 };
+

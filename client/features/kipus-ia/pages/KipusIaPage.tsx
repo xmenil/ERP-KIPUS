@@ -27,7 +27,11 @@ import {
   LineChart,
 } from 'lucide-react';
 
-export const KipusIaPage: React.FC = () => {
+export interface KipusIaPageProps {
+  embedded?: boolean;
+}
+
+export const KipusIaPage: React.FC<KipusIaPageProps> = ({ embedded = false }) => {
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -157,35 +161,37 @@ export const KipusIaPage: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <PageHeader
-          title="KIPU'S IA — Copiloto de Inteligencia de Negocio"
-          description="Analítica predictiva, optimización de compras y asesoría en tiempo real para tu PYME"
-          badge="Copilot Activo • Datos en tiempo real"
-        />
+      {!embedded && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <PageHeader
+            title="KIPU'S IA — Copiloto de Inteligencia de Negocio"
+            description="Analítica predictiva, optimización de compras y asesoría en tiempo real para tu PYME"
+            badge="Copilot Activo • Datos en tiempo real"
+          />
 
-        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleSend('Dame un diagnóstico general del negocio')}
-            className="h-8 text-xs font-medium gap-1.5 border-border"
-          >
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
-            <span>Simular diagnóstico rápido</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClearChat}
-            className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1.5"
-            title="Reiniciar chat"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Limpiar chat</span>
-          </Button>
+          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleSend('Dame un diagnóstico general del negocio')}
+              className="h-8 text-xs font-medium gap-1.5 border-border"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              <span>Simular diagnóstico rápido</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearChat}
+              className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+              title="Reiniciar chat"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Limpiar chat</span>
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Tarjetas de Insights Predictivos */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

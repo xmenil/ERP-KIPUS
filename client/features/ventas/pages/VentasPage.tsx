@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { CajaPage } from '@/features/caja/pages/CajaPage';
 import {
   Select,
   SelectContent,
@@ -37,6 +40,7 @@ import {
   ShoppingCart,
   LayoutDashboard,
   Receipt,
+  DollarSign,
   ShoppingBag,
   FileCheck,
   RotateCcw,
@@ -48,8 +52,40 @@ import {
 import { toast } from 'sonner';
 
 export const VentasPage: React.FC = () => {
+  const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+
   // Estado de navegación
-  const [tabActiva, setTabActiva] = useState<string>('pos');
+  const [tabActiva, setTabActiva] = useState<string>(() => {
+    if (tabParam === 'caja') return 'caja';
+    if (tabParam && ['pos', 'dashboard', 'historial', 'pedidos', 'cotizaciones', 'devoluciones'].includes(tabParam)) {
+      return tabParam;
+    }
+    return 'pos';
+  });
+
+  useEffect(() => {
+    if (tabParam && tabParam !== tabActiva) {
+      setTabActiva(tabParam);
+    }
+  }, [tabParam]);
+
+  const handleTabChange = (val: string) => {
+    setTabActiva(val);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (val === 'pos') {
+          next.delete('tab');
+        } else {
+          next.set('tab', val);
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  };
 
   // Complejidad progresiva (adaptable al tamaño de negocio)
   const [nivelNegocio, setNivelNegocio] = useState<NivelComplejidadNegocio>('COMERCIO_MEDIANO');
@@ -167,9 +203,9 @@ export const VentasPage: React.FC = () => {
     <div className="space-y-4">
       {/* Encabezado Principal */}
       <PageHeader
-        title="Módulo de Ventas y Facturación"
-        description="Punto de venta rápido, comprobantes electrónicos SUNAT, pedidos, cotizaciones y devoluciones."
-        badge="POS KIPU'S"
+        title="Ventas y Caja"
+        description="Punto de venta (POS), historial de comprobantes, facturación electrónica y control diario de caja."
+        badge="Ventas & Caja"
       >
         <div className="flex flex-wrap items-center gap-2">
           {/* Selector de complejidad progresiva del negocio */}
@@ -216,17 +252,12 @@ export const VentasPage: React.FC = () => {
         </div>
       </PageHeader>
 
-      {/* Navegación por pestañas de ventas */}
-      <Tabs value={tabActiva} onValueChange={setTabActiva} className="w-full space-y-3.5">
+      {/* Navegación por pestañas de ventas y caja */}
+      <Tabs value={tabActiva} onValueChange={handleTabChange} className="w-full space-y-3.5">
         <TabsList className="bg-muted/70 p-1 flex overflow-x-auto flex-nowrap sm:flex-wrap h-auto gap-1 border border-border/60 max-w-full scrollbar-none justify-start">
           <TabsTrigger value="pos" className="text-xs font-semibold py-1.5 px-3 gap-1.5 shrink-0">
             <ShoppingCart className="h-3.5 w-3.5" />
             <span>Punto de Venta (POS)</span>
-          </TabsTrigger>
-
-          <TabsTrigger value="dashboard" className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0">
-            <LayoutDashboard className="h-3.5 w-3.5" />
-            <span>Resumen del Día</span>
           </TabsTrigger>
 
           <TabsTrigger value="historial" className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0">
@@ -234,8 +265,20 @@ export const VentasPage: React.FC = () => {
             <span>Historial de Comprobantes</span>
           </TabsTrigger>
 
-          {/* Pestañas habilitadas en Modo Comercio Mediano y Cadena */}
-          {nivelNegocio !== 'TIENDA_PEQUENA' && (
+          <TabsTrigger value="caja" className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0">
+            <DollarSign className="h-3.5 w-3.5" />
+            <span>Caja y Turnos</span>
+          </TabsTrigger>
+
+          {/* Pestañas administrativas avanzadas (ocultas para cajero) */}
+          {user?.rol !== 'CAJERO' && (
+            <TabsTrigger value="dashboard" className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0">
+              <LayoutDashboard className="h-3.5 w-3.5" />
+              <span>Resumen del Día</span>
+            </TabsTrigger>
+          )}
+
+          {user?.rol !== 'CAJERO' && nivelNegocio !== 'TIENDA_PEQUENA' && (
             <>
               <TabsTrigger value="pedidos" className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0">
                 <ShoppingBag className="h-3.5 w-3.5" />
@@ -249,8 +292,7 @@ export const VentasPage: React.FC = () => {
             </>
           )}
 
-          {/* Pestaña habilitada en Modo Cadena Empresarial */}
-          {nivelNegocio === 'CADENA_EMPRESARIAL' && (
+          {user?.rol !== 'CAJERO' && nivelNegocio === 'CADENA_EMPRESARIAL' && (
             <TabsTrigger value="devoluciones" className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0">
               <RotateCcw className="h-3.5 w-3.5" />
               <span>Devoluciones</span>
@@ -294,6 +336,13 @@ export const VentasPage: React.FC = () => {
             onVerDetalle={handleVerDetalleVenta}
             onIniciarDevolucion={handleIniciarDevolucionDesdeVenta}
           />
+        </TabsContent>
+
+        {/* ========================================================================= */}
+        {/* PESTAÑA 4: CAJA Y TURNOS                                                  */}
+        {/* ========================================================================= */}
+        <TabsContent value="caja" className="space-y-4">
+          <CajaPage embedded={true} />
         </TabsContent>
 
         {/* ========================================================================= */}

@@ -126,8 +126,8 @@ export const kipusIaService = {
           { label: 'Total Digital del Turno', value: formatCurrency(caja.totalVentasDigitales), badge: 'Total' },
         ];
         actions = [
-          { label: 'Ver Cuadre de Caja', path: APP_ROUTES.CAJA },
-          { label: 'Ver Movimientos del Turno', path: APP_ROUTES.CAJA },
+          { label: 'Ver Cuadre de Caja', path: '/ventas?tab=caja' },
+          { label: 'Ver Movimientos del Turno', path: '/ventas?tab=caja' },
         ];
       } else {
         const retiroSugerido = caja.saldoEfectivoEsperado > 800;
@@ -153,8 +153,8 @@ export const kipusIaService = {
         ];
 
         actions = [
-          { label: 'Realizar Cuadre de Caja', path: APP_ROUTES.CAJA, variant: 'primary' },
-          { label: 'Registrar Ingreso / Egreso', path: APP_ROUTES.CAJA },
+          { label: 'Realizar Cuadre de Caja', path: '/ventas?tab=caja', variant: 'primary' },
+          { label: 'Registrar Ingreso / Egreso', path: '/ventas?tab=caja' },
         ];
       }
     }
@@ -206,7 +206,7 @@ export const kipusIaService = {
           { label: 'Total productos monitoreados', value: `${productos.length} artículos` },
           { label: 'Productos bajo mínimo', value: '0 artículos', badge: 'Óptimo' },
         ];
-        actions = [{ label: 'Explorar Catálogo', path: APP_ROUTES.PRODUCTOS }];
+        actions = [{ label: 'Explorar Catálogo', path: APP_ROUTES.INVENTARIO }];
       }
     }
 
@@ -313,7 +313,7 @@ export const kipusIaService = {
       ];
 
       actions = [
-        { label: 'Ver Catálogo Completo', path: APP_ROUTES.PRODUCTOS },
+        { label: 'Ver Catálogo Completo', path: APP_ROUTES.INVENTARIO },
         { label: 'Ver Reportes de Rentabilidad', path: APP_ROUTES.REPORTES },
       ];
     }
@@ -355,7 +355,7 @@ export const kipusIaService = {
 
       actions = [
         { label: 'Ver Dashboard Ejecutivo', path: APP_ROUTES.DASHBOARD, variant: 'primary' },
-        { label: 'Ir a Cuadre de Caja', path: APP_ROUTES.CAJA },
+        { label: 'Ir a Cuadre de Caja', path: '/ventas?tab=caja' },
       ];
     }
 
@@ -380,7 +380,7 @@ export const kipusIaService = {
       ];
 
       actions = [
-        { label: 'Ver Cuadre de Caja', path: APP_ROUTES.CAJA },
+        { label: 'Ver Cuadre de Caja', path: '/ventas?tab=caja' },
         { label: 'Ver Reportes Comerciales', path: APP_ROUTES.REPORTES },
       ];
     }
@@ -433,7 +433,7 @@ export const kipusIaService = {
       ];
 
       actions = [
-        { label: 'Ver Cuadre de Caja', path: APP_ROUTES.CAJA },
+        { label: 'Ver Cuadre de Caja', path: '/ventas?tab=caja' },
         { label: 'Ver Inventario', path: APP_ROUTES.INVENTARIO },
         { label: 'Ver Ventas (POS)', path: APP_ROUTES.VENTAS },
       ];

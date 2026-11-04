@@ -1,16 +1,31 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Navigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { APP_ROUTES } from '@/constants/routes';
+import { canAccessRoute } from '../utils/permissions';
 import { Store, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface ProtectedRouteProps {
   children?: React.ReactNode;
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
+  const lastDeniedToastRef = useRef<string>('');
+
+  const hasAccess = isAuthenticated && canAccessRoute(location.pathname, user?.rol);
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && !hasAccess) {
+      const toastKey = `${user?.rol}-${location.pathname}`;
+      if (lastDeniedToastRef.current !== toastKey) {
+        lastDeniedToastRef.current = toastKey;
+        toast.error('Acceso denegado: Tu rol no tiene permisos para acceder a este módulo.');
+      }
+    }
+  }, [isLoading, isAuthenticated, hasAccess, user?.rol, location.pathname]);
 
   if (isLoading) {
     return (
@@ -30,6 +45,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   if (!isAuthenticated) {
     return <Navigate to={APP_ROUTES.LOGIN} state={{ from: location }} replace />;
+  }
+
+  // Si la ruta no está autorizada para este rol, redirigir a Inicio (Dashboard)
+  if (!hasAccess) {
+    return <Navigate to={APP_ROUTES.DASHBOARD} replace />;
   }
 
   return children ? <>{children}</> : <Outlet />;

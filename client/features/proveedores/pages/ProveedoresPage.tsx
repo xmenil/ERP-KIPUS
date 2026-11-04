@@ -54,7 +54,11 @@ import { toast } from 'sonner';
 type FiltroTab = 'TODOS' | 'CREDITO' | 'CONTADO' | 'CON_DEUDA';
 type TipoVista = 'TABLA' | 'TARJETAS';
 
-export const ProveedoresPage: React.FC = () => {
+export interface ProveedoresPageProps {
+  embedded?: boolean;
+}
+
+export const ProveedoresPage: React.FC<ProveedoresPageProps> = ({ embedded = false }) => {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -189,38 +193,66 @@ export const ProveedoresPage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* 1. Header Principal */}
-      <PageHeader
-        title="Directorio de Proveedores"
-        description="Gestión integral de empresas proveedoras, datos fiscales, canales de contacto y acuerdos de pago"
-        badge="Catálogo Homologado"
-      >
-        <div className="flex items-center gap-2">
-          {/* Botón Exportar */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportarCsv}
-            className="h-9 text-xs font-semibold gap-1.5"
-            title="Exportar directorio de proveedores"
-          >
-            <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Exportar</span>
-          </Button>
-
-          {/* Botón Nuevo Proveedor */}
-          <Button
-            size="sm"
-            onClick={() => {
-              setProveedorAEditar(null);
-              setFormModalOpen(true);
-            }}
-            className="h-9 font-semibold text-xs gap-1.5 shadow-sm"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Nuevo proveedor</span>
-          </Button>
+      {!embedded ? (
+        <PageHeader
+          title="Directorio de Proveedores"
+          description="Gestión integral de empresas proveedoras, datos fiscales, canales de contacto y acuerdos de pago"
+          badge="Catálogo Homologado"
+        >
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportarCsv}
+              className="h-9 text-xs font-semibold gap-1.5"
+              title="Exportar directorio de proveedores"
+            >
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Exportar</span>
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                setProveedorAEditar(null);
+                setFormModalOpen(true);
+              }}
+              className="h-9 font-semibold text-xs gap-1.5 shadow-sm"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Nuevo proveedor</span>
+            </Button>
+          </div>
+        </PageHeader>
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
+          <div>
+            <h3 className="text-base font-semibold text-foreground">Directorio de Proveedores</h3>
+            <p className="text-xs text-muted-foreground">Empresas proveedoras, acuerdos comerciales y contactos.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportarCsv}
+              className="h-8 text-xs font-semibold gap-1.5"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Exportar</span>
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                setProveedorAEditar(null);
+                setFormModalOpen(true);
+              }}
+              className="h-8 font-semibold text-xs gap-1.5 shadow-xs"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Nuevo proveedor</span>
+            </Button>
+          </div>
         </div>
-      </PageHeader>
+      )}
 
       {/* 2. Cuatro Tarjetas de Métricas Clave */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

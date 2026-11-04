@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { ProveedoresPage } from '@/features/proveedores/pages/ProveedoresPage';
 import {
   Table,
   TableBody,
@@ -43,6 +47,37 @@ const CONDICION_PAGO_LABELS: Record<string, string> = {
 };
 
 export const ComprasPage: React.FC = () => {
+  const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+
+  const [activeTab, setActiveTab] = useState<'ordenes' | 'proveedores'>(() => {
+    return tabParam === 'proveedores' ? 'proveedores' : 'ordenes';
+  });
+
+  useEffect(() => {
+    if (tabParam === 'proveedores' || tabParam === 'ordenes') {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
+
+  const handleTabChange = (val: string) => {
+    const nextTab = val as 'ordenes' | 'proveedores';
+    setActiveTab(nextTab);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (nextTab === 'ordenes') {
+          next.delete('tab');
+        } else {
+          next.set('tab', nextTab);
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  };
+
   const [compras, setCompras] = useState<Compra[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -131,42 +166,63 @@ export const ComprasPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Encabezado y Acción Primaria Única */}
+      {/* Encabezado Principal */}
       <PageHeader
-        title="Gestión de Compras y Abastecimiento"
-        description="Recepción de facturas de proveedores, órdenes de compra y control de cuentas por pagar"
-        badge="Recepción Mercadería"
+        title="Compras y Proveedores"
+        description="Órdenes de compra, recepción de mercadería y gestión de empresas proveedoras."
+        badge="Abastecimiento"
       >
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setModalRecomendacionOpen(true)}
-            className="h-9 gap-1.5 border-primary/30 text-primary hover:bg-primary-soft shadow-2xs font-semibold text-xs"
-          >
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span>Sugerencia de compra</span>
-            {sugerencias.totalProductosSugeridos > 0 && (
-              <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-danger-soft text-danger-text text-[10px] font-bold">
-                {sugerencias.totalProductosSugeridos}
-              </span>
-            )}
-          </Button>
+        {activeTab === 'ordenes' && (
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setModalRecomendacionOpen(true)}
+              className="h-9 gap-1.5 border-primary/30 text-primary hover:bg-primary-soft shadow-2xs font-semibold text-xs"
+            >
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span>Sugerencia de compra</span>
+              {sugerencias.totalProductosSugeridos > 0 && (
+                <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-danger-soft text-danger-text text-[10px] font-bold">
+                  {sugerencias.totalProductosSugeridos}
+                </span>
+              )}
+            </Button>
 
-          <Button
-            size="sm"
-            onClick={() => {
-              setItemsParaOrden(null);
-              setProveedorParaOrden(null);
-              setOpenModal(true);
-            }}
-            className="h-9 gap-2 bg-primary text-primary-foreground font-semibold shadow-2xs"
-          >
-            <PlusCircle className="h-4 w-4" />
-            <span>Nueva orden de compra</span>
-          </Button>
-        </div>
+            <Button
+              size="sm"
+              onClick={() => {
+                setItemsParaOrden(null);
+                setProveedorParaOrden(null);
+                setOpenModal(true);
+              }}
+              className="h-9 gap-2 bg-primary text-primary-foreground font-semibold shadow-2xs"
+            >
+              <PlusCircle className="h-4 w-4" />
+              <span>
+                {user?.rol === 'ALMACENERO' || user?.rol === 'SUPERVISOR'
+                  ? 'Registrar recepción de orden'
+                  : 'Nueva orden de compra'}
+              </span>
+            </Button>
+          </div>
+        )}
       </PageHeader>
+
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full space-y-4">
+        <TabsList className="bg-muted/70 p-1 flex overflow-x-auto flex-nowrap sm:flex-wrap h-auto gap-1 border border-border/60 max-w-full scrollbar-none justify-start">
+          <TabsTrigger value="ordenes" className="text-xs font-semibold py-1.5 px-3 gap-1.5 shrink-0">
+            <Truck className="h-3.5 w-3.5" />
+            <span>Órdenes y Recepción</span>
+          </TabsTrigger>
+
+          <TabsTrigger value="proveedores" className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0">
+            <Building2 className="h-3.5 w-3.5" />
+            <span>Directorio de Proveedores</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="ordenes" className="space-y-4 m-0 focus-visible:outline-none">
 
       {/* Banner de Abastecimiento Inteligente si hay productos críticos o de alta rotación */}
       {sugerencias.totalProductosSugeridos > 0 && (
@@ -421,6 +477,12 @@ export const ComprasPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
+      </TabsContent>
+
+      <TabsContent value="proveedores" className="space-y-4 m-0 focus-visible:outline-none">
+        <ProveedoresPage embedded={true} />
+      </TabsContent>
+      </Tabs>
 
       {/* Modal de Recomendación Inteligente de Compra */}
       <RecomendacionComprasModal

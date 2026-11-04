@@ -27,10 +27,9 @@ export const NotFound: React.FC = () => {
   };
 
   const quickLinks = [
-    { name: 'Dashboard', path: APP_ROUTES.DASHBOARD, icon: LayoutDashboard },
-    { name: 'Punto de Venta', path: APP_ROUTES.VENTAS, icon: ShoppingCart },
+    { name: 'Inicio', path: APP_ROUTES.DASHBOARD, icon: LayoutDashboard },
+    { name: 'Ventas y caja', path: APP_ROUTES.VENTAS, icon: ShoppingCart },
     { name: 'Inventario', path: APP_ROUTES.INVENTARIO, icon: Warehouse },
-    { name: 'Caja del Día', path: APP_ROUTES.CAJA, icon: DollarSign },
   ];
 
   return (

@@ -54,7 +54,11 @@ import { toast } from 'sonner';
 type NivelComplejidad = 'BODEGA' | 'MEDIANO' | 'EMPRESARIAL';
 type TabCaja = 'MI_CAJA' | 'MOVIMIENTOS' | 'ARQUEO' | 'CIERRES' | 'CAJAS' | 'AUDITORIA';
 
-export const CajaPage: React.FC = () => {
+export interface CajaPageProps {
+  embedded?: boolean;
+}
+
+export const CajaPage: React.FC<CajaPageProps> = ({ embedded = false }) => {
   // Estado de Datos
   const [estado, setEstado] = useState<EstadoCaja | null>(null);
   const [movimientos, setMovimientos] = useState<MovimientoCaja[]>([]);
@@ -219,12 +223,13 @@ export const CajaPage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* 1. Header Principal con Estado Semántico y Selector Progresivo */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border/80 pb-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-              Módulo de Caja
-            </h1>
+      {!embedded && (
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border/80 pb-4">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                Módulo de Caja
+              </h1>
             {/* Estado Semántico (Regla 6) */}
             <span
               className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-medium border ${
@@ -306,6 +311,7 @@ export const CajaPage: React.FC = () => {
           )}
         </div>
       </div>
+      )}
 
       {/* 2. Barra de Navegación por Tabs Adaptativa (Reglas 3 y 35) */}
       <div className="flex items-center gap-1.5 border-b border-border overflow-x-auto pb-px scrollbar-none">

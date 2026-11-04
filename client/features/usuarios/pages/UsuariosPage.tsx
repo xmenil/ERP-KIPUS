@@ -49,10 +49,14 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-type FiltroTab = 'TODOS' | 'ADMINISTRADOR' | 'CAJERO' | 'SUPERVISOR' | 'ACTIVO';
+type FiltroTab = 'TODOS' | 'ADMINISTRADOR' | 'CAJERO' | 'SUPERVISOR' | 'ALMACENERO' | 'ACTIVO';
 type TipoVista = 'TABLA' | 'TARJETAS';
 
-export const UsuariosPage: React.FC = () => {
+export interface UsuariosPageProps {
+  embedded?: boolean;
+}
+
+export const UsuariosPage: React.FC<UsuariosPageProps> = ({ embedded = false }) => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -184,7 +188,7 @@ export const UsuariosPage: React.FC = () => {
       // Filtro por tab
       if (filtroTab === 'ADMINISTRADOR' && u.rol !== 'ADMINISTRADOR') return false;
       if (filtroTab === 'CAJERO' && u.rol !== 'CAJERO') return false;
-      if (filtroTab === 'SUPERVISOR' && u.rol !== 'SUPERVISOR') return false;
+      if ((filtroTab === 'SUPERVISOR' || filtroTab === 'ALMACENERO') && u.rol !== 'SUPERVISOR' && u.rol !== 'ALMACENERO') return false;
       if (filtroTab === 'ACTIVO' && u.estado !== 'ACTIVO') return false;
 
       // Filtro por texto
@@ -216,10 +220,11 @@ export const UsuariosPage: React.FC = () => {
             Administrador
           </span>
         );
+      case 'ALMACENERO':
       case 'SUPERVISOR':
         return (
           <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-300 dark:border-blue-800">
-            Supervisor
+            Almacenero
           </span>
         );
       case 'CAJERO':
@@ -236,31 +241,59 @@ export const UsuariosPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Encabezado */}
-      <PageHeader
-        title="Usuarios y Seguridad del Sistema"
-        description="Gestión de cuentas, roles de acceso, contraseñas y asignación de sucursales para el personal"
-        badge="Seguridad KIPU'S"
-      >
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportarCsv}
-            className="h-9 text-xs gap-1.5 border-border"
-          >
-            <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Exportar CSV</span>
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleNuevoUsuario}
-            className="h-9 text-xs gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Nuevo Usuario</span>
-          </Button>
+      {!embedded ? (
+        <PageHeader
+          title="Usuarios y Seguridad del Sistema"
+          description="Gestión de cuentas, roles de acceso, contraseñas y asignación de sucursales para el personal"
+          badge="Seguridad KIPU'S"
+        >
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportarCsv}
+              className="h-9 text-xs gap-1.5 border-border"
+            >
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Exportar CSV</span>
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleNuevoUsuario}
+              className="h-9 text-xs gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Nuevo Usuario</span>
+            </Button>
+          </div>
+        </PageHeader>
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
+          <div>
+            <h3 className="text-base font-semibold text-foreground">Cuentas y roles del personal</h3>
+            <p className="text-xs text-muted-foreground">Administra credenciales, perfiles y sucursales asignadas.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportarCsv}
+              className="h-8 text-xs gap-1.5 border-border"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Exportar CSV</span>
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleNuevoUsuario}
+              className="h-8 text-xs gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Nuevo Usuario</span>
+            </Button>
+          </div>
         </div>
-      </PageHeader>
+      )}
 
       {/* Tarjetas Métricas Responsivas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">

@@ -472,7 +472,7 @@ export const LoginPage: React.FC = () => {
                   <span className="text-[10px] text-muted-foreground">Demo local</span>
                 </div>
                 <div className="grid grid-cols-3 gap-1.5 text-xs">
-                  {DEMO_USERS.map((demo) => {
+                  {DEMO_USERS.filter((u) => u.id !== 'user-super').map((demo) => {
                     const isSelected = identifier === demo.username;
                     const label =
                       demo.rol === 'ADMINISTRADOR'

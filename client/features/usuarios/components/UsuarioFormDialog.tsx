@@ -50,6 +50,11 @@ const ROLES_INFO: Record<UserRole, { label: string; desc: string; color: string 
     desc: 'Gestión de inventario, recepción de compras, movimientos de kardex y catálogo.',
     color: 'text-blue-700 bg-blue-50 dark:text-blue-300 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800',
   },
+  ALMACENERO: {
+    label: 'Almacenero',
+    desc: 'Gestión de inventario, entradas, salidas, conteos físicos y recepción de mercadería.',
+    color: 'text-blue-700 bg-blue-50 dark:text-blue-300 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800',
+  },
   CAJERO: {
     label: 'Cajero / Punto de Venta',
     desc: 'Emisión de comprobantes, apertura/cierre de caja chica y cobros en POS.',
@@ -293,13 +298,23 @@ export const UsuarioFormDialog: React.FC<UsuarioFormDialogProps> = ({
                     </span>
                   </div>
                 </SelectItem>
+                <SelectItem value="ALMACENERO">
+                  <div className="py-0.5">
+                    <span className="font-semibold text-blue-700 dark:text-blue-400">
+                      Almacenero
+                    </span>
+                    <span className="text-[11px] text-muted-foreground block">
+                      Gestión de kardex, existencias, conteos y recepción
+                    </span>
+                  </div>
+                </SelectItem>
                 <SelectItem value="SUPERVISOR">
                   <div className="py-0.5">
                     <span className="font-semibold text-blue-700 dark:text-blue-400">
-                      Supervisor / Almacén
+                      Supervisor de Almacén
                     </span>
                     <span className="text-[11px] text-muted-foreground block">
-                      Gestión de kardex, productos y compras
+                      Supervisión de kardex, productos y compras
                     </span>
                   </div>
                 </SelectItem>

@@ -44,6 +44,11 @@ const ROLES_BADGES: Record<string, { label: string; color: string; desc: string 
     color: 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border-blue-300 dark:border-blue-800',
     desc: 'Gestión de inventario, recepción de compras, movimientos de kardex y catálogo.',
   },
+  ALMACENERO: {
+    label: 'Almacenero',
+    color: 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border-blue-300 dark:border-blue-800',
+    desc: 'Gestión de inventario, entradas, salidas, conteos físicos y recepción de mercadería.',
+  },
   CAJERO: {
     label: 'Cajero / Punto de Venta',
     color: 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border-amber-300 dark:border-amber-800',

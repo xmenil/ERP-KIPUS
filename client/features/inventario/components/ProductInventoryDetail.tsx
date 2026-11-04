@@ -19,6 +19,7 @@ interface ProductInventoryDetailProps {
   producto: ItemStockDetalle | null;
   movimientosProducto: MovimientoStock[];
   onIrAEntradasSalidas: (sku: string, nombre: string) => void;
+  onEditarProducto?: (producto: ItemStockDetalle) => void;
 }
 
 /**
@@ -31,6 +32,7 @@ export const ProductInventoryDetail: React.FC<ProductInventoryDetailProps> = ({
   producto,
   movimientosProducto,
   onIrAEntradasSalidas,
+  onEditarProducto,
 }) => {
   if (!producto) return null;
 
@@ -198,15 +200,31 @@ export const ProductInventoryDetail: React.FC<ProductInventoryDetailProps> = ({
 
         {/* Pie con Botón de Navegación "Ver entradas y salidas" */}
         <DialogFooter className="p-4 border-t border-border bg-muted/20 flex flex-row items-center justify-between gap-2 sm:justify-between">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => onOpenChange(false)}
-            className="text-xs h-9 text-muted-foreground hover:text-foreground"
-          >
-            Cerrar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => onOpenChange(false)}
+              className="text-xs h-9 text-muted-foreground hover:text-foreground"
+            >
+              Cerrar
+            </Button>
+            {onEditarProducto && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  onOpenChange(false);
+                  onEditarProducto(producto);
+                }}
+                className="text-xs h-9 font-medium"
+              >
+                Editar producto
+              </Button>
+            )}
+          </div>
 
           <Button
             type="button"

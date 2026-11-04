@@ -31,7 +31,11 @@ import {
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-export const ClientesPage: React.FC = () => {
+export interface ClientesPageProps {
+  embedded?: boolean;
+}
+
+export const ClientesPage: React.FC<ClientesPageProps> = ({ embedded = false }) => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -88,20 +92,37 @@ export const ClientesPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Encabezado y Acción Primaria Única */}
-      <PageHeader
-        title="Directorio de Clientes"
-        description="Ficha de clientes (DNI / RUC), cuentas corrientes comerciales e historial de compras"
-        badge="Directorio Comercial"
-      >
-        <Button
-          size="sm"
-          onClick={() => setOpenModal(true)}
-          className="h-9 gap-2 bg-primary text-primary-foreground font-semibold shadow-2xs w-full sm:w-auto"
+      {!embedded ? (
+        <PageHeader
+          title="Directorio de Clientes"
+          description="Ficha de clientes (DNI / RUC), cuentas corrientes comerciales e historial de compras"
+          badge="Directorio Comercial"
         >
-          <UserPlus className="h-4 w-4" />
-          <span>Registrar cliente</span>
-        </Button>
-      </PageHeader>
+          <Button
+            size="sm"
+            onClick={() => setOpenModal(true)}
+            className="h-9 gap-2 bg-primary text-primary-foreground font-semibold shadow-2xs w-full sm:w-auto"
+          >
+            <UserPlus className="h-4 w-4" />
+            <span>Registrar cliente</span>
+          </Button>
+        </PageHeader>
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
+          <div>
+            <h3 className="text-base font-semibold text-foreground">Directorio de Clientes</h3>
+            <p className="text-xs text-muted-foreground">Consulta de clientes, DNI/RUC y registro rápido.</p>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => setOpenModal(true)}
+            className="h-8 gap-1.5 bg-primary text-primary-foreground font-semibold shadow-xs"
+          >
+            <UserPlus className="h-3.5 w-3.5" />
+            <span>Registrar cliente</span>
+          </Button>
+        </div>
+      )}
 
       {/* Tarjetas KPI de Resumen */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

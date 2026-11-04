@@ -5,6 +5,8 @@ export interface DashboardMetrics {
   productosBajoStock: number;
   saldoCaja: number;
   comprasMes: number;
+  totalProductosActivos?: number;
+  comprasPendientes?: number;
 }
 
 export type MetodoPago =
