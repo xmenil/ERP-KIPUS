@@ -1,40 +1,62 @@
 @startuml
-skinparam defaultFontName "Segoe UI", Arial, sans-serif
-skinparam defaultFontSize 11
-skinparam roundCorner 8
-skinparam shadowing false
-skinparam ArrowColor #2C3E50
-skinparam ArrowThickness 1.2
-
-skinparam activity {
-  BackgroundColor #EBF5FB
-  BorderColor #2980B9
-  BorderThickness 1.2
+<style>
+activityDiagram {
+  BackgroundColor #F8F9FA
+  BorderColor #2C3E50
   FontColor #1A252F
+  FontSize 13
+  FontName "Segoe UI", Arial, sans-serif
+  RoundCorner 12
+  Padding 10
+  Margin 8
+
+  .verde {
+    BackgroundColor #D4EFDF
+    BorderColor #27AE60
+    FontColor #145A32
+  }
+  .amarillo {
+    BackgroundColor #FCF3CF
+    BorderColor #F39C12
+    FontColor #7D6608
+  }
+  .azul {
+    BackgroundColor #D4E6F1
+    BorderColor #2980B9
+    FontColor #154360
+  }
+  .morado {
+    BackgroundColor #E8DAEF
+    BorderColor #8E44AD
+    FontColor #4A235A
+  }
+  .rojo {
+    BackgroundColor #FADBD8
+    BorderColor #C0392B
+    FontColor #78281F
+  }
 }
-skinparam decision {
-  BackgroundColor #FEF9E7
-  BorderColor #F39C12
-  BorderThickness 1.2
-  FontColor #7D6608
-}
-skinparam start {
-  Color #27AE60
-}
-skinparam stop {
-  Color #C0392B
-}
+</style>
+
+skinparam defaultFontName "Segoe UI", Arial, sans-serif
+skinparam ArrowColor #2C3E50
+skinparam ArrowThickness 1.8
+skinparam activityStartColor #27AE60
+skinparam activityEndColor #C0392B
+skinparam activityDiamondBackgroundColor #FCF3CF
+skinparam activityDiamondBorderColor #F39C12
+skinparam activityDiamondFontColor #7D6608
+skinparam activityDiamondFontSize 12
 
 title F08 - Sugerencia de Reabastecimiento
 
 start
-:Abrir Compras -> Clic en "Sugerencias de Compra";
-#F4ECF7:Analizar ventas de 30 días y productos bajo stock;
-#F4ECF7:Calcular velocidad diaria y días de cobertura restantes;
-#F4ECF7:Sugerir unidades a comprar para 30 días de inventario;
-:Presentar matriz priorizada con proveedor habitual;
-:Usuario valida o modifica cantidades sugeridas;
-:Clic en "Generar Orden de Compra";
-#E8F8F5:Crear orden de compra en estado BORRADOR;
+:Ingresar a Compras y seleccionar Sugerencias; <<azul>>
+:Analizar ventas de 30 días y stock mínimo; <<morado>>
+:Calcular velocidad diaria y días de cobertura; <<morado>>
+:Calcular unidades para 30 días de inventario; <<amarillo>>
+:Revisar matriz de reposición con proveedor habitual; <<azul>>
+:Ajustar y confirmar cantidades requeridas; <<azul>>
+:Generar Orden de Compra en BORRADOR; <<verde>>
 stop
 @enduml

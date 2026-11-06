@@ -1,53 +1,75 @@
 @startuml
-skinparam defaultFontName "Segoe UI", Arial, sans-serif
-skinparam defaultFontSize 11
-skinparam roundCorner 8
-skinparam shadowing false
-skinparam ArrowColor #2C3E50
-skinparam ArrowThickness 1.2
-
-skinparam activity {
-  BackgroundColor #EBF5FB
-  BorderColor #2980B9
-  BorderThickness 1.2
+<style>
+activityDiagram {
+  BackgroundColor #F8F9FA
+  BorderColor #2C3E50
   FontColor #1A252F
+  FontSize 13
+  FontName "Segoe UI", Arial, sans-serif
+  RoundCorner 12
+  Padding 10
+  Margin 8
+
+  .verde {
+    BackgroundColor #D4EFDF
+    BorderColor #27AE60
+    FontColor #145A32
+  }
+  .amarillo {
+    BackgroundColor #FCF3CF
+    BorderColor #F39C12
+    FontColor #7D6608
+  }
+  .azul {
+    BackgroundColor #D4E6F1
+    BorderColor #2980B9
+    FontColor #154360
+  }
+  .morado {
+    BackgroundColor #E8DAEF
+    BorderColor #8E44AD
+    FontColor #4A235A
+  }
+  .rojo {
+    BackgroundColor #FADBD8
+    BorderColor #C0392B
+    FontColor #78281F
+  }
 }
-skinparam decision {
-  BackgroundColor #FEF9E7
-  BorderColor #F39C12
-  BorderThickness 1.2
-  FontColor #7D6608
-}
-skinparam start {
-  Color #27AE60
-}
-skinparam stop {
-  Color #C0392B
-}
+</style>
+
+skinparam defaultFontName "Segoe UI", Arial, sans-serif
+skinparam ArrowColor #2C3E50
+skinparam ArrowThickness 1.8
+skinparam activityStartColor #27AE60
+skinparam activityEndColor #C0392B
+skinparam activityDiamondBackgroundColor #FCF3CF
+skinparam activityDiamondBorderColor #F39C12
+skinparam activityDiamondFontColor #7D6608
+skinparam activityDiamondFontSize 12
 
 title F03 - Turno y Cuadre de Caja
 
 start
-:Clic en "$ Cuadre de caja";
+:Ingresar a Módulo Caja; <<azul>>
 
-if (¿Caja está abierta?) then (No)
-  :Ingresar fondo inicial de sencillo (ej. S/ 150);
-  #E8F8F5:Abrir turno de caja;
+if (¿Caja abierta?) then (No)
+  :Ingresar fondo inicial de sencillo; <<azul>>
+  :Aperturar turno de caja; <<verde>>
 else (Sí)
-  :Continuar operaciones activas del turno;
+  :Continuar operaciones de ventas y cobros; <<azul>>
 endif
 
-:Cobros de ventas POS y egresos menores;
-:Fin de jornada: Clic en "Cerrar Caja";
-:Cajero digita efectivo físico contado en gaveta;
+:Llegar al fin de jornada y pulsar Cerrar Caja; <<azul>>
+:Contar efectivo físico e ingresar montos; <<azul>>
+:Calcular diferencia entre sistema y dinero físico; <<morado>>
 
-if (¿Diferencia === 0?) then (Sí)
-  #E8F8F5:Cierre "CUADRADA";
+if (¿Diferencia es S/ 0.00?) then (Sí)
+  :Cerrar turno con estado CUADRADA; <<verde>>
+  stop
 else (No)
-  #FDEDEC:Cierre "CON DIFERENCIA" (Faltante o Sobrante);
-  :Ingresar motivo obligatorio de descuadre;
+  :Registrar motivo de faltante o sobrante; <<amarillo>>
+  :Cerrar turno con estado CON DIFERENCIA; <<rojo>>
+  stop
 endif
-
-#E8F8F5:Cerrar caja y emitir reporte de turno;
-stop
 @enduml

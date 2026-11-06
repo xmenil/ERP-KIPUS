@@ -1,47 +1,74 @@
 @startuml
-skinparam defaultFontName "Segoe UI", Arial, sans-serif
-skinparam defaultFontSize 11
-skinparam roundCorner 8
-skinparam shadowing false
-skinparam ArrowColor #2C3E50
-skinparam ArrowThickness 1.2
-
-skinparam activity {
-  BackgroundColor #EBF5FB
-  BorderColor #2980B9
-  BorderThickness 1.2
+<style>
+activityDiagram {
+  BackgroundColor #F8F9FA
+  BorderColor #2C3E50
   FontColor #1A252F
+  FontSize 13
+  FontName "Segoe UI", Arial, sans-serif
+  RoundCorner 12
+  Padding 10
+  Margin 8
+
+  .verde {
+    BackgroundColor #D4EFDF
+    BorderColor #27AE60
+    FontColor #145A32
+  }
+  .amarillo {
+    BackgroundColor #FCF3CF
+    BorderColor #F39C12
+    FontColor #7D6608
+  }
+  .azul {
+    BackgroundColor #D4E6F1
+    BorderColor #2980B9
+    FontColor #154360
+  }
+  .morado {
+    BackgroundColor #E8DAEF
+    BorderColor #8E44AD
+    FontColor #4A235A
+  }
+  .rojo {
+    BackgroundColor #FADBD8
+    BorderColor #C0392B
+    FontColor #78281F
+  }
 }
-skinparam decision {
-  BackgroundColor #FEF9E7
-  BorderColor #F39C12
-  BorderThickness 1.2
-  FontColor #7D6608
-}
-skinparam start {
-  Color #27AE60
-}
-skinparam stop {
-  Color #C0392B
-}
+</style>
+
+skinparam defaultFontName "Segoe UI", Arial, sans-serif
+skinparam ArrowColor #2C3E50
+skinparam ArrowThickness 1.8
+skinparam activityStartColor #27AE60
+skinparam activityEndColor #C0392B
+skinparam activityDiamondBackgroundColor #FCF3CF
+skinparam activityDiamondBorderColor #F39C12
+skinparam activityDiamondFontColor #7D6608
+skinparam activityDiamondFontSize 12
 
 title F07 - Conteo Físico y Ajuste de Mermas
 
 start
-:Almacenero cuenta unidades reales en anaquel;
-:Abrir "Inventario físico" y digitar stock contado;
-#F4ECF7:Calcular Diferencia = Stock Físico - Stock Sistema;
+:Realizar conteo físico en anaquel de almacén; <<azul>>
+:Ingresar a Inventario y digitar cantidad contada; <<azul>>
+:Calcular diferencia contra stock en sistema; <<morado>>
 
-if (¿Diferencia === 0?) then (Sí)
-  #E8F8F5:Stock exacto (Sin cambios requeridos);
-elseif (¿Diferencia < 0?) then (Faltante)
-  #FDEDEC:Merma detectada (Vencimiento, Rotura, Pérdida);
-  :Seleccionar motivo obligatorio de merma;
-  #F4ECF7:Aplicar ajuste: Descontar stock y registrar Kardex;
+if (¿Diferencia es 0?) then (Sí)
+  :Confirmar inventario exacto sin variaciones; <<verde>>
+  stop
+elseif (¿Diferencia menor a 0?) then (Faltante)
+  :Identificar merma por daño o vencimiento; <<rojo>>
+  :Seleccionar justificación obligatoria; <<amarillo>>
+  :Descontar stock y asentar salida en Kardex; <<morado>>
+  :Finalizar ajuste con merma registrada; <<rojo>>
+  stop
 else (Sobrante)
-  #FEF9E7:Sobrante detectado (Ingreso no anotado);
-  :Seleccionar motivo obligatorio de ajuste;
-  #F4ECF7:Aplicar ajuste: Aumentar stock y registrar Kardex;
+  :Identificar producto no registrado en compra; <<amarillo>>
+  :Seleccionar justificación de ingreso; <<amarillo>>
+  :Aumentar stock y asentar entrada en Kardex; <<morado>>
+  :Finalizar ajuste con sobrante regularizado; <<verde>>
+  stop
 endif
-stop
 @enduml

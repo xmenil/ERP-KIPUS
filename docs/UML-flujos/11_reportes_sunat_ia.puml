@@ -1,49 +1,74 @@
 @startuml
-skinparam defaultFontName "Segoe UI", Arial, sans-serif
-skinparam defaultFontSize 11
-skinparam roundCorner 8
-skinparam shadowing false
-skinparam ArrowColor #2C3E50
-skinparam ArrowThickness 1.2
-
-skinparam activity {
-  BackgroundColor #EBF5FB
-  BorderColor #2980B9
-  BorderThickness 1.2
+<style>
+activityDiagram {
+  BackgroundColor #F8F9FA
+  BorderColor #2C3E50
   FontColor #1A252F
-}
-skinparam decision {
-  BackgroundColor #FEF9E7
-  BorderColor #F39C12
-  BorderThickness 1.2
-  FontColor #7D6608
-}
-skinparam start {
-  Color #27AE60
-}
-skinparam stop {
-  Color #C0392B
-}
+  FontSize 13
+  FontName "Segoe UI", Arial, sans-serif
+  RoundCorner 12
+  Padding 10
+  Margin 8
 
-title F11 - Liquidación SUNAT y KIPU'S IA
+  .verde {
+    BackgroundColor #D4EFDF
+    BorderColor #27AE60
+    FontColor #145A32
+  }
+  .amarillo {
+    BackgroundColor #FCF3CF
+    BorderColor #F39C12
+    FontColor #7D6608
+  }
+  .azul {
+    BackgroundColor #D4E6F1
+    BorderColor #2980B9
+    FontColor #154360
+  }
+  .morado {
+    BackgroundColor #E8DAEF
+    BorderColor #8E44AD
+    FontColor #4A235A
+  }
+  .rojo {
+    BackgroundColor #FADBD8
+    BorderColor #C0392B
+    FontColor #78281F
+  }
+}
+</style>
+
+skinparam defaultFontName "Segoe UI", Arial, sans-serif
+skinparam ArrowColor #2C3E50
+skinparam ArrowThickness 1.8
+skinparam activityStartColor #27AE60
+skinparam activityEndColor #C0392B
+skinparam activityDiamondBackgroundColor #FCF3CF
+skinparam activityDiamondBorderColor #F39C12
+skinparam activityDiamondFontColor #7D6608
+skinparam activityDiamondFontSize 12
+
+title F11 - Reportes del Negocio, SUNAT y KIPU'S IA
 
 start
 if (¿Canal de consulta?) then (Módulo Reportes)
-  :Abrir módulo "Reportes";
-  fork
-    :Pestaña Financiera: Ventas - Costos = Utilidad Bruta;
-    :Restar Gastos Operativos = Utilidad Neta;
-  fork again
-    :Pestaña SUNAT: IGV Ventas vs IGV Compras;
-    #FEF9E7:Calcular impuesto estimado a pagar ante SUNAT;
-  fork again
-    #E8F8F5:Exportar balance e inventario a CSV;
-  end fork
+  :Ingresar a módulo Reportes; <<azul>>
+  switch (¿Reporte a generar?)
+  case ([Financiero])
+    :Calcular Utilidad Bruta y Utilidad Neta; <<morado>>
+    stop
+  case ([Tributario])
+    :Calcular balance IGV Ventas vs Compras SUNAT; <<amarillo>>
+    stop
+  case ([Exportación])
+    :Descargar Kardex y Existencias en Excel/CSV; <<verde>>
+    stop
+  endswitch
 else (Asistente KIPU'S IA)
-  :Clic en botón "KIPU'S IA" en Inicio;
-  :Dictar consulta por voz o escribir en chat;
-  #F4ECF7:IA analiza: caja, ventas de hoy y stock crítico;
-  #E8F8F5:Devolver diagnóstico 360 con botones de acción directa;
+  :Pulsar botón KIPU'S IA en Inicio o Reportes; <<azul>>
+  :Hacer consulta por texto o comando de voz; <<azul>>
+  :Analizar caja, ventas del día y stock crítico; <<morado>>
+  :Devolver diagnóstico inteligente con atajos; <<verde>>
+  stop
 endif
-stop
 @enduml

@@ -1,52 +1,75 @@
 @startuml
-skinparam defaultFontName "Segoe UI", Arial, sans-serif
-skinparam defaultFontSize 11
-skinparam roundCorner 8
-skinparam shadowing false
-skinparam ArrowColor #2C3E50
-skinparam ArrowThickness 1.2
-
-skinparam activity {
-  BackgroundColor #EBF5FB
-  BorderColor #2980B9
-  BorderThickness 1.2
+<style>
+activityDiagram {
+  BackgroundColor #F8F9FA
+  BorderColor #2C3E50
   FontColor #1A252F
+  FontSize 13
+  FontName "Segoe UI", Arial, sans-serif
+  RoundCorner 12
+  Padding 10
+  Margin 8
+
+  .verde {
+    BackgroundColor #D4EFDF
+    BorderColor #27AE60
+    FontColor #145A32
+  }
+  .amarillo {
+    BackgroundColor #FCF3CF
+    BorderColor #F39C12
+    FontColor #7D6608
+  }
+  .azul {
+    BackgroundColor #D4E6F1
+    BorderColor #2980B9
+    FontColor #154360
+  }
+  .morado {
+    BackgroundColor #E8DAEF
+    BorderColor #8E44AD
+    FontColor #4A235A
+  }
+  .rojo {
+    BackgroundColor #FADBD8
+    BorderColor #C0392B
+    FontColor #78281F
+  }
 }
-skinparam decision {
-  BackgroundColor #FEF9E7
-  BorderColor #F39C12
-  BorderThickness 1.2
-  FontColor #7D6608
-}
-skinparam start {
-  Color #27AE60
-}
-skinparam stop {
-  Color #C0392B
-}
+</style>
+
+skinparam defaultFontName "Segoe UI", Arial, sans-serif
+skinparam ArrowColor #2C3E50
+skinparam ArrowThickness 1.8
+skinparam activityStartColor #27AE60
+skinparam activityEndColor #C0392B
+skinparam activityDiamondBackgroundColor #FCF3CF
+skinparam activityDiamondBorderColor #F39C12
+skinparam activityDiamondFontColor #7D6608
+skinparam activityDiamondFontSize 12
 
 title F01 - Monitoreo y Acciones Rápidas (Inicio)
 
 start
-:Abrir pantalla "Inicio" (Panel General);
-:Visualizar KPIs de ventas, caja chica y alertas;
-:Revisar gráfico de ventas vs gastos (7 días);
+:Ingresar a Inicio (Panel General); <<azul>>
+:Consultar ventas del día y saldo de caja; <<azul>>
+:Revisar alertas de stock bajo y cobros pendientes; <<amarillo>>
 
-switch (¿Qué acción requiere el usuario?)
-case ([+ Registrar venta])
-  #E8F8F5:Ir a Terminal POS (/ventas);
-  detach
-case ([$ Cuadre de caja])
-  #EBF5FB:Ir a Módulo Caja (/ventas?tab=caja);
-  detach
-case ([* KIPU'S IA])
-  #F4ECF7:Abrir Asistente Inteligente;
-  detach
-case ([Ver inventario ->])
-  #FEF9E7:Ir a catálogo de existencias bajo stock;
-  detach
+switch (¿Acción rápida requerida?)
+case ([Registrar venta])
+  :Abrir Terminal POS de venta; <<verde>>
+  stop
+case ([Cuadre de caja])
+  :Abrir Arqueo y Cierre de turno; <<azul>>
+  stop
+case ([KIPU'S IA])
+  :Consultar Asistente Inteligente 360; <<morado>>
+  stop
+case ([Ver inventario])
+  :Revisar catálogo y stock crítico; <<amarillo>>
+  stop
 case ([Actualizar])
-  #EBF5FB:Refrescar indicadores en tiempo real;
+  :Recargar métricas en tiempo real; <<azul>>
   stop
 endswitch
 @enduml

@@ -1,47 +1,69 @@
 @startuml
-skinparam defaultFontName "Segoe UI", Arial, sans-serif
-skinparam defaultFontSize 11
-skinparam roundCorner 8
-skinparam shadowing false
-skinparam ArrowColor #2C3E50
-skinparam ArrowThickness 1.2
-
-skinparam activity {
-  BackgroundColor #EBF5FB
-  BorderColor #2980B9
-  BorderThickness 1.2
+<style>
+activityDiagram {
+  BackgroundColor #F8F9FA
+  BorderColor #2C3E50
   FontColor #1A252F
+  FontSize 13
+  FontName "Segoe UI", Arial, sans-serif
+  RoundCorner 12
+  Padding 10
+  Margin 8
+
+  .verde {
+    BackgroundColor #D4EFDF
+    BorderColor #27AE60
+    FontColor #145A32
+  }
+  .amarillo {
+    BackgroundColor #FCF3CF
+    BorderColor #F39C12
+    FontColor #7D6608
+  }
+  .azul {
+    BackgroundColor #D4E6F1
+    BorderColor #2980B9
+    FontColor #154360
+  }
+  .morado {
+    BackgroundColor #E8DAEF
+    BorderColor #8E44AD
+    FontColor #4A235A
+  }
+  .rojo {
+    BackgroundColor #FADBD8
+    BorderColor #C0392B
+    FontColor #78281F
+  }
 }
-skinparam decision {
-  BackgroundColor #FEF9E7
-  BorderColor #F39C12
-  BorderThickness 1.2
-  FontColor #7D6608
-}
-skinparam start {
-  Color #27AE60
-}
-skinparam stop {
-  Color #C0392B
-}
+</style>
+
+skinparam defaultFontName "Segoe UI", Arial, sans-serif
+skinparam ArrowColor #2C3E50
+skinparam ArrowThickness 1.8
+skinparam activityStartColor #27AE60
+skinparam activityEndColor #C0392B
+skinparam activityDiamondBackgroundColor #FCF3CF
+skinparam activityDiamondBorderColor #F39C12
+skinparam activityDiamondFontColor #7D6608
+skinparam activityDiamondFontSize 12
 
 title F02 - Venta en Mostrador (POS)
 
 start
-:Clic en "+ Registrar venta";
-:Capturar producto (Lector de barras, Cámara, Voz o Teclado);
+:Ingresar a POS y pulsar Registrar Venta; <<azul>>
+:Escanear código de barra o buscar producto; <<azul>>
 
 if (¿Stock disponible?) then (Sí)
-  :Agregar ítem al carrito de venta;
-  :Elegir comprobante (Boleta, Factura o Nota);
-  :Definir pago (Efectivo, Yape, Plin, Tarjeta o Mixto);
-  :Clic en "Cobrar e Imprimir";
-  #F4ECF7:erpStore descuenta stock en Kardex;
-  #F4ECF7:erpStore ingresa dinero a Caja;
-  #E8F8F5:Imprimir ticket y actualizar métricas de Inicio;
+  :Agregar producto al carrito; <<azul>>
+  :Seleccionar tipo de comprobante (Boleta / Factura); <<azul>>
+  :Registrar forma de pago (Efectivo / Yape / Tarjeta); <<azul>>
+  :Descontar existencias en Kardex; <<morado>>
+  :Registrar ingreso de dinero en Caja Activa; <<morado>>
+  :Emitir comprobante e imprimir ticket; <<verde>>
   stop
 else (No)
-  #FDEDEC:Alerta sonora "Sin existencias suficientes";
+  :Notificar stock insuficiente y bloquear venta; <<rojo>>
   stop
 endif
 @enduml

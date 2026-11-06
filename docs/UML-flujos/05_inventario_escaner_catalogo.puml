@@ -1,50 +1,75 @@
 @startuml
-skinparam defaultFontName "Segoe UI", Arial, sans-serif
-skinparam defaultFontSize 11
-skinparam roundCorner 8
-skinparam shadowing false
-skinparam ArrowColor #2C3E50
-skinparam ArrowThickness 1.2
-
-skinparam activity {
-  BackgroundColor #EBF5FB
-  BorderColor #2980B9
-  BorderThickness 1.2
+<style>
+activityDiagram {
+  BackgroundColor #F8F9FA
+  BorderColor #2C3E50
   FontColor #1A252F
+  FontSize 13
+  FontName "Segoe UI", Arial, sans-serif
+  RoundCorner 12
+  Padding 10
+  Margin 8
+
+  .verde {
+    BackgroundColor #D4EFDF
+    BorderColor #27AE60
+    FontColor #145A32
+  }
+  .amarillo {
+    BackgroundColor #FCF3CF
+    BorderColor #F39C12
+    FontColor #7D6608
+  }
+  .azul {
+    BackgroundColor #D4E6F1
+    BorderColor #2980B9
+    FontColor #154360
+  }
+  .morado {
+    BackgroundColor #E8DAEF
+    BorderColor #8E44AD
+    FontColor #4A235A
+  }
+  .rojo {
+    BackgroundColor #FADBD8
+    BorderColor #C0392B
+    FontColor #78281F
+  }
 }
-skinparam decision {
-  BackgroundColor #FEF9E7
-  BorderColor #F39C12
-  BorderThickness 1.2
-  FontColor #7D6608
-}
-skinparam start {
-  Color #27AE60
-}
-skinparam stop {
-  Color #C0392B
-}
+</style>
+
+skinparam defaultFontName "Segoe UI", Arial, sans-serif
+skinparam ArrowColor #2C3E50
+skinparam ArrowThickness 1.8
+skinparam activityStartColor #27AE60
+skinparam activityEndColor #C0392B
+skinparam activityDiamondBackgroundColor #FCF3CF
+skinparam activityDiamondBorderColor #F39C12
+skinparam activityDiamondFontColor #7D6608
+skinparam activityDiamondFontSize 12
 
 title F05 - Alta de Producto en Inventario
 
 start
-:Abrir Inventario -> Clic en "Nuevo producto" o "Escanear";
-:Pistolear empaque con lector USB o enfocar con cámara;
+:Ingresar a Inventario y pulsar Nuevo Producto; <<azul>>
+:Escanear código de barra con lector o cámara; <<azul>>
 
 if (¿Código o SKU ya existe?) then (Sí)
-  #FEF9E7:Mostrar producto registrado y permitir edición;
+  :Abrir ficha existente para actualizar datos; <<amarillo>>
+  stop
 else (No)
-  :Ingresar Nombre, Categoría y Unidad SUNAT;
-  :Ingresar Costo de Compra y Precio de Venta;
-  if (¿Precio Venta > Costo?) then (Sí)
-    :Definir Stock Mínimo para alertas;
-    #E8F8F5:Guardar producto en catálogo activo;
-    if (¿Tiene stock inicial?) then (Sí)
-      #F4ECF7:Asentar Kardex inicial (ENTRADA);
+  :Ingresar nombre, categoría y unidad SUNAT; <<azul>>
+  :Ingresar costo de compra y precio de venta; <<azul>>
+  if (¿Precio venta supera al costo?) then (Sí)
+    :Definir stock mínimo para alertas; <<azul>>
+    :Guardar nuevo producto en catálogo; <<verde>>
+    if (¿Registra stock inicial?) then (Sí)
+      :Asentar registro inicial en Kardex; <<morado>>
     endif
+    stop
   else (No)
-    #FDEDEC:Alerta "Precio de venta debe superar al costo";
+    :Bloquear guardado por margen negativo; <<rojo>>
+    stop
   endif
 endif
-stop
 @enduml

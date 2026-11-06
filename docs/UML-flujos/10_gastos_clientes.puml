@@ -1,50 +1,73 @@
 @startuml
-skinparam defaultFontName "Segoe UI", Arial, sans-serif
-skinparam defaultFontSize 11
-skinparam roundCorner 8
-skinparam shadowing false
-skinparam ArrowColor #2C3E50
-skinparam ArrowThickness 1.2
-
-skinparam activity {
-  BackgroundColor #EBF5FB
-  BorderColor #2980B9
-  BorderThickness 1.2
+<style>
+activityDiagram {
+  BackgroundColor #F8F9FA
+  BorderColor #2C3E50
   FontColor #1A252F
+  FontSize 13
+  FontName "Segoe UI", Arial, sans-serif
+  RoundCorner 12
+  Padding 10
+  Margin 8
+
+  .verde {
+    BackgroundColor #D4EFDF
+    BorderColor #27AE60
+    FontColor #145A32
+  }
+  .amarillo {
+    BackgroundColor #FCF3CF
+    BorderColor #F39C12
+    FontColor #7D6608
+  }
+  .azul {
+    BackgroundColor #D4E6F1
+    BorderColor #2980B9
+    FontColor #154360
+  }
+  .morado {
+    BackgroundColor #E8DAEF
+    BorderColor #8E44AD
+    FontColor #4A235A
+  }
+  .rojo {
+    BackgroundColor #FADBD8
+    BorderColor #C0392B
+    FontColor #78281F
+  }
 }
-skinparam decision {
-  BackgroundColor #FEF9E7
-  BorderColor #F39C12
-  BorderThickness 1.2
-  FontColor #7D6608
-}
-skinparam start {
-  Color #27AE60
-}
-skinparam stop {
-  Color #C0392B
-}
+</style>
+
+skinparam defaultFontName "Segoe UI", Arial, sans-serif
+skinparam ArrowColor #2C3E50
+skinparam ArrowThickness 1.8
+skinparam activityStartColor #27AE60
+skinparam activityEndColor #C0392B
+skinparam activityDiamondBackgroundColor #FCF3CF
+skinparam activityDiamondBorderColor #F39C12
+skinparam activityDiamondFontColor #7D6608
+skinparam activityDiamondFontSize 12
 
 title F10 - Gastos Operativos y Clientes
 
 start
-if (¿Operación a realizar?) then (Gasto Operativo)
-  :Abrir "Gastos y clientes" -> Clic en "Nuevo Gasto";
-  :Elegir categoría (Alquiler, Servicios, Flete, Personal);
-  :Ingresar monto, concepto y comprobante;
-  if (¿Afecta caja chica?) then (Sí)
-    #FDEDEC:Registrar EGRESO en gaveta de caja activa;
-    #FDEDEC:Restar del saldo de efectivo de mostrador;
+if (¿Tipo de operación?) then (Gasto Operativo)
+  :Ingresar a Gastos y pulsar Nuevo Gasto; <<azul>>
+  :Seleccionar categoría (Servicios, Alquiler, Flete); <<azul>>
+  :Ingresar monto y adjuntar comprobante; <<azul>>
+  if (¿Afecta efectivo de caja?) then (Sí)
+    :Descontar egreso del saldo de gaveta; <<rojo>>
   else (No)
-    #EBF5FB:Pago bancario -> No descuenta gaveta física;
+    :Registrar egreso por transferencia o banco; <<azul>>
   endif
-  #F4ECF7:Restar monto en Utilidad Neta mensual;
-  :Actualizar gráfico de gastos en Inicio;
+  :Deducir gasto de la Utilidad Neta; <<morado>>
+  :Actualizar gráfico de egresos en Inicio; <<verde>>
+  stop
 else (Gestión de Clientes)
-  :Abrir diálogo "Nuevo Cliente";
-  :Ingresar DNI (8 dígitos) o RUC (11 dígitos) y Razón Social;
-  #E8F8F5:Guardar cliente en directorio activo;
-  :Disponible de inmediato para autocompletar en POS;
+  :Ingresar a Clientes y pulsar Nuevo Cliente; <<azul>>
+  :Registrar documento DNI o RUC y Razón Social; <<azul>>
+  :Guardar datos de contacto y dirección; <<azul>>
+  :Habilitar cliente de inmediato para ventas en POS; <<verde>>
+  stop
 endif
-stop
 @enduml

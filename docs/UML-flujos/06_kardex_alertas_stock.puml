@@ -1,47 +1,70 @@
 @startuml
-skinparam defaultFontName "Segoe UI", Arial, sans-serif
-skinparam defaultFontSize 11
-skinparam roundCorner 8
-skinparam shadowing false
-skinparam ArrowColor #2C3E50
-skinparam ArrowThickness 1.2
-
-skinparam activity {
-  BackgroundColor #EBF5FB
-  BorderColor #2980B9
-  BorderThickness 1.2
+<style>
+activityDiagram {
+  BackgroundColor #F8F9FA
+  BorderColor #2C3E50
   FontColor #1A252F
+  FontSize 13
+  FontName "Segoe UI", Arial, sans-serif
+  RoundCorner 12
+  Padding 10
+  Margin 8
+
+  .verde {
+    BackgroundColor #D4EFDF
+    BorderColor #27AE60
+    FontColor #145A32
+  }
+  .amarillo {
+    BackgroundColor #FCF3CF
+    BorderColor #F39C12
+    FontColor #7D6608
+  }
+  .azul {
+    BackgroundColor #D4E6F1
+    BorderColor #2980B9
+    FontColor #154360
+  }
+  .morado {
+    BackgroundColor #E8DAEF
+    BorderColor #8E44AD
+    FontColor #4A235A
+  }
+  .rojo {
+    BackgroundColor #FADBD8
+    BorderColor #C0392B
+    FontColor #78281F
+  }
 }
-skinparam decision {
-  BackgroundColor #FEF9E7
-  BorderColor #F39C12
-  BorderThickness 1.2
-  FontColor #7D6608
-}
-skinparam start {
-  Color #27AE60
-}
-skinparam stop {
-  Color #C0392B
-}
+</style>
+
+skinparam defaultFontName "Segoe UI", Arial, sans-serif
+skinparam ArrowColor #2C3E50
+skinparam ArrowThickness 1.8
+skinparam activityStartColor #27AE60
+skinparam activityEndColor #C0392B
+skinparam activityDiamondBackgroundColor #FCF3CF
+skinparam activityDiamondBorderColor #F39C12
+skinparam activityDiamondFontColor #7D6608
+skinparam activityDiamondFontSize 12
 
 title F06 - Kardex y Alertas de Stock
 
 start
-:Ocurre movimiento (Venta, Compra, Devolución o Ajuste);
-#F4ECF7:Calcular saldo resultante en tiempo real;
-#F4ECF7:Insertar fila inmutable en Kardex (Fecha, Tipo, Ref, Usuario);
+:Ocurre movimiento (Venta, Compra, Merma o Devolución); <<azul>>
+:Calcular nuevo saldo disponible en almacén; <<morado>>
+:Registrar movimiento inmutable en Kardex; <<morado>>
 
-if (¿Stock actual === 0?) then (Sí)
-  #FDEDEC:Semáforo ROJO "AGOTADO";
-  #FDEDEC:Alerta crítica en Dashboard y Compras;
-elseif (¿Stock <= Mínimo?) then (Sí)
-  #FEF9E7:Semáforo AMARILLO "STOCK BAJO";
-  #FEF9E7:Enviar a lista de reabastecimiento;
+if (¿Stock actual es 0?) then (Sí)
+  :Activar alerta roja "PRODUCTO AGOTADO"; <<rojo>>
+  :Notificar en Dashboard e Inventario; <<rojo>>
+elseif (¿Stock menor o igual al mínimo?) then (Sí)
+  :Activar alerta amarilla "STOCK BAJO"; <<amarillo>>
+  :Agregar a lista de sugerencias de compra; <<amarillo>>
 else (No)
-  #E8F8F5:Semáforo VERDE "SUFICIENTE";
+  :Marcar semáforo verde "STOCK ÓPTIMO"; <<verde>>
 endif
 
-:Actualizar tarjeta de existencias en Inicio;
+:Actualizar tarjetas de existencias en Inicio; <<azul>>
 stop
 @enduml
