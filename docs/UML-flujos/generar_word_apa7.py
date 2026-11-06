@@ -34,7 +34,7 @@ def add_header_footer(doc):
         footer = s.footer
         p = footer.paragraphs[0]
         p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        run = p.add_run("KIPU'S ERP — Manual de Procesos Operativos (APA 7)")
+        run = p.add_run("KIPU'S ERP — Manual de Procesos Operativos")
         run.font.name = 'Times New Roman'
         run.font.size = Pt(9)
         run.font.color.rgb = RGBColor(128, 128, 128)
@@ -74,7 +74,7 @@ def create_apa7_document():
     subtitle_p = doc.add_paragraph()
     subtitle_p.paragraph_format.space_after = Pt(120)
     subtitle_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run_sub = subtitle_p.add_run("Documentación de Arquitectura de Procesos bajo Estándar BPMN y Normas APA (7.ª ed.)")
+    run_sub = subtitle_p.add_run("Documentación de Arquitectura de Procesos bajo Estándar BPMN")
     run_sub.italic = True
     run_sub.font.name = 'Times New Roman'
     run_sub.font.size = Pt(12)
@@ -129,7 +129,7 @@ def create_apa7_document():
     p_kw.paragraph_format.space_after = Pt(24)
     run_kw_tag = p_kw.add_run("Palabras clave: ")
     run_kw_tag.italic = True
-    p_kw.add_run("KIPU'S ERP, BPMN, diagramas de flujo, gestión de inventario, punto de venta, cuadre de caja, APA 7.")
+    p_kw.add_run("KIPU'S ERP, BPMN, diagramas de flujo, gestión de inventario, punto de venta, cuadre de caja.")
 
     # ----------------------------------------------------
     # SECCIÓN 1: INTRODUCCIÓN Y SEMÁNTICA VISUAL
@@ -341,7 +341,7 @@ def create_apa7_document():
     h_sec2 = doc.add_paragraph()
     h_sec2.paragraph_format.space_before = Pt(8)
     h_sec2.paragraph_format.space_after = Pt(12)
-    run_sec2 = h_sec2.add_run("2. Documentación Detallada de Flujos por Norma APA 7")
+    run_sec2 = h_sec2.add_run("2. Documentación Detallada de Flujos Operativos")
     run_sec2.bold = True
     run_sec2.font.name = 'Times New Roman'
     run_sec2.font.size = Pt(13)
@@ -572,3 +572,4 @@ def create_apa7_document():
 
 if __name__ == '__main__':
     create_apa7_document()
+
