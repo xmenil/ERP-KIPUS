@@ -1,0 +1,29 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+
+title F10 - Gastos Operativos y Gestión de Clientes - KIPU'S ERP
+
+start
+if (¿Qué operación se realiza?) then (Registrar Gasto Operativo)
+  :Admin abre "Gastos y clientes" -> Clic en "Nuevo Gasto";
+  :Seleccionar categoría (Alquiler, Servicios, Flete, Sueldos);
+  :Digitar monto, concepto y comprobante;
+  if (¿Se paga con efectivo de caja chica?) then (Sí)
+    :Marcar "Afectar caja chica";
+    :Registrar EGRESO en movimientos de caja;
+    :Restar del saldo de efectivo de gaveta;
+  else (No)
+    :Pago por transferencia bancaria;
+    :No descuenta efectivo de la gaveta;
+  endif
+  :Guardar gasto -> Restar en Utilidad Neta mensual;
+  :Actualizar barra roja de "Gastos" en gráfico de Inicio;
+else (Gestión de Clientes)
+  :Cajero o Admin abre diálogo "Nuevo Cliente";
+  :Digitar DNI (8 dígitos) o RUC (11 dígitos) y Razón Social;
+  :Guardar cliente en directorio activo;
+  :Disponible de inmediato para autocompletar en POS;
+endif
+stop
+@enduml

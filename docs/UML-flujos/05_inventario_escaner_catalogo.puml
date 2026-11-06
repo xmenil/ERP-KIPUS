@@ -1,0 +1,36 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+
+title F05 - Alta de Producto con Escáner y Catálogo - KIPU'S ERP
+
+start
+:Almacenero o Admin abre "Inventario";
+:Clic en "Nuevo producto" o "Escanear";
+:Capturar código (Lector de barras físico, Cámara web o Teclado);
+:Normalizar código preservando ceros a la izquierda;
+
+if (¿Código o SKU ya existe en catálogo?) then (Sí)
+  :Mostrar aviso: "Producto ya registrado";
+  :Cargar datos existentes para permitir edición;
+else (No)
+  :Completar formulario de alta de producto;
+  :Ingresar Nombre, Categoría y Unidad de medida;
+  :Ingresar Precio Compra (Costo) y Precio Venta;
+  
+  if (Precio Venta <= Precio Compra?) then (Sí)
+    :Alerta: "El precio de venta debe superar al costo";
+    stop
+  endif
+  
+  :Definir Stock Mínimo de alerta y Ubicación física;
+  :Clic en "Guardar producto";
+  :erpStore.crearProducto() agrega al catálogo activo;
+  
+  if (Stock inicial > 0?) then (Sí)
+    :Generar movimiento Kardex (ENTRADA - INVENTARIO_INICIAL);
+  endif
+endif
+:Mostrar confirmación Toast y actualizar catálogo;
+stop
+@enduml

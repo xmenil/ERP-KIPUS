@@ -1,0 +1,40 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+
+title F02 - Venta Completa en Mostrador (POS) - KIPU'S ERP
+
+start
+:Clic en "+ Registrar venta";
+:Cargar terminal POS con catálogo y carrito vacío;
+
+repeat
+  :Capturar producto (Lector de barras, Cámara, Voz o Buscador);
+  if (¿Producto existe y stock > 0?) then (Sí)
+    :Agregar producto a la lista del carrito;
+    :Calcular subtotal, descuento e IGV (18%);
+  else (No)
+    :Mostrar alerta sonora y visual "Sin existencias";
+  endif
+repeat while (¿Desea ingresar más productos?) is (Sí)
+->No;
+
+:Seleccionar comprobante (Boleta, Factura o Nota de venta);
+:Identificar cliente (Consumidor final, DNI o RUC);
+:Seleccionar método de pago (Efectivo, Yape, Plin, Tarjeta, Mixto);
+:Digitar monto recibido y calcular vuelto;
+:Clic en "Cobrar e Imprimir";
+
+partition "Transacción Atómica (erpStore)" {
+  :Crear registro de Venta con serie correlativa;
+  :Descontar stock del producto en catálogo;
+  :Generar movimiento Kardex (SALIDA - VENTA);
+  :Ingresar dinero en movimientos de Caja activa;
+  :Acumular compra al cliente;
+  :Llamar notify() para refrescar Dashboard en tiempo real;
+}
+
+:Mostrar modal de éxito con ticket imprimible;
+:Limpiar terminal POS para la siguiente venta;
+stop
+@enduml

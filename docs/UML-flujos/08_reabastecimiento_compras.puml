@@ -1,0 +1,20 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+
+title F08 - Reabastecimiento Inteligente de Compras - KIPU'S ERP
+
+start
+:Usuario abre "Sugerencias de Compra" (desde Inicio o Compras);
+:Motor analiza ventas de últimos 30 días y existencias actuales;
+:Filtrar artículos con Stock === 0 o Stock <= Mínimo;
+:Calcular velocidad de venta diaria = unidades / 30;
+:Calcular días de cobertura = stockActual / velocidadDiaria;
+:Calcular cantidad óptima para 30 días de cobertura;
+:Asignar proveedor habitual y calcular inversión estimada;
+:Mostrar matriz priorizada (Crítica, Alta, Media);
+:Usuario revisa, ajusta cantidades y marca casillas;
+:Clic en "Generar Orden de Compra";
+:Crear orden en estado BORRADOR agrupada por proveedor;
+stop
+@enduml

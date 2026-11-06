@@ -1,0 +1,36 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+
+title F04 - Cotizaciones, Pedidos y Devoluciones - KIPU'S ERP
+
+start
+if (¿Tipo de gestión comercial?) then (Cotización / Pedido)
+  :Crear proforma con cliente y lista de ítems;
+  :Guardar con código único (COT-XXXX);
+  :Entregar presupuesto al cliente;
+  if (¿Cliente aprueba compra?) then (Sí)
+    :Clic en "Convertir a Venta";
+    :Inyectar ítems directamente al POS (Flujo F02);
+    :Comprobante emitido descuenta stock y cobra;
+  else (No)
+    :Marcar como Vencida o Cancelada;
+  endif
+else (Devolución / Anulación de Venta)
+  :Buscar comprobante original en Historial;
+  :Ingresar motivo obligatorio de la solicitud;
+  if (¿Mercadería en buen estado para reventa?) then (Sí)
+    :Marcar "Retorna a stock" -> Suma unidades en catálogo;
+    :Generar asiento Kardex (ENTRADA - AUDITORIA);
+  else (No)
+    :Marcar "Desecho / Merma" -> No suma existencias;
+  endif
+  if (¿Se devuelve dinero en efectivo?) then (Sí)
+    :Registrar EGRESO en movimientos de caja activa;
+    :Restar del saldo de la gaveta física;
+  else (No)
+    :Emitir saldo a favor o nota interna;
+  endif
+endif
+stop
+@enduml

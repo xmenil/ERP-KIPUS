@@ -1,0 +1,25 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+
+title F06 - Kardex Continuo y Alertas de Stock - KIPU'S ERP
+
+start
+:Ocurre evento transaccional (Venta, Compra, Ajuste, Devolución);
+:Calcular Stock Resultante = Stock Previo +/- Cantidad operada;
+:Insertar registro inmutable en movimientosKardex con usuario y referencia;
+
+if (Stock Resultante == 0?) then (Sí)
+  :Clasificación: "AGOTADO" (Rojo);
+  :Disparar alerta urgente en tarjeta de Inicio;
+elseif (Stock Resultante <= Stock Mínimo?) then (Sí)
+  :Clasificación: "STOCK BAJO" (Amarillo);
+  :Enviar a lista de Reabastecimiento pendiente;
+else (No)
+  :Clasificación: "SUFICIENTE" (Verde);
+  :Stock en orden;
+endif
+
+:Actualizar indicadores en Inicio y catálogo;
+stop
+@enduml

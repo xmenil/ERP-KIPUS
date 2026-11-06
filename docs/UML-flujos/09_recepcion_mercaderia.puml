@@ -1,0 +1,29 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+
+title F09 - Recepción de Mercadería de Proveedores - KIPU'S ERP
+
+start
+:Llega camión de proveedor con mercadería;
+:Almacenero abre diálogo "Recepción de mercancía";
+:Ingresar número de Guía de Remisión o Factura del proveedor;
+:Verificar bultos físicos entregados;
+:Digitar cantidad recibida y costo unitario de compra;
+
+if (Cantidad > 0 y Costo > 0?) then (Sí)
+  :Clic en "Confirmar recepción e ingresar a stock";
+  partition "erpStore.recepcionarMercancia()" {
+    :Aumentar stock disponible en catálogo;
+    if (¿Costo unitario cambió?) then (Sí)
+      :Actualizar precioCompra del producto en catálogo;
+    endif
+    :Insertar fila Kardex (ENTRADA - COMPRA con Guía);
+    :Actualizar estado de orden de compra a RECIBIDA;
+  }
+  :Notificar éxito y refrescar valorizado de almacén;
+else (No)
+  :Alerta: "Cantidades y costos deben ser válidos";
+endif
+stop
+@enduml

@@ -1,0 +1,28 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+
+title F11 - Liquidación SUNAT, Reportes y KIPU'S IA - KIPU'S ERP
+
+start
+if (¿Canal de consulta?) then (Módulo Reportes)
+  :Admin abre módulo "Reportes";
+  fork
+    :Pestaña Financiera: Utilidad Bruta y Utilidad Neta en cascada;
+  fork again
+    :Pestaña SUNAT: IGV Débito (Ventas) vs IGV Crédito (Compras);
+    :Calcular impuesto estimado a pagar ante SUNAT;
+  fork again
+    :Pestaña Inventario: Stock valorizado a costo y precio venta;
+    :Exportar balance consolidado en archivo CSV;
+  end fork
+else (Asistente KIPU'S IA)
+  :Clic en botón "KIPU'S IA" (en Inicio o Reportes);
+  :Dictar consulta por voz o escribir en el chat;
+  :Motor heurístico analiza estado en tiempo real:;
+  :Efectivo en gaveta, ventas del turno, compras y stock crítico;
+  :Devolver diagnóstico en lenguaje natural con métricas;
+  :Mostrar botones de acción directa a los módulos;
+endif
+stop
+@enduml

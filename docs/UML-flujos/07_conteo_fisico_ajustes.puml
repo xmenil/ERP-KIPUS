@@ -1,0 +1,30 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+
+title F07 - Conteo Físico y Ajuste de Mermas - KIPU'S ERP
+
+start
+:Almacenero abre pestaña "Inventario físico";
+:Seleccionar anaquel o categoría a auditar;
+:Digitar stock físico real contado en el estante;
+:Calcular Diferencia = Stock Físico - Stock en Sistema;
+
+if (Diferencia == 0?) then (Sí)
+  :Sin descuadre (Stock exacto);
+  stop
+elseif (Diferencia < 0?) then (Faltante)
+  :Detectada Merma o Pérdida;
+  :Seleccionar motivo obligatorio (Rotura, Vencimiento, Pérdida);
+else (Sobrante)
+  :Detectado Sobrante;
+  :Seleccionar motivo obligatorio (Ingreso omitido);
+endif
+
+:Ingresar observación obligatoria del auditor;
+:Clic en "Aplicar ajustes físicos";
+:erpStore actualiza stock de catálogo al valor real;
+:Generar registro en Ajustes y movimiento Kardex AUDITORIA_CONTEO;
+:Refrescar valorizado total del inventario;
+stop
+@enduml

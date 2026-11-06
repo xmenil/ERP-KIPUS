@@ -1,0 +1,45 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+
+title F03 - Ciclo de Turno y Cuadre de Caja - KIPU'S ERP
+
+start
+:Clic en "$ Cuadre de caja";
+
+if (¿Caja está abierta?) then (No)
+  :Abrir diálogo de Apertura;
+  :Ingresar fondo inicial de sencillo (ej. S/ 150.00);
+  :Guardar apertura -> Estado pasa a ABIERTA;
+else (Sí)
+  :Mostrar resumen activo de caja;
+endif
+
+partition "Operación de Turno" {
+  :Ventas POS ingresan efectivo/digital automáticamente;
+  if (¿Requiere egreso menor o retiro?) then (Sí)
+    :Registrar movimiento manual (Concepto y Monto);
+    :Descontar del saldo esperado de gaveta;
+  endif
+  if (¿Desea realizar Arqueo sorpresivo?) then (Sí)
+    :Desglosar monedas y billetes por denominación;
+    :Verificar cuadre previo y asentar en auditoría;
+  endif
+}
+
+:Iniciar "Cierre de Caja";
+:Cajero ingresa monto físico contado de la gaveta;
+:Sistema calcula Diferencia = Contado - Esperado;
+
+if (Diferencia == 0?) then (Sí)
+  :Estado: CUADRADA;
+else (No)
+  :Estado: CON DIFERENCIA (Faltante o Sobrante);
+  :Ingresar motivo y justificación obligatoria;
+endif
+
+:Confirmar Cierre de Caja;
+:Estado pasa a CERRADA;
+:Guardar histórico en auditoriaCaja y emitir resumen;
+stop
+@enduml

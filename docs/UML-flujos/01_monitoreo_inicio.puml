@@ -1,0 +1,41 @@
+@startuml
+skinparam handwritten false
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+title F01 - Monitoreo Ejecutivo y Panel de Inicio (KIPU'S ERP)
+
+start
+:Usuario abre KIPU'S ERP en pantalla "Inicio";
+:Sistema carga datos en tiempo real desde erpStore;
+fork
+  :Visualizar KPIs (Ventas hoy, Saldo caja chica, Alertas críticas);
+fork again
+  :Analizar gráfica comparativa (Ventas vs Gastos 7 días);
+fork again
+  :Revisar panel de reabastecimiento (Artículos bajo stock);
+end fork
+
+if (¿Qué acción requiere el usuario?) then ([Registrar Venta])
+  :Clic en botón púrpura "+ Registrar venta";
+  :Redirigir a POS Terminal (/ventas);
+  detach
+elseif ([Cuadre de Caja]) then
+  :Clic en botón "$ Cuadre de caja";
+  :Redirigir a módulo Caja (/ventas?tab=caja);
+  detach
+elseif ([KIPU'S IA]) then
+  :Clic en botón "KIPU'S IA";
+  :Abrir diálogo inteligente de asistencia;
+  detach
+elseif ([Ver Inventario]) then
+  :Clic en enlace "Ver inventario ->";
+  :Redirigir a Catálogo filtrado por Stock Bajo (/inventario);
+  detach
+else ([Actualizar])
+  :Clic en "Actualizar";
+  :Refrescar métricas en pantalla;
+  stop
+endif
+@enduml
