@@ -43,3 +43,4 @@ endif
 :Guardar histórico en auditoriaCaja y emitir resumen;
 stop
 @enduml
+

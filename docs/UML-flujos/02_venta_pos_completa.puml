@@ -38,3 +38,4 @@ partition "Transacción Atómica (erpStore)" {
 :Limpiar terminal POS para la siguiente venta;
 stop
 @enduml
+

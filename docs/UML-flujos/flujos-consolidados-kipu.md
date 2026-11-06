@@ -664,3 +664,4 @@ Para ejecutar y compilar estos diagramas en cualquier entorno o servidor:
 
 3. **Integración con Herramientas de Modelado:**
    - Compatibles con PlantUML CLI: `plantuml -tpng *.puml` genera las imágenes PNG de todos los flujos de forma automática.
+

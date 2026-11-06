@@ -34,3 +34,4 @@ else (Devolución / Anulación de Venta)
 endif
 stop
 @enduml
+

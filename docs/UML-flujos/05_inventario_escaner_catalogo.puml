@@ -34,3 +34,4 @@ endif
 :Mostrar confirmación Toast y actualizar catálogo;
 stop
 @enduml
+
