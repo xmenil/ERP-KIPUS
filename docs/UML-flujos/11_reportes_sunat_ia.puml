@@ -1,29 +1,49 @@
 @startuml
-skinparam monochrome true
+skinparam defaultFontName "Segoe UI", Arial, sans-serif
+skinparam defaultFontSize 11
+skinparam roundCorner 8
 skinparam shadowing false
+skinparam ArrowColor #2C3E50
+skinparam ArrowThickness 1.2
 
-title F11 - Liquidación SUNAT, Reportes y KIPU'S IA - KIPU'S ERP
+skinparam activity {
+  BackgroundColor #EBF5FB
+  BorderColor #2980B9
+  BorderThickness 1.2
+  FontColor #1A252F
+}
+skinparam decision {
+  BackgroundColor #FEF9E7
+  BorderColor #F39C12
+  BorderThickness 1.2
+  FontColor #7D6608
+}
+skinparam start {
+  Color #27AE60
+}
+skinparam stop {
+  Color #C0392B
+}
+
+title F11 - Liquidación SUNAT y KIPU'S IA
 
 start
 if (¿Canal de consulta?) then (Módulo Reportes)
-  :Admin abre módulo "Reportes";
+  :Abrir módulo "Reportes";
   fork
-    :Pestaña Financiera: Utilidad Bruta y Utilidad Neta en cascada;
+    :Pestaña Financiera: Ventas - Costos = Utilidad Bruta;
+    :Restar Gastos Operativos = Utilidad Neta;
   fork again
-    :Pestaña SUNAT: IGV Débito (Ventas) vs IGV Crédito (Compras);
-    :Calcular impuesto estimado a pagar ante SUNAT;
+    :Pestaña SUNAT: IGV Ventas vs IGV Compras;
+    #FEF9E7:Calcular impuesto estimado a pagar ante SUNAT;
   fork again
-    :Pestaña Inventario: Stock valorizado a costo y precio venta;
-    :Exportar balance consolidado en archivo CSV;
+    #E8F8F5:Exportar balance e inventario a CSV;
   end fork
 else (Asistente KIPU'S IA)
-  :Clic en botón "KIPU'S IA" (en Inicio o Reportes);
-  :Dictar consulta por voz o escribir en el chat;
-  :Motor heurístico analiza estado en tiempo real:;
-  :Efectivo en gaveta, ventas del turno, compras y stock crítico;
-  :Devolver diagnóstico en lenguaje natural con métricas;
-  :Mostrar botones de acción directa a los módulos;
+  :Clic en botón "KIPU'S IA" en Inicio;
+  :Dictar consulta por voz o escribir en chat;
+  #F4ECF7:IA analiza: caja, ventas de hoy y stock crítico;
+  #E8F8F5:Devolver diagnóstico 360 con botones de acción directa;
 endif
 stop
 @enduml
-

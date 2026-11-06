@@ -1,30 +1,46 @@
 @startuml
-skinparam monochrome true
+skinparam defaultFontName "Segoe UI", Arial, sans-serif
+skinparam defaultFontSize 11
+skinparam roundCorner 8
 skinparam shadowing false
+skinparam ArrowColor #2C3E50
+skinparam ArrowThickness 1.2
 
-title F09 - Recepción de Mercadería de Proveedores - KIPU'S ERP
+skinparam activity {
+  BackgroundColor #EBF5FB
+  BorderColor #2980B9
+  BorderThickness 1.2
+  FontColor #1A252F
+}
+skinparam decision {
+  BackgroundColor #FEF9E7
+  BorderColor #F39C12
+  BorderThickness 1.2
+  FontColor #7D6608
+}
+skinparam start {
+  Color #27AE60
+}
+skinparam stop {
+  Color #C0392B
+}
+
+title F09 - Recepción de Mercadería
 
 start
-:Llega camión de proveedor con mercadería;
-:Almacenero abre diálogo "Recepción de mercancía";
-:Ingresar número de Guía de Remisión o Factura del proveedor;
-:Verificar bultos físicos entregados;
-:Digitar cantidad recibida y costo unitario de compra;
+:Llega proveedor con mercadería y Guía/Factura física;
+:Almacenero abre "Recepción de mercancía";
+:Digitar número de comprobante, cantidades y costo unitario;
 
-if (Cantidad > 0 y Costo > 0?) then (Sí)
+if (¿Cantidades y costos válidos?) then (Sí)
   :Clic en "Confirmar recepción e ingresar a stock";
-  partition "erpStore.recepcionarMercancia()" {
-    :Aumentar stock disponible en catálogo;
-    if (¿Costo unitario cambió?) then (Sí)
-      :Actualizar precioCompra del producto en catálogo;
-    endif
-    :Insertar fila Kardex (ENTRADA - COMPRA con Guía);
-    :Actualizar estado de orden de compra a RECIBIDA;
-  }
-  :Notificar éxito y refrescar valorizado de almacén;
+  #F4ECF7:Aumentar stock disponible en catálogo;
+  #F4ECF7:Actualizar costo de compra del producto si varió;
+  #F4ECF7:Insertar fila Kardex (ENTRADA - COMPRA);
+  #E8F8F5:Cambiar estado de orden a "RECIBIDA";
+  #E8F8F5:Actualizar valorizado total en almacén;
 else (No)
-  :Alerta: "Cantidades y costos deben ser válidos";
+  #FDEDEC:Alerta: "Cantidades y costos deben ser mayores a 0";
 endif
 stop
 @enduml
-

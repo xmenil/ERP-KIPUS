@@ -1,37 +1,55 @@
 @startuml
-skinparam monochrome true
+skinparam defaultFontName "Segoe UI", Arial, sans-serif
+skinparam defaultFontSize 11
+skinparam roundCorner 8
 skinparam shadowing false
+skinparam ArrowColor #2C3E50
+skinparam ArrowThickness 1.2
 
-title F04 - Cotizaciones, Pedidos y Devoluciones - KIPU'S ERP
+skinparam activity {
+  BackgroundColor #EBF5FB
+  BorderColor #2980B9
+  BorderThickness 1.2
+  FontColor #1A252F
+}
+skinparam decision {
+  BackgroundColor #FEF9E7
+  BorderColor #F39C12
+  BorderThickness 1.2
+  FontColor #7D6608
+}
+skinparam start {
+  Color #27AE60
+}
+skinparam stop {
+  Color #C0392B
+}
+
+title F04 - Cotizaciones y Devoluciones
 
 start
 if (¿Tipo de gestión comercial?) then (Cotización / Pedido)
-  :Crear proforma con cliente y lista de ítems;
-  :Guardar con código único (COT-XXXX);
-  :Entregar presupuesto al cliente;
+  :Crear proforma con cliente y productos;
+  :Guardar con código único COT-XXXX;
   if (¿Cliente aprueba compra?) then (Sí)
-    :Clic en "Convertir a Venta";
-    :Inyectar ítems directamente al POS (Flujo F02);
-    :Comprobante emitido descuenta stock y cobra;
+    #E8F8F5:Clic en "Convertir a Venta";
+    #E8F8F5:Transferir al POS y emitir boleta/factura;
   else (No)
-    :Marcar como Vencida o Cancelada;
+    #FDEDEC:Marcar como Vencida o Cancelada;
   endif
-else (Devolución / Anulación de Venta)
-  :Buscar comprobante original en Historial;
-  :Ingresar motivo obligatorio de la solicitud;
-  if (¿Mercadería en buen estado para reventa?) then (Sí)
-    :Marcar "Retorna a stock" -> Suma unidades en catálogo;
-    :Generar asiento Kardex (ENTRADA - AUDITORIA);
+else (Devolución / Anulación)
+  :Buscar venta original en Historial;
+  :Ingresar motivo obligatorio de solicitud;
+  if (¿Mercadería apta para reventa?) then (Sí)
+    #E8F8F5:Reingresar unidades al stock (Kardex);
   else (No)
-    :Marcar "Desecho / Merma" -> No suma existencias;
+    #FDEDEC:Marcar como merma o desecho;
   endif
-  if (¿Se devuelve dinero en efectivo?) then (Sí)
-    :Registrar EGRESO en movimientos de caja activa;
-    :Restar del saldo de la gaveta física;
+  if (¿Reembolso en efectivo?) then (Sí)
+    #FDEDEC:Registrar egreso de dinero en gaveta;
   else (No)
-    :Emitir saldo a favor o nota interna;
+    #EBF5FB:Emitir saldo a favor del cliente;
   endif
 endif
 stop
 @enduml
-

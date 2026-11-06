@@ -1,31 +1,47 @@
 @startuml
-skinparam monochrome true
+skinparam defaultFontName "Segoe UI", Arial, sans-serif
+skinparam defaultFontSize 11
+skinparam roundCorner 8
 skinparam shadowing false
+skinparam ArrowColor #2C3E50
+skinparam ArrowThickness 1.2
 
-title F07 - Conteo Físico y Ajuste de Mermas - KIPU'S ERP
+skinparam activity {
+  BackgroundColor #EBF5FB
+  BorderColor #2980B9
+  BorderThickness 1.2
+  FontColor #1A252F
+}
+skinparam decision {
+  BackgroundColor #FEF9E7
+  BorderColor #F39C12
+  BorderThickness 1.2
+  FontColor #7D6608
+}
+skinparam start {
+  Color #27AE60
+}
+skinparam stop {
+  Color #C0392B
+}
+
+title F07 - Conteo Físico y Ajuste de Mermas
 
 start
-:Almacenero abre pestaña "Inventario físico";
-:Seleccionar anaquel o categoría a auditar;
-:Digitar stock físico real contado en el estante;
-:Calcular Diferencia = Stock Físico - Stock en Sistema;
+:Almacenero cuenta unidades reales en anaquel;
+:Abrir "Inventario físico" y digitar stock contado;
+#F4ECF7:Calcular Diferencia = Stock Físico - Stock Sistema;
 
-if (Diferencia == 0?) then (Sí)
-  :Sin descuadre (Stock exacto);
-  stop
-elseif (Diferencia < 0?) then (Faltante)
-  :Detectada Merma o Pérdida;
-  :Seleccionar motivo obligatorio (Rotura, Vencimiento, Pérdida);
+if (¿Diferencia === 0?) then (Sí)
+  #E8F8F5:Stock exacto (Sin cambios requeridos);
+elseif (¿Diferencia < 0?) then (Faltante)
+  #FDEDEC:Merma detectada (Vencimiento, Rotura, Pérdida);
+  :Seleccionar motivo obligatorio de merma;
+  #F4ECF7:Aplicar ajuste: Descontar stock y registrar Kardex;
 else (Sobrante)
-  :Detectado Sobrante;
-  :Seleccionar motivo obligatorio (Ingreso omitido);
+  #FEF9E7:Sobrante detectado (Ingreso no anotado);
+  :Seleccionar motivo obligatorio de ajuste;
+  #F4ECF7:Aplicar ajuste: Aumentar stock y registrar Kardex;
 endif
-
-:Ingresar observación obligatoria del auditor;
-:Clic en "Aplicar ajustes físicos";
-:erpStore actualiza stock de catálogo al valor real;
-:Generar registro en Ajustes y movimiento Kardex AUDITORIA_CONTEO;
-:Refrescar valorizado total del inventario;
 stop
 @enduml
-

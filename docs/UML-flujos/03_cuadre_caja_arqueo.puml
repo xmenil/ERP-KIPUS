@@ -1,46 +1,53 @@
 @startuml
-skinparam monochrome true
+skinparam defaultFontName "Segoe UI", Arial, sans-serif
+skinparam defaultFontSize 11
+skinparam roundCorner 8
 skinparam shadowing false
+skinparam ArrowColor #2C3E50
+skinparam ArrowThickness 1.2
 
-title F03 - Ciclo de Turno y Cuadre de Caja - KIPU'S ERP
+skinparam activity {
+  BackgroundColor #EBF5FB
+  BorderColor #2980B9
+  BorderThickness 1.2
+  FontColor #1A252F
+}
+skinparam decision {
+  BackgroundColor #FEF9E7
+  BorderColor #F39C12
+  BorderThickness 1.2
+  FontColor #7D6608
+}
+skinparam start {
+  Color #27AE60
+}
+skinparam stop {
+  Color #C0392B
+}
+
+title F03 - Turno y Cuadre de Caja
 
 start
 :Clic en "$ Cuadre de caja";
 
 if (¿Caja está abierta?) then (No)
-  :Abrir diálogo de Apertura;
-  :Ingresar fondo inicial de sencillo (ej. S/ 150.00);
-  :Guardar apertura -> Estado pasa a ABIERTA;
+  :Ingresar fondo inicial de sencillo (ej. S/ 150);
+  #E8F8F5:Abrir turno de caja;
 else (Sí)
-  :Mostrar resumen activo de caja;
+  :Continuar operaciones activas del turno;
 endif
 
-partition "Operación de Turno" {
-  :Ventas POS ingresan efectivo/digital automáticamente;
-  if (¿Requiere egreso menor o retiro?) then (Sí)
-    :Registrar movimiento manual (Concepto y Monto);
-    :Descontar del saldo esperado de gaveta;
-  endif
-  if (¿Desea realizar Arqueo sorpresivo?) then (Sí)
-    :Desglosar monedas y billetes por denominación;
-    :Verificar cuadre previo y asentar en auditoría;
-  endif
-}
+:Cobros de ventas POS y egresos menores;
+:Fin de jornada: Clic en "Cerrar Caja";
+:Cajero digita efectivo físico contado en gaveta;
 
-:Iniciar "Cierre de Caja";
-:Cajero ingresa monto físico contado de la gaveta;
-:Sistema calcula Diferencia = Contado - Esperado;
-
-if (Diferencia == 0?) then (Sí)
-  :Estado: CUADRADA;
+if (¿Diferencia === 0?) then (Sí)
+  #E8F8F5:Cierre "CUADRADA";
 else (No)
-  :Estado: CON DIFERENCIA (Faltante o Sobrante);
-  :Ingresar motivo y justificación obligatoria;
+  #FDEDEC:Cierre "CON DIFERENCIA" (Faltante o Sobrante);
+  :Ingresar motivo obligatorio de descuadre;
 endif
 
-:Confirmar Cierre de Caja;
-:Estado pasa a CERRADA;
-:Guardar histórico en auditoriaCaja y emitir resumen;
+#E8F8F5:Cerrar caja y emitir reporte de turno;
 stop
 @enduml
-

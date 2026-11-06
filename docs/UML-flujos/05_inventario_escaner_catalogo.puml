@@ -1,37 +1,50 @@
 @startuml
-skinparam monochrome true
+skinparam defaultFontName "Segoe UI", Arial, sans-serif
+skinparam defaultFontSize 11
+skinparam roundCorner 8
 skinparam shadowing false
+skinparam ArrowColor #2C3E50
+skinparam ArrowThickness 1.2
 
-title F05 - Alta de Producto con Escáner y Catálogo - KIPU'S ERP
+skinparam activity {
+  BackgroundColor #EBF5FB
+  BorderColor #2980B9
+  BorderThickness 1.2
+  FontColor #1A252F
+}
+skinparam decision {
+  BackgroundColor #FEF9E7
+  BorderColor #F39C12
+  BorderThickness 1.2
+  FontColor #7D6608
+}
+skinparam start {
+  Color #27AE60
+}
+skinparam stop {
+  Color #C0392B
+}
+
+title F05 - Alta de Producto en Inventario
 
 start
-:Almacenero o Admin abre "Inventario";
-:Clic en "Nuevo producto" o "Escanear";
-:Capturar código (Lector de barras físico, Cámara web o Teclado);
-:Normalizar código preservando ceros a la izquierda;
+:Abrir Inventario -> Clic en "Nuevo producto" o "Escanear";
+:Pistolear empaque con lector USB o enfocar con cámara;
 
-if (¿Código o SKU ya existe en catálogo?) then (Sí)
-  :Mostrar aviso: "Producto ya registrado";
-  :Cargar datos existentes para permitir edición;
+if (¿Código o SKU ya existe?) then (Sí)
+  #FEF9E7:Mostrar producto registrado y permitir edición;
 else (No)
-  :Completar formulario de alta de producto;
-  :Ingresar Nombre, Categoría y Unidad de medida;
-  :Ingresar Precio Compra (Costo) y Precio Venta;
-  
-  if (Precio Venta <= Precio Compra?) then (Sí)
-    :Alerta: "El precio de venta debe superar al costo";
-    stop
-  endif
-  
-  :Definir Stock Mínimo de alerta y Ubicación física;
-  :Clic en "Guardar producto";
-  :erpStore.crearProducto() agrega al catálogo activo;
-  
-  if (Stock inicial > 0?) then (Sí)
-    :Generar movimiento Kardex (ENTRADA - INVENTARIO_INICIAL);
+  :Ingresar Nombre, Categoría y Unidad SUNAT;
+  :Ingresar Costo de Compra y Precio de Venta;
+  if (¿Precio Venta > Costo?) then (Sí)
+    :Definir Stock Mínimo para alertas;
+    #E8F8F5:Guardar producto en catálogo activo;
+    if (¿Tiene stock inicial?) then (Sí)
+      #F4ECF7:Asentar Kardex inicial (ENTRADA);
+    endif
+  else (No)
+    #FDEDEC:Alerta "Precio de venta debe superar al costo";
   endif
 endif
-:Mostrar confirmación Toast y actualizar catálogo;
 stop
 @enduml
-
