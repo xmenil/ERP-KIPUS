@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -10,6 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Venta } from '../types/ventas.types';
 import { formatCurrency } from '@/utils/formatters';
 import { CheckCircle2, Printer, Share2, PlusCircle, ArrowLeft } from 'lucide-react';
+import { TicketTermicoModal } from './TicketTermicoModal';
+import { ticketPrintService } from '../services/ticketPrintService';
+import { audioFeedbackService } from '../services/audioFeedbackService';
 import { toast } from 'sonner';
 
 interface VentaCompletadaModalProps {
@@ -25,10 +28,26 @@ export const VentaCompletadaModal: React.FC<VentaCompletadaModalProps> = ({
   onOpenChange,
   onNuevaVenta,
 }) => {
+  const [openTicketModal, setOpenTicketModal] = useState(false);
+
+  useEffect(() => {
+    if (open && venta) {
+      // Si la configuración POS tiene autoImprimir activado, disparar la impresión
+      ticketPrintService.obtenerConfiguracionPos().then((cfg) => {
+        if (cfg?.autoImprimir) {
+          ticketPrintService.obtenerDatosTicket(venta.id).then((ticket) => {
+            ticketPrintService.imprimirTicket(ticket, cfg.anchoPapel);
+            toast.success('Ticket enviado a impresión automática');
+          });
+        }
+      });
+    }
+  }, [open, venta]);
+
   if (!venta) return null;
 
   const handlePrint = () => {
-    toast.success(`Enviando a impresora térmica: ${venta.serieCorrelativo}`);
+    setOpenTicketModal(true);
   };
 
   const handleShare = () => {
@@ -138,6 +157,12 @@ export const VentaCompletadaModal: React.FC<VentaCompletadaModalProps> = ({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <TicketTermicoModal
+        ventaId={venta.id}
+        open={openTicketModal}
+        onOpenChange={setOpenTicketModal}
+      />
     </Dialog>
   );
 };

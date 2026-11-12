@@ -111,7 +111,7 @@ export const UsuariosPage: React.FC<UsuariosPageProps> = ({ embedded = false }) 
 
   // Eliminar
   const handleEliminarUsuario = async (user: Usuario) => {
-    if (user.id === 'user-admin') {
+    if (user.id === 'user-admin' || user.username === 'admin') {
       toast.error('No se puede eliminar la cuenta de Administrador Principal');
       return;
     }
@@ -595,7 +595,7 @@ export const UsuariosPage: React.FC<UsuariosPageProps> = ({ embedded = false }) 
                                   <Edit className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                                   Editar usuario
                                 </DropdownMenuItem>
-                                {user.id !== 'user-admin' && (
+                                {user.id !== 'user-admin' && user.username !== 'admin' && (
                                   <>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
@@ -695,7 +695,7 @@ export const UsuariosPage: React.FC<UsuariosPageProps> = ({ embedded = false }) 
                         <Edit className="h-3 w-3" />
                         <span>Editar</span>
                       </Button>
-                      {user.id !== 'user-admin' && (
+                      {user.id !== 'user-admin' && user.username !== 'admin' && (
                         <Button
                           variant="outline"
                           size="sm"

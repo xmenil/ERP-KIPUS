@@ -103,7 +103,7 @@ export const ComprasPage: React.FC = () => {
     try {
       const data = await comprasService.getCompras();
       setCompras(data);
-      const sug = sugerenciaComprasService.obtenerSugerencias();
+      const sug = await sugerenciaComprasService.fetchSugerencias();
       setSugerencias(sug);
     } catch {
       toast.error('Error al cargar la lista de compras.');
@@ -124,7 +124,7 @@ export const ComprasPage: React.FC = () => {
     try {
       const nueva = await comprasService.registrarCompra(payload);
       setCompras((prev) => [nueva, ...prev]);
-      const sug = sugerenciaComprasService.obtenerSugerencias();
+      const sug = await sugerenciaComprasService.fetchSugerencias();
       setSugerencias(sug);
       toast.success(`Compra con factura ${nueva.serieFactura} registrada correctamente.`);
     } catch {

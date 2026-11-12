@@ -16,6 +16,7 @@ import {
   TipoOperacionCaja,
 } from '../types/caja.types';
 import { subscribeToErp } from '@/services/erp/erpStore';
+import { useSocketEvent } from '@/services/socket/useSocketEvent';
 import { formatCurrency } from '@/utils/formatters';
 
 // Componentes del Módulo
@@ -111,6 +112,18 @@ export const CajaPage: React.FC<CajaPageProps> = ({ embedded = false }) => {
     });
     return unsubscribe;
   }, []);
+
+  // Sincronización multi-terminal de caja en tiempo real vía WebSockets
+  useSocketEvent('caja:balance_actualizado', (data: { tipo: string; monto: number; motivo: string }) => {
+    cajaService.getEstadoCaja().then(setEstado);
+    cajaService.getMovimientos().then(setMovimientos);
+  });
+
+  useSocketEvent('ventas:nueva_venta', () => {
+    // Al realizar una venta en efectivo desde otra caja o mostrador, actualizar balance de caja
+    cajaService.getEstadoCaja().then(setEstado);
+    cajaService.getMovimientos().then(setMovimientos);
+  });
 
   // Handlers Operativos
   const handleAbrirCaja = async (payload: AperturaCajaPayload) => {

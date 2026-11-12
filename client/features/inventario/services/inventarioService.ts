@@ -1,4 +1,4 @@
-import { simulateDelay } from '@/services/mock/mockUtils';
+import { apiClient } from '@/services/api/apiClient';
 import {
   MovimientoStock,
   MovimientoKardex,
@@ -9,109 +9,91 @@ import {
   NuevoMovimientoPayload,
   RecepcionMercanciaPayload,
   AjusteAuditoriaPayload,
-  EstadoStock,
+  ResumenIndicadoresInventario,
+  FiltrosExistencias,
+  FiltrosMovimientos,
 } from '../types/inventario.types';
-import { erpStore } from '@/services/erp/erpStore';
-
-const almacenesFijos: AlmacenResumen[] = [
-  {
-    id: 'alm-1',
-    nombre: 'Almacén Principal / Trastienda (Sede Central)',
-    direccion: 'Jr. Tito Jaime 450, Tingo María',
-    totalProductos: 30,
-    stockTotalUnidades: 745,
-    responsable: 'Carlos Vega (Encargado Almacén)',
-    zonas: ['Estante 1 (Abarrotes y Granos)', 'Estante 2 (Lácteos y Pastas)', 'Tarima (Sacos Arroz y Azúcar)', 'Depósito de Bebidas'],
-  },
-  {
-    id: 'alm-2',
-    nombre: 'Sala de Ventas / Mostrador (Atención)',
-    direccion: 'Jr. Tito Jaime 450, Tingo María',
-    totalProductos: 30,
-    stockTotalUnidades: 350,
-    responsable: 'Juan Pérez (Cajero / Atención)',
-    zonas: ['Góndola Central', 'Visicooler Bebidas y Lácteos', 'Vitrina Mostrador / Golosinas', 'Estante Limpieza'],
-  },
-];
 
 export const inventarioService = {
   /**
    * Obtiene la lista unificada de existencias actuales con sus niveles de stock y costos.
    */
-  async getProductosStock(): Promise<ItemStockDetalle[]> {
-    const productos = erpStore.getProductos();
-    const items: ItemStockDetalle[] = productos.map((p) => {
-      let estadoNivel: EstadoStock = 'DISPONIBLE';
-      if (p.stock <= 0) {
-        estadoNivel = 'AGOTADO';
-      } else if (p.stock <= p.stockMinimo) {
-        estadoNivel = 'STOCK_BAJO';
-      }
+  async getProductosStock(filtros?: Partial<FiltrosExistencias>): Promise<ItemStockDetalle[]> {
+    const qs = new URLSearchParams();
+    if (filtros?.almacen && filtros.almacen !== 'TODOS') qs.append('almacenId', filtros.almacen);
+    if (filtros?.categoria && filtros.categoria !== 'TODAS') qs.append('categoria', filtros.categoria);
+    if (filtros?.estado && filtros.estado !== 'TODOS') qs.append('estado', filtros.estado);
+    if (filtros?.busqueda) qs.append('busqueda', filtros.busqueda);
 
-      return {
-        id: p.id,
-        sku: p.sku,
-        nombre: p.nombre,
-        categoria: p.categoria,
-        stock: p.stock,
-        stockMinimo: p.stockMinimo,
-        unidadMedida: p.unidadMedida,
-        precioCompra: p.precioCompra,
-        precioVenta: p.precioVenta,
-        ubicacion: p.ubicacion || 'Estante General',
-        estadoNivel,
-        valorizadoCosto: +(p.stock * p.precioCompra).toFixed(2),
-        valorizadoVenta: +(p.stock * p.precioVenta).toFixed(2),
-        almacen: 'Almacén Principal (Sede Central)',
-      };
-    });
+    const q = qs.toString();
+    const data = await apiClient.get<ItemStockDetalle[]>(`/inventario/existencias${q ? `?${q}` : ''}`);
+    const items = Array.isArray(data) ? data : [];
+    return items.map((it) => ({
+      ...it,
+      precioCompra: it.precioCompra ?? 0,
+      valorizadoCosto: it.valorizadoCosto ?? 0,
+      valorizadoVenta: it.valorizadoVenta ?? +(it.stock * (it.precioVenta || 0)).toFixed(2),
+    }));
+  },
 
-    return simulateDelay(items);
+  /**
+   * Obtiene los indicadores / KPIs de inventario.
+   */
+  async getIndicadores(almacenId?: string): Promise<ResumenIndicadoresInventario> {
+    const query = almacenId && almacenId !== 'TODOS' ? `?almacenId=${encodeURIComponent(almacenId)}` : '';
+    return apiClient.get<ResumenIndicadoresInventario>(`/inventario/indicadores${query}`);
   },
 
   /**
    * Obtiene el historial de entradas, salidas y ajustes de stock.
    */
-  async getMovimientos(): Promise<MovimientoStock[]> {
-    const kardex = erpStore.getKardex();
-    const normalizados: MovimientoStock[] = kardex.map((k) => {
-      let origen = k.origen;
-      if (!origen) {
-        if (k.motivo === 'COMPRA') origen = 'Compra';
-        else if (k.motivo === 'VENTA') origen = 'Venta';
-        else if (k.motivo === 'MERMA' || k.motivo === 'AUDITORIA_CONTEO') origen = 'Ajuste de inventario';
-        else if (k.motivo === 'INVENTARIO_INICIAL') origen = 'Inventario inicial';
-        else origen = k.tipo === 'ENTRADA' ? 'Entrada' : k.tipo === 'SALIDA' ? 'Salida' : 'Ajuste';
-      }
+  async getMovimientos(filtros?: Partial<FiltrosMovimientos> & { almacenId?: string }): Promise<MovimientoStock[]> {
+    const qs = new URLSearchParams();
+    if (filtros?.tipo && filtros.tipo !== 'TODOS') qs.append('tipo', filtros.tipo);
+    if (filtros?.periodo && filtros.periodo !== 'TODOS') qs.append('periodo', filtros.periodo);
+    if (filtros?.busqueda) qs.append('busqueda', filtros.busqueda);
+    if (filtros?.almacenId && filtros.almacenId !== 'TODOS') qs.append('almacenId', filtros.almacenId);
 
-      return {
-        ...k,
-        origen,
-      };
-    });
-    return simulateDelay(normalizados);
+    const q = qs.toString();
+    const data = await apiClient.get<MovimientoStock[]>(`/inventario/kardex${q ? `?${q}` : ''}`);
+    return Array.isArray(data) ? data : [];
   },
 
   /**
    * Alias de getMovimientos para compatibilidad hacia atrás.
    */
-  async getMovimientosKardex(): Promise<MovimientoKardex[]> {
-    return this.getMovimientos();
+  async getMovimientosKardex(filtros?: Partial<FiltrosMovimientos> & { almacenId?: string }): Promise<MovimientoKardex[]> {
+    return this.getMovimientos(filtros);
+  },
+
+  /**
+   * Consulta el Kardex específico de un producto por su ID.
+   */
+  async getKardexPorProducto(productoId: string): Promise<MovimientoKardex[]> {
+    const data = await apiClient.get<MovimientoKardex[]>(`/inventario/kardex/producto/${productoId}`);
+    return Array.isArray(data) ? data : [];
   },
 
   /**
    * Obtiene el listado de ajustes de inventario realizados.
    */
-  async getAjustes(): Promise<AjusteInventario[]> {
-    return simulateDelay(erpStore.getAjustesInventario());
+  async getAjustes(almacenId?: string): Promise<AjusteInventario[]> {
+    const query = almacenId && almacenId !== 'TODOS' ? `?almacenId=${encodeURIComponent(almacenId)}` : '';
+    const data = await apiClient.get<AjusteInventario[]>(`/inventario/ajustes${query}`);
+    return Array.isArray(data) ? data : [];
   },
 
   /**
    * Registra un nuevo ajuste individual de stock con confirmación previa.
    */
   async registrarAjuste(payload: NuevoAjustePayload): Promise<AjusteInventario> {
-    const ajuste = erpStore.registrarAjusteInventario(payload);
-    return simulateDelay(ajuste);
+    return apiClient.post<AjusteInventario>('/inventario/ajustes', {
+      productoId: payload.productoId,
+      nuevoStock: payload.nuevoStock,
+      motivo: payload.motivo,
+      observacion: payload.observacion,
+      almacenId: (payload as any).almacenId || payload.almacen,
+    });
   },
 
   /**
@@ -120,30 +102,38 @@ export const inventarioService = {
   async aplicarAjustesFisicos(
     items: { productoId: string; stockFisico: number; motivo?: string }[]
   ): Promise<AjusteInventario[]> {
-    const ajustes = erpStore.aplicarAjustesFisicos(items);
-    return simulateDelay(ajustes);
+    const data = await apiClient.post<AjusteInventario[]>('/inventario/ajustes/masivo', { items });
+    return Array.isArray(data) ? data : [];
   },
 
   /**
    * Almacenes disponibles en el sistema.
    */
   async getAlmacenes(): Promise<AlmacenResumen[]> {
-    return simulateDelay(almacenesFijos);
+    const data = await apiClient.get<AlmacenResumen[]>('/almacenes');
+    const items = Array.isArray(data) ? data : [];
+    return items.map((a) => ({
+      ...a,
+      zonas: a.zonas || ['Zona General', 'Góndola Central'],
+    }));
   },
 
   // Métodos de compatibilidad previa
-  async registrarMovimiento(payload: NuevoMovimientoPayload): Promise<MovimientoKardex> {
-    const mov = erpStore.registrarMovimientoAlmacen(payload);
-    return simulateDelay(mov);
+  async registrarMovimiento(payload: NuevoMovimientoPayload & { productoId?: string }): Promise<MovimientoKardex> {
+    return apiClient.post<MovimientoKardex>('/inventario/movimientos', payload);
   },
 
   async recepcionarMercancia(payload: RecepcionMercanciaPayload): Promise<MovimientoKardex> {
-    const mov = erpStore.recepcionarMercancia(payload);
-    return simulateDelay(mov);
+    return apiClient.post<MovimientoKardex>('/inventario/recepcion', payload);
   },
 
   async registrarAjusteAuditoria(payload: AjusteAuditoriaPayload): Promise<MovimientoKardex> {
-    const mov = erpStore.registrarAjusteAuditoria(payload);
-    return simulateDelay(mov);
+    return apiClient.post<MovimientoKardex>('/inventario/ajustes', {
+      productoId: payload.productoId,
+      nuevoStock: payload.stockReal,
+      motivo: payload.motivo || 'Auditoría de almacén',
+      observacion: payload.observacion,
+      almacenId: payload.almacen,
+    });
   },
 };

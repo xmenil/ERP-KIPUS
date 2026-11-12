@@ -14,10 +14,20 @@ export interface SerieComprobante {
   siguienteNumero: number;
 }
 
+export interface ConfiguracionPos {
+  anchoPapel: '80mm' | '58mm';
+  autoImprimir: boolean;
+  abrirGaveta: boolean;
+  mensajePie: string;
+  cortarPapel: boolean;
+  sonidosActivos: boolean;
+}
+
 export interface ConfiguracionSistema {
   empresa: DatosEmpresa;
   series: SerieComprobante[];
   tasaIgv: number;
   monedaPrincipal: 'PEN' | 'USD';
   permitirVentaSinStock: boolean;
+  pos?: ConfiguracionPos;
 }

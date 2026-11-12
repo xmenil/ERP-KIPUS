@@ -73,7 +73,7 @@ export const UsuarioDetalleModal: React.FC<UsuarioDetalleModalProps> = ({
     desc: 'Permisos estándar del sistema.',
   };
 
-  const esAdminPrincipal = usuario.id === 'user-admin';
+  const esAdminPrincipal = usuario.id === 'user-admin' || usuario.username === 'admin';
 
   const handleCopiarEmail = () => {
     navigator.clipboard.writeText(usuario.email);

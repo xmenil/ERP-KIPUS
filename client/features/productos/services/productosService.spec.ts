@@ -1,93 +1,125 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { erpStore } from '@/services/erp/erpStore';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { productosService } from './productosService';
-import { NuevoProductoPayload } from '../types/productos.types';
+import { apiClient } from '@/services/api/apiClient';
+import { NuevoProductoPayload, Producto } from '../types/productos.types';
 
-describe('Productos Service y ERP Store — Flujo de Registro y Actualización', () => {
+describe('Productos Service — Integración REST', () => {
   beforeEach(() => {
-    erpStore.restablecerDatosMinimarket();
+    vi.restoreAllMocks();
   });
 
-  it('permite registrar un producto nuevo con éxito', async () => {
+  it('permite registrar un producto nuevo llamando a POST /productos', async () => {
     const payload: NuevoProductoPayload = {
       sku: 'TEST-SKU-999',
       nombre: 'Leche Gloria Evaporada 400g Test',
       categoria: 'Lácteos y Desayuno',
-      precioCompra: 3.50,
-      precioVenta: 4.50,
+      precioCompra: 3.5,
+      precioVenta: 4.5,
       stock: 24,
       stockMinimo: 6,
       unidadMedida: 'LATA',
     };
 
-    const nuevo = await productosService.crearProducto(payload);
-    expect(nuevo.id).toBeDefined();
-    expect(nuevo.sku).toBe('TEST-SKU-999');
-    expect(nuevo.nombre).toBe(payload.nombre);
+    const mockResponse: Producto = {
+      ...payload,
+      id: 'uuid-prod-999',
+      activo: true,
+    };
 
-    const prods = await productosService.getProductos();
-    const encontrado = prods.find((p) => p.sku === 'TEST-SKU-999');
-    expect(encontrado).toBeDefined();
-    expect(encontrado?.stock).toBe(24);
+    const postSpy = vi.spyOn(apiClient, 'post').mockResolvedValueOnce(mockResponse);
+
+    const nuevo = await productosService.crearProducto(payload);
+    expect(postSpy).toHaveBeenCalledWith('/productos', payload);
+    expect(nuevo.id).toBe('uuid-prod-999');
+    expect(nuevo.sku).toBe('TEST-SKU-999');
   });
 
-  it('permite actualizar un producto existente por ID', async () => {
-    const prods = await productosService.getProductos();
-    const primero = prods[0];
+  it('permite actualizar un producto existente por ID llamando a PUT /productos/:id', async () => {
+    const mockActualizado: Producto = {
+      id: 'uuid-1',
+      sku: 'ARR-COS-01',
+      nombre: 'Arroz Costeño Modificado',
+      categoria: 'Abarrotes y Granos',
+      precioCompra: 4.0,
+      precioVenta: 5.5,
+      stock: 60,
+      stockMinimo: 10,
+      unidadMedida: 'BOLSA',
+      activo: true,
+    };
 
-    const actualizado = await productosService.actualizarProducto(primero.id, {
-      precioVenta: 99.90,
-      stock: 50,
+    const putSpy = vi.spyOn(apiClient, 'put').mockResolvedValueOnce(mockActualizado);
+
+    const actualizado = await productosService.actualizarProducto('uuid-1', {
+      precioVenta: 5.5,
+      stock: 60,
     });
 
-    expect(actualizado.id).toBe(primero.id);
-    expect(actualizado.precioVenta).toBe(99.90);
-    expect(actualizado.stock).toBe(50);
-    expect(actualizado.nombre).toBe(primero.nombre); // Mantiene los demás campos
+    expect(putSpy).toHaveBeenCalledWith('/productos/uuid-1', {
+      precioVenta: 5.5,
+      stock: 60,
+    });
+    expect(actualizado.precioVenta).toBe(5.5);
+    expect(actualizado.stock).toBe(60);
   });
 
-  it('upsertProducto actualiza el producto si el SKU ya existe en lugar de fallar', async () => {
-    // Usar un producto existente del catálogo base
-    const prods = await productosService.getProductos();
-    const existente = prods[0];
-
+  it('upsertProducto llama a POST /productos/upsert con o sin ID', async () => {
     const payload: NuevoProductoPayload = {
-      sku: existente.sku, // Mismo SKU
+      sku: 'ARR-COS-01',
       nombre: 'Arroz Modificado Especial',
-      categoria: existente.categoria,
-      precioCompra: 4.00,
-      precioVenta: 6.00,
+      categoria: 'Abarrotes y Granos',
+      precioCompra: 4.0,
+      precioVenta: 6.0,
       stock: 80,
       stockMinimo: 10,
       unidadMedida: 'BOLSA',
     };
 
-    // Intentar upsert sin pasar ID pero con SKU existente
-    const { producto, esNuevo } = await productosService.upsertProducto(payload);
-    expect(esNuevo).toBe(false);
-    expect(producto.id).toBe(existente.id);
-    expect(producto.precioVenta).toBe(6.00);
-    expect(producto.stock).toBe(80);
-    expect(producto.nombre).toBe('Arroz Modificado Especial');
-  });
-
-  it('upsertProducto crea un producto nuevo si el SKU no existe', async () => {
-    const payload: NuevoProductoPayload = {
-      sku: 'SKU-NUEVO-100%_UNICO',
-      nombre: 'Galletas Soda Field Test',
-      categoria: 'Snacks y Golosinas',
-      precioCompra: 0.80,
-      precioVenta: 1.20,
-      stock: 50,
-      stockMinimo: 10,
-      unidadMedida: 'PAQUETE',
+    const mockUpsertRes = {
+      producto: {
+        ...payload,
+        id: 'uuid-1',
+        activo: true,
+      },
+      esNuevo: false,
     };
 
-    const { producto, esNuevo } = await productosService.upsertProducto(payload);
-    expect(esNuevo).toBe(true);
-    expect(producto.sku).toBe('SKU-NUEVO-100%_UNICO');
+    const postSpy = vi.spyOn(apiClient, 'post').mockResolvedValueOnce(mockUpsertRes);
 
-    const todos = await productosService.getProductos();
-    expect(todos.some((p) => p.sku === 'SKU-NUEVO-100%_UNICO')).toBe(true);
+    const res = await productosService.upsertProducto(payload, 'uuid-1');
+    expect(postSpy).toHaveBeenCalledWith('/productos/upsert?id=uuid-1', payload);
+    expect(res.esNuevo).toBe(false);
+    expect(res.producto.id).toBe('uuid-1');
+  });
+
+  it('permite eliminar un producto llamando a DELETE /productos/:id', async () => {
+    const deleteSpy = vi.spyOn(apiClient, 'delete').mockResolvedValueOnce({
+      eliminado: true,
+    });
+
+    const res = await productosService.eliminarProducto('uuid-1');
+    expect(deleteSpy).toHaveBeenCalledWith('/productos/uuid-1');
+    expect(res).toBe(true);
+  });
+
+  it('permite alternar el estado del producto llamando a PATCH /productos/:id/estado', async () => {
+    const mockToggled: Producto = {
+      id: 'uuid-1',
+      sku: 'ARR-COS-01',
+      nombre: 'Arroz Costeño',
+      categoria: 'Abarrotes',
+      precioCompra: 3.8,
+      precioVenta: 4.8,
+      stock: 40,
+      stockMinimo: 10,
+      unidadMedida: 'BOLSA',
+      activo: false,
+    };
+
+    const patchSpy = vi.spyOn(apiClient, 'patch').mockResolvedValueOnce(mockToggled);
+
+    const res = await productosService.toggleEstadoProducto('uuid-1');
+    expect(patchSpy).toHaveBeenCalledWith('/productos/uuid-1/estado');
+    expect(res.activo).toBe(false);
   });
 });

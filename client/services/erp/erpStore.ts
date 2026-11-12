@@ -1285,43 +1285,16 @@ function loadStateFromStorage(): boolean {
 }
 
 function saveStateToStorage(): void {
-  if (typeof window === 'undefined') return;
-  try {
-    const payload = {
-      productos,
-      ventas,
-      pedidos,
-      cotizaciones,
-      devoluciones,
-      movimientosKardex,
-      ajustesInventario,
-      estadoCaja,
-      cajas,
-      cierresCaja,
-      auditoriaCaja,
-      movimientosCaja,
-      gastos,
-      compras,
-      clientes,
-      proveedores,
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  } catch (err) {
-    console.warn('[erpStore] Error al guardar estado en localStorage:', err);
-  }
+  // Desactivado: El ERP ahora se integra directamente con el backend REST y PostgreSQL en Docker.
 }
 
-// Inicialización de la persistencia
+// Inicialización: Limpieza de persistencia local obsoleta
 if (typeof window !== 'undefined') {
-  // Limpieza preventiva de versiones anteriores obsoletas
   try {
     localStorage.removeItem('KIPUS_ERP_STORAGE');
+    localStorage.removeItem('KIPUS_ERP_STORAGE_V2');
+    localStorage.removeItem('kipus_erp_users_list');
   } catch {}
-
-  const loaded = loadStateFromStorage();
-  if (!loaded) {
-    saveStateToStorage();
-  }
 }
 
 // ==========================================
@@ -1330,15 +1303,18 @@ if (typeof window !== 'undefined') {
 type Listener = () => void;
 const listeners = new Set<Listener>();
 
-function notify() {
-  saveStateToStorage();
+export function notifyErpListeners(): void {
   listeners.forEach((listener) => {
     try {
       listener();
-    } catch {
-      // Ignorar errores en callbacks
+    } catch (e) {
+      console.warn('[erpStore] Error en listener de evento ERP:', e);
     }
   });
+}
+
+function notify() {
+  notifyErpListeners();
 }
 
 export function subscribeToErp(listener: Listener): () => void {

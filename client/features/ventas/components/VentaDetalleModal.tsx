@@ -20,6 +20,7 @@ import {
 import { Venta } from '../types/ventas.types';
 import { formatCurrency } from '@/utils/formatters';
 import { StatusBadge } from '@/components/common/StatusBadge';
+import { TicketTermicoModal } from './TicketTermicoModal';
 import {
   FileText,
   Printer,
@@ -51,6 +52,7 @@ export const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({
   const [mostrarAnulacion, setMostrarAnulacion] = useState(false);
   const [motivoAnulacion, setMotivoAnulacion] = useState('');
   const [isAnulando, setIsAnulando] = useState(false);
+  const [openTicketModal, setOpenTicketModal] = useState(false);
 
   if (!venta) return null;
 
@@ -76,7 +78,7 @@ export const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({
   };
 
   const handlePrint = () => {
-    toast.info(`Imprimiendo copia de ${venta.serieCorrelativo}...`);
+    setOpenTicketModal(true);
   };
 
   return (
@@ -285,6 +287,12 @@ export const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({
           </div>
         </DialogFooter>
       </DialogContent>
+
+      <TicketTermicoModal
+        ventaId={venta.id}
+        open={openTicketModal}
+        onOpenChange={setOpenTicketModal}
+      />
     </Dialog>
   );
 };

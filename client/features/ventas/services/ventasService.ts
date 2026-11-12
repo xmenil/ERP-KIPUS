@@ -1,4 +1,3 @@
-import { simulateDelay } from '@/services/mock/mockUtils';
 import {
   Venta,
   NuevaVentaPayload,
@@ -6,62 +5,132 @@ import {
   Cotizacion,
   Devolucion,
   ResumenVentasKpis,
-  MetodoPago,
 } from '../types/ventas.types';
-import { erpStore } from '@/services/erp/erpStore';
+import { apiClient } from '@/services/api/apiClient';
+
+export interface ListVentasQuery {
+  fecha?: string;
+  estado?: string;
+  tipoComprobante?: string;
+  search?: string;
+}
 
 export const ventasService = {
-  async getVentas(): Promise<Venta[]> {
-    return simulateDelay(erpStore.getVentas());
+  /**
+   * Obtiene la lista de comprobantes de venta emitidos
+   */
+  async getVentas(query?: ListVentasQuery): Promise<Venta[]> {
+    const qs = new URLSearchParams();
+    if (query?.fecha) qs.append('fecha', query.fecha);
+    if (query?.estado && query.estado !== 'TODOS') qs.append('estado', query.estado);
+    if (query?.tipoComprobante && query.tipoComprobante !== 'TODOS') {
+      qs.append('tipoComprobante', query.tipoComprobante);
+    }
+    if (query?.search) qs.append('search', query.search);
+
+    const q = qs.toString();
+    const data = await apiClient.get<Venta[]>(`/ventas${q ? `?${q}` : ''}`);
+    return Array.isArray(data) ? data : [];
   },
 
+  /**
+   * Emite una nueva venta en el POS (descuenta stock en BD, registra Kardex y suma a Caja)
+   */
   async crearVenta(payload: NuevaVentaPayload): Promise<Venta> {
-    const venta = erpStore.emitirVenta(payload);
-    return simulateDelay(venta);
+    const backendPayload = {
+      tipoComprobante: payload.tipoComprobante,
+      clienteNombre: payload.clienteNombre,
+      clienteDocumento: payload.clienteDocumento,
+      metodoPago: payload.metodoPago,
+      desglosePagoMixto: payload.desglosePagoMixto,
+      montoRecibido: payload.montoRecibido,
+      vuelto: payload.vuelto,
+      descuento: payload.descuento,
+      sucursal: payload.sucursal,
+      caja: payload.caja,
+      vendedor: payload.vendedor,
+      items: payload.items.map((it) => ({
+        productoId: it.productoId,
+        sku: it.sku,
+        nombre: it.nombre,
+        cantidad: it.cantidad,
+        precioUnitario: it.precioUnitario,
+        descuentoUnitario: it.descuentoUnitario,
+      })),
+    };
+    return apiClient.post<Venta>('/ventas', backendPayload);
   },
 
+  /**
+   * Anula un comprobante de venta revirtiendo el stock en inventario y generando nota de ajuste
+   */
   async anularVenta(id: string, motivo: string): Promise<Venta> {
-    const venta = erpStore.anularVenta(id, motivo);
-    return simulateDelay(venta);
+    return apiClient.post<Venta>(`/ventas/${id}/anular`, { motivo });
   },
 
-  async getPedidos(): Promise<Pedido[]> {
-    return simulateDelay(erpStore.getPedidos());
+  /**
+   * Obtiene la lista de pedidos de clientes
+   */
+  async getPedidos(estado?: string): Promise<Pedido[]> {
+    const query = estado && estado !== 'TODOS' ? `?estado=${encodeURIComponent(estado)}` : '';
+    const data = await apiClient.get<Pedido[]>(`/pedidos${query}`);
+    return Array.isArray(data) ? data : [];
   },
 
+  /**
+   * Registra un nuevo pedido comercial
+   */
   async crearPedido(payload: Omit<Pedido, 'id' | 'codigo' | 'fecha'>): Promise<Pedido> {
-    const pedido = erpStore.crearPedido(payload);
-    return simulateDelay(pedido);
+    return apiClient.post<Pedido>('/pedidos', payload);
   },
 
+  /**
+   * Actualiza el estado operativo de un pedido (ej: PENDIENTE -> PREPARANDO -> ENTREGADO)
+   */
   async cambiarEstadoPedido(id: string, nuevoEstado: Pedido['estado']): Promise<void> {
-    erpStore.cambiarEstadoPedido(id, nuevoEstado);
-    return simulateDelay(undefined);
+    await apiClient.patch(`/pedidos/${id}/estado`, { nuevoEstado });
   },
 
+  /**
+   * Convierte un pedido a comprobante de pago final (Boleta/Factura)
+   */
   async convertirPedidoAVenta(pedidoId: string): Promise<Venta> {
-    const venta = erpStore.convertirPedidoAVenta(pedidoId);
-    return simulateDelay(venta);
+    return apiClient.post<Venta>(`/pedidos/${pedidoId}/convertir-a-venta`);
   },
 
+  /**
+   * Obtiene la lista de cotizaciones emitidas
+   */
   async getCotizaciones(): Promise<Cotizacion[]> {
-    return simulateDelay(erpStore.getCotizaciones());
+    const data = await apiClient.get<Cotizacion[]>('/cotizaciones');
+    return Array.isArray(data) ? data : [];
   },
 
+  /**
+   * Registra una cotización o presupuesto para un cliente
+   */
   async crearCotizacion(payload: Omit<Cotizacion, 'id' | 'numero' | 'fecha'>): Promise<Cotizacion> {
-    const cot = erpStore.crearCotizacion(payload);
-    return simulateDelay(cot);
+    return apiClient.post<Cotizacion>('/cotizaciones', payload);
   },
 
+  /**
+   * Convierte una cotización aprobada directamente a comprobante de venta
+   */
   async convertirCotizacionAVenta(cotizacionId: string): Promise<Venta> {
-    const venta = erpStore.convertirCotizacionAVenta(cotizacionId);
-    return simulateDelay(venta);
+    return apiClient.post<Venta>(`/cotizaciones/${cotizacionId}/convertir-a-venta`);
   },
 
+  /**
+   * Obtiene el historial de notas de crédito y devoluciones
+   */
   async getDevoluciones(): Promise<Devolucion[]> {
-    return simulateDelay(erpStore.getDevoluciones());
+    const data = await apiClient.get<Devolucion[]>('/devoluciones');
+    return Array.isArray(data) ? data : [];
   },
 
+  /**
+   * Registra una devolución de producto con reingreso facultativo al Kardex
+   */
   async registrarDevolucion(payload: {
     ventaId: string;
     productoId: string;
@@ -70,49 +139,13 @@ export const ventasService = {
     retornaAInventario: boolean;
     afectaCaja: boolean;
   }): Promise<Devolucion> {
-    const dev = erpStore.registrarDevolucion(payload);
-    return simulateDelay(dev);
+    return apiClient.post<Devolucion>('/devoluciones', payload);
   },
 
+  /**
+   * Obtiene los indicadores ejecutivos de ventas de la jornada
+   */
   async getKpisVentas(): Promise<ResumenVentasKpis> {
-    const ventas = erpStore.getVentas().filter((v) => v.estado !== 'ANULADA');
-    const totalVendidoHoy = ventas.reduce((acc, v) => acc + v.total, 0);
-    const transaccionesHoy = ventas.length;
-    const ticketPromedioHoy = transaccionesHoy > 0 ? +(totalVendidoHoy / transaccionesHoy).toFixed(2) : 0;
-    const articulosDespachadosHoy = ventas.reduce(
-      (acc, v) => acc + v.items.reduce((sum, it) => sum + it.cantidad, 0),
-      0
-    );
-
-    const metodoMap: Record<MetodoPago, number> = {
-      EFECTIVO: 0,
-      YAPE: 0,
-      PLIN: 0,
-      TARJETA: 0,
-      TRANSFERENCIA: 0,
-      MIXTO: 0,
-      CREDITO: 0,
-    };
-
-    ventas.forEach((v) => {
-      metodoMap[v.metodoPago] = (metodoMap[v.metodoPago] || 0) + v.total;
-    });
-
-    const ventasPorMetodo = (Object.keys(metodoMap) as MetodoPago[])
-      .filter((m) => metodoMap[m] > 0)
-      .map((metodo) => ({
-        metodo,
-        total: metodoMap[metodo],
-        porcentaje: totalVendidoHoy > 0 ? +((metodoMap[metodo] / totalVendidoHoy) * 100).toFixed(1) : 0,
-      }));
-
-    return simulateDelay({
-      totalVendidoHoy,
-      transaccionesHoy,
-      ticketPromedioHoy,
-      articulosDespachadosHoy,
-      ventasPorMetodo,
-      comparativaAyerPorcentaje: 12.4, // Crecimiento positivo vs ayer
-    });
+    return apiClient.get<ResumenVentasKpis>('/ventas/kpis');
   },
 };

@@ -36,6 +36,7 @@ import {
 import { Producto } from '@/features/productos/types/productos.types';
 import { Cliente } from '@/features/clientes/types/clientes.types';
 import { subscribeToErp } from '@/services/erp/erpStore';
+import { useSocketEvent } from '@/services/socket/useSocketEvent';
 import {
   ShoppingCart,
   LayoutDashboard,
@@ -146,6 +147,28 @@ export const VentasPage: React.FC = () => {
     });
     return unsubscribe;
   }, []);
+
+  // Sincronización multi-terminal en tiempo real vía WebSockets
+  useSocketEvent('stock:actualizado', (data: { productoId: string; delta: number; nuevoStock: number }) => {
+    setProductos((prev) =>
+      prev.map((p) => {
+        if (p.id === data.productoId) {
+          const updatedStock =
+            data.nuevoStock !== undefined && data.nuevoStock >= 0
+              ? data.nuevoStock
+              : Math.max(0, p.stock + (data.delta || 0));
+          return { ...p, stock: updatedStock };
+        }
+        return p;
+      })
+    );
+  });
+
+  useSocketEvent('ventas:nueva_venta', (data: { serieCorrelativo: string; total: number; cajero: string }) => {
+    // Actualizar historial y métricas sin interrumpir la operación actual del cajero
+    ventasService.getVentas().then(setVentas);
+    ventasService.getKpisVentas().then(setKpis);
+  });
 
   // Handlers
   const handleEmitirVenta = async (payload: NuevaVentaPayload): Promise<Venta> => {

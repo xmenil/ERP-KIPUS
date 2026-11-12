@@ -11,6 +11,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { APP_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { isRoleAlmacenero, isRoleCajero, isRoleAdmin } from '@/features/auth/utils/permissions';
+import { useSocketEvent } from '@/services/socket/useSocketEvent';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 
 export const DashboardPage: React.FC = () => {
@@ -18,6 +19,19 @@ export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const { metrics, recentSales, stockAlerts, salesTrend, isLoading, refetchAll } =
     useDashboardData();
+
+  // Sincronización en tiempo real del Dashboard ante ventas o movimientos remotos
+  useSocketEvent('ventas:nueva_venta', () => {
+    refetchAll();
+  });
+
+  useSocketEvent('stock:actualizado', () => {
+    refetchAll();
+  });
+
+  useSocketEvent('caja:balance_actualizado', () => {
+    refetchAll();
+  });
 
   const esAlmacenero = isRoleAlmacenero(user?.rol);
   const esCajero = isRoleCajero(user?.rol);

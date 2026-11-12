@@ -26,6 +26,8 @@ import { CobroModal } from './CobroModal';
 import { VentaCompletadaModal } from './VentaCompletadaModal';
 import { formatCurrency } from '@/utils/formatters';
 import { useVoiceSearch } from '../hooks/useVoiceSearch';
+import { useBarcodeScanner } from '../hooks/useBarcodeScanner';
+import { audioFeedbackService } from '../services/audioFeedbackService';
 import { cn } from '@/lib/utils';
 import {
   Search,
@@ -46,6 +48,7 @@ import {
   RotateCcw,
   Sparkles,
   Volume2,
+  VolumeX,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -93,6 +96,7 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
   const [openCobroModal, setOpenCobroModal] = useState(false);
   const [ventaCompletada, setVentaCompletada] = useState<Venta | null>(null);
   const [openCompletadaModal, setOpenCompletadaModal] = useState(false);
+  const [sonidoSilenciado, setSonidoSilenciado] = useState(audioFeedbackService.isMuted());
 
   // Asistente por voz interactivo
   const [modoVozActivo, setModoVozActivo] = useState(false);
@@ -129,10 +133,12 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
   // Agregar al carrito
   const handleAgregarProducto = (prod: Producto) => {
     if (!prod.activo) {
+      audioFeedbackService.playErrorBeep();
       toast.error(`"${prod.nombre}" está inactivo. Actívalo en Productos antes de vender.`);
       return;
     }
     if (prod.stock <= 0) {
+      audioFeedbackService.playErrorBeep();
       toast.error(`"${prod.nombre}" está agotado en inventario.`);
       return;
     }
@@ -141,9 +147,11 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
       const existe = prev.find((item) => item.productoId === prod.id);
       if (existe) {
         if (existe.cantidad >= prod.stock) {
+          audioFeedbackService.playErrorBeep();
           toast.warning(`No puedes agregar más: Stock máximo alcanzado (${prod.stock} unid.)`);
           return prev;
         }
+        audioFeedbackService.playSuccessBeep();
         return prev.map((item) =>
           item.productoId === prod.id
             ? {
@@ -154,6 +162,7 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
             : item
         );
       }
+      audioFeedbackService.playSuccessBeep();
       return [
         ...prev,
         {
@@ -221,10 +230,19 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
     try {
       if (!lectura.trim()) throw new Error('Escanea o escribe el código del producto.');
       const producto = buscarProductoPorCodigo(productos, lectura);
-      if (!producto) throw new Error('Código no registrado. Agrégalo en Productos o busca el artículo por nombre.');
-      if (!producto.activo) throw new Error('Producto inactivo. Actívalo en Productos antes de vender.');
+      if (!producto) {
+        audioFeedbackService.playErrorBeep();
+        throw new Error(`Código "${lectura}" no registrado. Agrégalo en Productos.`);
+      }
+      if (!producto.activo) {
+        audioFeedbackService.playErrorBeep();
+        throw new Error('Producto inactivo. Actívalo en Productos antes de vender.');
+      }
       const cantidad = carrito.find(item => item.productoId === producto.id)?.cantidad ?? 0;
-      if (producto.stock - cantidad < 1) throw new Error('No hay stock disponible para agregar otra unidad.');
+      if (producto.stock - cantidad < 1) {
+        audioFeedbackService.playErrorBeep();
+        throw new Error('No hay stock disponible para agregar otra unidad.');
+      }
       handleAgregarProducto(producto);
       setErrorLectura('');
     } catch (error) {
@@ -259,17 +277,13 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
     }
   };
 
-  // Atajos de teclado para cajeros rápidos (F12 = Cobrar, Esc = Cerrar)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'F12' && carrito.length > 0 && !openCobroModal) {
-        e.preventDefault();
-        setOpenCobroModal(true);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [carrito.length, openCobroModal]);
+  // Lector de código de barras físico USB / Bluetooth (Keyboard Wedge)
+  useBarcodeScanner({
+    onScan: (barcode) => {
+      handleLeerCodigo(barcode);
+    },
+    enabled: !openCobroModal && !openCompletadaModal,
+  });
 
   // Ejecutar cobro confirmado
   const handleConfirmarCobroFinal = async (datosCobro: {
@@ -300,6 +314,7 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
     };
 
     const ventaEmitida = await onEmitirVenta(payload);
+    audioFeedbackService.playCashChime();
     setVentaCompletada(ventaEmitida);
     setOpenCompletadaModal(true);
     setCarrito([]);
@@ -358,6 +373,34 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
               <>
                 <Mic className="h-3.5 w-3.5 text-primary" />
                 <span>Voz KIPU&apos;S</span>
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              const nuevo = !sonidoSilenciado;
+              audioFeedbackService.setMuted(nuevo);
+              setSonidoSilenciado(nuevo);
+              toast.info(nuevo ? 'Sonidos del POS silenciados' : 'Sonidos del POS activados', { duration: 1000 });
+            }}
+            className={`inline-flex items-center gap-1 rounded border px-2.5 py-1 text-xs font-medium cursor-pointer transition-colors ${
+              sonidoSilenciado
+                ? 'border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+                : 'border-border bg-background text-muted-foreground hover:bg-muted'
+            }`}
+            title={sonidoSilenciado ? 'Activar sonido de escaneo' : 'Silenciar sonido de escaneo'}
+          >
+            {sonidoSilenciado ? (
+              <>
+                <VolumeX className="h-3.5 w-3.5 text-amber-600" />
+                <span>Mudo</span>
+              </>
+            ) : (
+              <>
+                <Volume2 className="h-3.5 w-3.5 text-primary" />
+                <span>Sonidos</span>
               </>
             )}
           </button>

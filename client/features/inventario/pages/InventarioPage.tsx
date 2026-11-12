@@ -23,6 +23,7 @@ import {
   NuevoAjustePayload,
 } from '../types/inventario.types';
 import { subscribeToErp } from '@/services/erp/erpStore';
+import { useSocketEvent } from '@/services/socket/useSocketEvent';
 import { formatCurrency } from '@/utils/formatters';
 import { ProductoFormDialog } from '@/features/productos/components/ProductoFormDialog';
 import { EscanerProductoModal } from '@/features/productos/components/EscanerProductoModal';
@@ -141,6 +142,11 @@ export const InventarioPage: React.FC = () => {
     });
     return unsubscribe;
   }, []);
+
+  // Sincronización multi-terminal de existencias y kardex vía WebSockets
+  useSocketEvent('stock:actualizado', () => {
+    cargarDatos(false);
+  });
 
   // Lista de categorías únicas para los filtros
   const categorias = useMemo(() => {

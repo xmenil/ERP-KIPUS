@@ -228,7 +228,7 @@ export const CobroModal: React.FC<CobroModalProps> = ({
 
               {/* Botones de billetes rápidos */}
               <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                <span className="text-[11px] text-muted-foreground mr-1">Atajos:</span>
+                <span className="text-[11px] text-muted-foreground mr-1">Sugeridos:</span>
                 <button
                   type="button"
                   onClick={handleSetMontoExacto}

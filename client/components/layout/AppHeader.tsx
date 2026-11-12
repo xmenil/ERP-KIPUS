@@ -23,9 +23,18 @@ import {
   Calendar,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useSocketStatus, useSocketEvent } from '@/services/socket/useSocketEvent';
 
 export const AppHeader: React.FC = () => {
   const { user, logout } = useAuth();
+  const socketConnected = useSocketStatus();
+
+  // Escuchar alertas críticas globales de stock mínimo en cualquier pantalla
+  useSocketEvent('alertas:stock_minimo', (data: any) => {
+    toast.warning(`⚠️ Alerta de Stock Mínimo: "${data.nombre}" (${data.stockActual} unidades disponibles)`, {
+      duration: 6000,
+    });
+  });
   const [isDark, setIsDark] = useState<boolean>(() => {
     return document.documentElement.classList.contains('dark');
   });
@@ -81,6 +90,29 @@ export const AppHeader: React.FC = () => {
 
       {/* Lado derecho: Tipo de cambio, acciones y usuario */}
       <div className="flex items-center gap-2">
+        {/* Indicador de Sincronización en Tiempo Real Multi-Terminal (WebSockets) */}
+        <div
+          className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium border ${
+            socketConnected
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800'
+              : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 animate-pulse'
+          }`}
+          title={
+            socketConnected
+              ? 'Conectado a la red de sincronización en tiempo real (Multi-Terminal)'
+              : 'Reconectando con el servidor en tiempo real...'
+          }
+        >
+          <span
+            className={`inline-block h-2 w-2 rounded-full ${
+              socketConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+            }`}
+          />
+          <span className="hidden sm:inline font-mono">
+            {socketConnected ? 'En Vivo' : 'Reconectando'}
+          </span>
+        </div>
+
         {/* TC SUNAT */}
         <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded bg-muted/40 border border-border text-xs text-foreground">
           <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />

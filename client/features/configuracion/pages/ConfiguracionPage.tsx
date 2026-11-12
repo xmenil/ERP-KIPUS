@@ -15,9 +15,10 @@ import {
 } from '@/components/ui/table';
 import { configuracionService } from '../services/configuracionService';
 import { ConfiguracionSistema } from '../types/configuracion.types';
-import { Settings, Save, Building, FileCheck, CheckCircle2, RotateCcw, ShieldCheck, ArrowRight } from 'lucide-react';
+import { ticketPrintService } from '@/features/ventas/services/ticketPrintService';
+import { audioFeedbackService } from '@/features/ventas/services/audioFeedbackService';
+import { Settings, Save, Building, FileCheck, CheckCircle2, RotateCcw, ShieldCheck, ArrowRight, Printer, Volume2 } from 'lucide-react';
 import { APP_ROUTES } from '@/constants/routes';
-import { erpStore } from '@/services/erp/erpStore';
 import { toast } from 'sonner';
 
 export interface ConfiguracionPageProps {
@@ -49,6 +50,89 @@ export const ConfiguracionPage: React.FC<ConfiguracionPageProps> = ({
         [field]: val,
       },
     });
+  };
+
+  const handleUpdatePos = (field: string, val: any) => {
+    if (!config) return;
+    setConfig({
+      ...config,
+      pos: {
+        ...(config.pos || {
+          anchoPapel: '80mm',
+          autoImprimir: false,
+          abrirGaveta: true,
+          mensajePie: "¡Gracias por su compra en KIPU'S! Vuelva pronto.",
+          cortarPapel: true,
+          sonidosActivos: true,
+        }),
+        [field]: val,
+      },
+    });
+  };
+
+  const handleImprimirTicketPrueba = async () => {
+    if (!config) return;
+    const ticketPrueba = {
+      empresa: {
+        ruc: config.empresa.ruc,
+        razonSocial: config.empresa.razonSocial,
+        nombreComercial: config.empresa.nombreComercial,
+        direccionFiscal: config.empresa.direccionFiscal,
+        telefono: config.empresa.telefono,
+        correo: config.empresa.correo,
+      },
+      comprobante: {
+        id: 'test-ticket-id',
+        tipoComprobante: 'TICKET PRUEBA',
+        serieCorrelativo: 'TEST-000001',
+        fecha: new Date().toLocaleDateString('es-PE'),
+        hora: new Date().toLocaleTimeString('es-PE'),
+      },
+      cajero: 'Cajero de Prueba',
+      sucursal: 'Sede Central',
+      cliente: {
+        nombre: 'Cliente de Prueba',
+        documento: '00000000',
+      },
+      items: [
+        {
+          sku: 'DEMO-001',
+          nombre: 'Producto de Prueba POS 1',
+          cantidad: 2,
+          precioUnitario: 5.0,
+          subtotal: 10.0,
+        },
+        {
+          sku: 'DEMO-002',
+          nombre: 'Bebida Energizante 500ml',
+          cantidad: 1,
+          precioUnitario: 4.5,
+          subtotal: 4.5,
+        },
+      ],
+      totales: {
+        opGravada: 12.29,
+        opExonerada: 0,
+        igv: 2.21,
+        descuento: 0,
+        total: 14.5,
+        totalEnLetras: 'SON: CATORCE CON 50/100 SOLES',
+      },
+      pago: {
+        metodoPago: 'EFECTIVO',
+        montoRecibido: 20.0,
+        vuelto: 5.5,
+      },
+      pie: {
+        mensaje: config.pos?.mensajePie || "¡Gracias por su compra en KIPU'S! Vuelva pronto.",
+        resolucionSunat: 'Representación impresa de Comprobante de Prueba',
+        hashCpe: 'a1b2c3d4e5f6',
+      },
+    };
+
+    audioFeedbackService.playSuccessBeep();
+    await ticketPrintService.imprimirTicket(ticketPrueba as any, config.pos?.anchoPapel || '80mm');
+    toast.success('Ticket de prueba enviado a la impresora');
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -246,6 +330,118 @@ export const ConfiguracionPage: React.FC<ConfiguracionPageProps> = ({
               </CardContent>
             </Card>
 
+            {/* Configuración de Hardware POS e Impresora Térmica */}
+            <Card className="border-border/80">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <CardTitle className="text-base font-bold flex items-center gap-2">
+                      <Printer className="h-5 w-5 text-primary" />
+                      Hardware POS, Impresora Térmica y Gaveta de Dinero
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Parámetros de impresión de tickets para ticketeras térmicas Epson, Xprinter, Bixolon y lectores de código de barras
+                    </CardDescription>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleImprimirTicketPrueba}
+                    className="text-xs gap-1.5"
+                  >
+                    <Printer className="h-3.5 w-3.5 text-primary" />
+                    <span>Imprimir Prueba</span>
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold">Ancho del Papel Térmico</Label>
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-2 text-xs cursor-pointer">
+                        <input
+                          type="radio"
+                          name="anchoPapel"
+                          value="80mm"
+                          checked={(config.pos?.anchoPapel || '80mm') === '80mm'}
+                          onChange={() => handleUpdatePos('anchoPapel', '80mm')}
+                          className="text-primary"
+                        />
+                        <span className="font-medium">80 mm (Estándar - 48 cols)</span>
+                      </label>
+                      <label className="flex items-center gap-2 text-xs cursor-pointer">
+                        <input
+                          type="radio"
+                          name="anchoPapel"
+                          value="58mm"
+                          checked={config.pos?.anchoPapel === '58mm'}
+                          onChange={() => handleUpdatePos('anchoPapel', '58mm')}
+                          className="text-primary"
+                        />
+                        <span className="font-medium">58 mm (Compacto - 32 cols)</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold">Mensaje al Pie del Ticket</Label>
+                    <Input
+                      value={config.pos?.mensajePie || "¡Gracias por su compra en KIPU'S! Vuelva pronto."}
+                      onChange={(e) => handleUpdatePos('mensajePie', e.target.value)}
+                      className="h-8 text-xs"
+                      placeholder="Ej. ¡Gracias por su compra! Vuelva pronto."
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-border/60">
+                  <label className="flex items-center gap-2 text-xs cursor-pointer p-2 rounded-lg border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={config.pos?.autoImprimir ?? false}
+                      onChange={(e) => handleUpdatePos('autoImprimir', e.target.checked)}
+                      className="rounded border-border text-primary"
+                    />
+                    <div>
+                      <div className="font-semibold text-foreground">Impresión Automática</div>
+                      <div className="text-[10px] text-muted-foreground">Disparar impresión al finalizar cobro</div>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-2 text-xs cursor-pointer p-2 rounded-lg border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={config.pos?.abrirGaveta ?? true}
+                      onChange={(e) => handleUpdatePos('abrirGaveta', e.target.checked)}
+                      className="rounded border-border text-primary"
+                    />
+                    <div>
+                      <div className="font-semibold text-foreground">Apertura de Gaveta RJ11</div>
+                      <div className="text-[10px] text-muted-foreground">Abrir cajón al cobrar en efectivo</div>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-2 text-xs cursor-pointer p-2 rounded-lg border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={config.pos?.sonidosActivos ?? true}
+                      onChange={(e) => {
+                        handleUpdatePos('sonidosActivos', e.target.checked);
+                        audioFeedbackService.setMuted(!e.target.checked);
+                      }}
+                      className="rounded border-border text-primary"
+                    />
+                    <div>
+                      <div className="font-semibold text-foreground">Beeps de Escáner y POS</div>
+                      <div className="text-[10px] text-muted-foreground">Feedback sonoro en mostrador</div>
+                    </div>
+                  </label>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Zona de Simulación y Datos Demo */}
             <Card className="border-border/80">
               <CardHeader className="pb-3">
@@ -264,14 +460,15 @@ export const ConfiguracionPage: React.FC<ConfiguracionPageProps> = ({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => {
-                    erpStore.restablecerDatosMinimarket();
-                    toast.success('Datos del Minimarket restablecidos al estado inicial');
+                  onClick={async () => {
+                    const data = await configuracionService.getConfiguracion();
+                    setConfig(data);
+                    toast.success('Configuración sincronizada con la base de datos');
                   }}
                   className="h-9 text-xs gap-2 shrink-0 border-border"
                 >
                   <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
-                  Restablecer Datos Demo Minimarket
+                  Sincronizar con Base de Datos
                 </Button>
               </CardContent>
             </Card>

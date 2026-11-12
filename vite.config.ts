@@ -12,6 +12,19 @@ export default defineConfig(({ mode }) => ({
       allow: [".", "./client", "./shared", "./node_modules"],
       deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "server/**"],
     },
+    proxy: {
+      "/api/v1": {
+        target: "http://localhost:3002",
+        changeOrigin: true,
+        secure: false,
+      },
+      "/socket.io": {
+        target: "http://localhost:3002",
+        ws: true,
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
   build: {
     outDir: "dist/spa",
@@ -32,8 +45,13 @@ function expressPlugin(): Plugin {
     configureServer(server) {
       const app = createServer();
 
-      // Add Express app as middleware to Vite dev server
-      server.middlewares.use(app);
+      // Permitir que las peticiones a /api/v1 y /socket.io pasen directo al proxy sin que Express intercepte el body stream
+      server.middlewares.use((req, res, next) => {
+        if (req.url && (req.url.startsWith("/api/v1") || req.url.startsWith("/socket.io"))) {
+          return next();
+        }
+        app(req, res, next);
+      });
     },
   };
 }
