@@ -55,7 +55,7 @@ export const ventasService = {
         nombre: it.nombre,
         cantidad: it.cantidad,
         precioUnitario: it.precioUnitario,
-        descuentoUnitario: it.descuentoUnitario,
+        descuentoUnitario: it.descuentoUnitario ?? 0,
       })),
     };
     return apiClient.post<Venta>('/ventas', backendPayload);

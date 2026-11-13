@@ -70,6 +70,7 @@ export interface NuevaVentaPayload {
     nombre: string;
     cantidad: number;
     precioUnitario: number;
+    descuentoUnitario?: number;
   }[];
   sucursal?: string;
   caja?: string;

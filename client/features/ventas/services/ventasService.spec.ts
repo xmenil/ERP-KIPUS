@@ -12,36 +12,34 @@ describe('Ventas Service — Integración REST', () => {
     const mockVentas: Venta[] = [
       {
         id: 'v-1',
-        serie: 'B001',
-        correlativo: '000001',
+        serieCorrelativo: 'B001-000001',
         tipoComprobante: 'BOLETA',
         clienteNombre: 'Cliente General',
         clienteDocumento: '00000000',
-        fechaEmision: '2026-11-12T10:00:00.000Z',
+        fecha: '2026-11-12T10:00:00.000Z',
         subtotal: 100,
+        descuento: 0,
         igv: 18,
         total: 118,
         metodoPago: 'EFECTIVO',
-        estado: 'EMITIDA',
+        estado: 'COMPLETADA',
         items: [],
       },
     ];
 
     const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValueOnce(mockVentas);
 
-    const result = await ventasService.getVentas({ tipoComprobante: 'BOLETA', estado: 'EMITIDA' });
-    expect(getSpy).toHaveBeenCalledWith('/ventas?estado=EMITIDA&tipoComprobante=BOLETA');
+    const result = await ventasService.getVentas({ tipoComprobante: 'BOLETA', estado: 'COMPLETADA' });
+    expect(getSpy).toHaveBeenCalledWith('/ventas?estado=COMPLETADA&tipoComprobante=BOLETA');
     expect(result).toHaveLength(1);
-    expect(result[0].serie).toBe('B001');
+    expect(result[0].serieCorrelativo).toBe('B001-000001');
   });
 
   it('permite emitir una venta llamando a POST /ventas', async () => {
     const payload: NuevaVentaPayload = {
       tipoComprobante: 'BOLETA',
-      clienteId: 'cli-1',
       clienteNombre: 'Juan Perez',
       clienteDocumento: '71234567',
-      clienteDireccion: 'Jr. Huánuco 123',
       metodoPago: 'EFECTIVO',
       montoRecibido: 50,
       vuelto: 10,
@@ -52,21 +50,24 @@ describe('Ventas Service — Integración REST', () => {
           nombre: 'Arroz Costeño',
           cantidad: 8,
           precioUnitario: 5.0,
-          subtotal: 40.0,
         },
       ],
-      subtotal: 33.9,
-      igv: 6.1,
-      total: 40.0,
     };
 
     const mockVenta: Venta = {
-      ...payload,
       id: 'v-created',
-      serie: 'B001',
-      correlativo: '000045',
-      fechaEmision: '2026-11-12T11:00:00.000Z',
-      estado: 'EMITIDA',
+      tipoComprobante: 'BOLETA',
+      serieCorrelativo: 'B001-000045',
+      clienteNombre: 'Juan Perez',
+      clienteDocumento: '71234567',
+      fecha: '2026-11-12T11:00:00.000Z',
+      metodoPago: 'EFECTIVO',
+      estado: 'COMPLETADA',
+      subtotal: 33.9,
+      descuento: 0,
+      igv: 6.1,
+      total: 40.0,
+      items: [],
     };
 
     const postSpy = vi.spyOn(apiClient, 'post').mockResolvedValueOnce(mockVenta);
@@ -86,7 +87,7 @@ describe('Ventas Service — Integración REST', () => {
           nombre: 'Arroz Costeño',
           cantidad: 8,
           precioUnitario: 5.0,
-          descuentoUnitario: undefined,
+          descuentoUnitario: 0,
         },
       ],
     }));
@@ -97,13 +98,13 @@ describe('Ventas Service — Integración REST', () => {
   it('permite anular una venta enviando POST /ventas/:id/anular', async () => {
     const mockAnulada: Venta = {
       id: 'v-1',
-      serie: 'B001',
-      correlativo: '000001',
+      serieCorrelativo: 'B001-000001',
       tipoComprobante: 'BOLETA',
       clienteNombre: 'Cliente General',
       clienteDocumento: '00000000',
-      fechaEmision: '2026-11-12T10:00:00.000Z',
+      fecha: '2026-11-12T10:00:00.000Z',
       subtotal: 100,
+      descuento: 0,
       igv: 18,
       total: 118,
       metodoPago: 'EFECTIVO',
@@ -130,6 +131,7 @@ describe('Ventas Service — Integración REST', () => {
         estado: 'PENDIENTE',
         total: 250,
         items: [],
+        sucursal: 'Sede Central',
       },
     ];
 
@@ -138,11 +140,16 @@ describe('Ventas Service — Integración REST', () => {
         id: 'cot-1',
         numero: 'COT-001',
         clienteNombre: 'Hotel Tingo',
+        clienteDocumento: '20100000001',
         fecha: '2026-11-12',
+        fechaVencimiento: '2026-11-27',
+        validezDias: 15,
+        subtotal: 423.73,
+        igv: 76.27,
         total: 500,
-        estado: 'PENDIENTE',
+        estado: 'VIGENTE',
         items: [],
-        vigenciaDias: 15,
+        vendedor: 'admin',
       },
     ];
 
@@ -157,3 +164,4 @@ describe('Ventas Service — Integración REST', () => {
     expect(cotizaciones).toHaveLength(1);
   });
 });
+

@@ -31,7 +31,20 @@ class SocketClient {
       sessionStorage.getItem(AUTH_TOKEN_KEY) ||
       localStorage.getItem('kipus_auth_token');
 
-    this.socket = io('/events', {
+    const apiBase = import.meta.env.VITE_API_BASE_URL as string | undefined;
+    let socketTarget = '/events';
+    if (import.meta.env.VITE_SOCKET_URL) {
+      socketTarget = `${(import.meta.env.VITE_SOCKET_URL as string).replace(/\/+$/, '')}/events`;
+    } else if (apiBase && apiBase.startsWith('http')) {
+      try {
+        const parsed = new URL(apiBase);
+        socketTarget = `${parsed.origin}/events`;
+      } catch {
+        socketTarget = '/events';
+      }
+    }
+
+    this.socket = io(socketTarget, {
       transports: ['websocket', 'polling'],
       autoConnect: true,
       reconnection: true,

@@ -10,15 +10,23 @@ describe('Caja Service — Integración REST', () => {
 
   it('obtiene el estado de la caja activa llamando a GET /caja/estado', async () => {
     const mockEstado: EstadoCaja = {
+      id: 'caja-1',
+      nombre: 'Caja Principal',
+      sucursal: 'Sede Central',
+      responsable: 'Cajero Principal',
       abierta: true,
+      estado: 'ABIERTA',
+      turno: 'Mañana',
+      fechaApertura: '2026-11-12',
+      horaApertura: '08:00',
       saldoInicial: 100,
-      totalIngresos: 500,
-      totalEgresos: 50,
-      saldoEsperado: 550,
       ventasEfectivo: 400,
-      ventasDigitales: 100,
-      aperturaFecha: '2026-11-12T08:00:00.000Z',
-      cajero: 'Cajero Principal',
+      otrosIngresosEfectivo: 100,
+      egresosEfectivo: 50,
+      saldoEfectivoEsperado: 550,
+      ventasDigitales: { yape: 50, plin: 50, tarjeta: 0, transferencia: 0 },
+      totalVentasDigitales: 100,
+      totalVentasGeneral: 500,
     };
 
     const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValueOnce(mockEstado);
@@ -26,18 +34,19 @@ describe('Caja Service — Integración REST', () => {
     const estado = await cajaService.getEstado();
     expect(getSpy).toHaveBeenCalledWith('/caja/estado');
     expect(estado.abierta).toBe(true);
-    expect(estado.saldoEsperado).toBe(550);
+    expect(estado.saldoEfectivoEsperado).toBe(550);
   });
 
   it('obtiene el historial de movimientos llamando a GET /caja/movimientos con filtros', async () => {
     const mockMovimientos: MovimientoCaja[] = [
       {
         id: 'mov-1',
-        cajaId: 'caja-1',
+        fecha: '2026-11-12',
+        hora: '10:00',
         tipo: 'INGRESO',
         concepto: 'Venta B001-001',
+        metodo: 'EFECTIVO',
         monto: 35.5,
-        fecha: '2026-11-12T10:00:00.000Z',
         usuario: 'admin',
       },
     ];
@@ -52,20 +61,31 @@ describe('Caja Service — Integración REST', () => {
 
   it('permite abrir caja enviando POST /caja/abrir', async () => {
     const payload: AperturaCajaPayload = {
-      montoInicial: 150,
+      cajaId: 'caja-1',
+      sucursal: 'Sede Central',
+      responsable: 'admin',
+      saldoInicial: 150,
       observaciones: 'Apertura turno mañana',
     };
 
     const mockEstado: EstadoCaja = {
+      id: 'caja-1',
+      nombre: 'Caja Principal',
+      sucursal: 'Sede Central',
+      responsable: 'admin',
       abierta: true,
+      estado: 'ABIERTA',
+      turno: 'Mañana',
+      fechaApertura: '2026-11-12',
+      horaApertura: '08:00',
       saldoInicial: 150,
-      totalIngresos: 0,
-      totalEgresos: 0,
-      saldoEsperado: 150,
       ventasEfectivo: 0,
-      ventasDigitales: 0,
-      aperturaFecha: '2026-11-12T08:00:00.000Z',
-      cajero: 'admin',
+      otrosIngresosEfectivo: 0,
+      egresosEfectivo: 0,
+      saldoEfectivoEsperado: 150,
+      ventasDigitales: { yape: 0, plin: 0, tarjeta: 0, transferencia: 0 },
+      totalVentasDigitales: 0,
+      totalVentasGeneral: 0,
     };
 
     const postSpy = vi.spyOn(apiClient, 'post').mockResolvedValueOnce(mockEstado);
@@ -81,16 +101,18 @@ describe('Caja Service — Integración REST', () => {
       tipo: 'EGRESO' as const,
       concepto: 'Pago de flete local',
       monto: 25.0,
+      metodo: 'EFECTIVO' as const,
       categoria: 'OPERATIVO',
     };
 
     const mockRes: MovimientoCaja = {
       id: 'mov-2',
-      cajaId: 'caja-1',
+      fecha: '2026-11-12',
+      hora: '11:00',
       tipo: 'EGRESO',
       concepto: 'Pago de flete local',
+      metodo: 'EFECTIVO',
       monto: 25.0,
-      fecha: '2026-11-12T11:00:00.000Z',
       usuario: 'admin',
     };
 
@@ -101,4 +123,5 @@ describe('Caja Service — Integración REST', () => {
     expect(res.monto).toBe(25.0);
   });
 });
+
 

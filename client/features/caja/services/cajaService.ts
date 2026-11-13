@@ -27,6 +27,13 @@ export const cajaService = {
   },
 
   /**
+   * Alias de compatibilidad
+   */
+  async getEstadoCaja(cajaId?: string): Promise<EstadoCaja> {
+    return this.getEstado(cajaId);
+  },
+
+  /**
    * Obtiene el historial de movimientos de ingresos y egresos de caja
    */
   async getMovimientos(params?: ListMovimientosQuery): Promise<MovimientoCaja[]> {

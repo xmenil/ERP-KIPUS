@@ -50,7 +50,7 @@ function expressPlugin(): Plugin {
         if (req.url && (req.url.startsWith("/api/v1") || req.url.startsWith("/socket.io"))) {
           return next();
         }
-        app(req, res, next);
+        app(req as any, res as any, next);
       });
     },
   };
