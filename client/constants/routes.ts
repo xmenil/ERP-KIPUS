@@ -24,12 +24,20 @@ export const APP_ROUTES = {
 
 export type AppRoute = typeof APP_ROUTES[keyof typeof APP_ROUTES];
 
+export interface NavigationSubItem {
+  name: string;
+  path: string;
+  iconName?: string;
+  tabKey?: string;
+}
+
 export interface NavigationItem {
   name: string;
   path: string;
   iconName: string;
   badge?: string;
   description?: string;
+  subItems?: NavigationSubItem[];
 }
 
 /**
@@ -69,6 +77,11 @@ export const getNavigationItemsForRole = (rol?: string): NavigationItem[] => {
         path: APP_ROUTES.VENTAS,
         iconName: 'ShoppingCart',
         description: 'Punto de venta y operación de turno',
+        subItems: [
+          { name: 'Punto de Venta (POS)', path: '/ventas?tab=pos', tabKey: 'pos', iconName: 'ShoppingCart' },
+          { name: 'Historial de Comprobantes', path: '/ventas?tab=historial', tabKey: 'historial', iconName: 'Receipt' },
+          { name: 'Caja y Turnos', path: '/ventas?tab=caja', tabKey: 'caja', iconName: 'DollarSign' },
+        ],
       },
       {
         name: 'Clientes',
@@ -121,6 +134,11 @@ export const getNavigationItemsForRole = (rol?: string): NavigationItem[] => {
       path: APP_ROUTES.VENTAS,
       iconName: 'ShoppingCart',
       description: 'Registro de ventas, comprobantes y cuadre de caja',
+      subItems: [
+        { name: 'Punto de Venta (POS)', path: '/ventas?tab=pos', tabKey: 'pos', iconName: 'ShoppingCart' },
+        { name: 'Historial de Comprobantes', path: '/ventas?tab=historial', tabKey: 'historial', iconName: 'Receipt' },
+        { name: 'Caja y Turnos', path: '/ventas?tab=caja', tabKey: 'caja', iconName: 'DollarSign' },
+      ],
     },
     {
       name: 'Inventario',

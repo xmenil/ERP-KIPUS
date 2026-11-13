@@ -223,11 +223,11 @@ export const VentasPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Encabezado Principal */}
+    <div className="space-y-2.5">
+      {/* Encabezado Principal Compacto */}
       <PageHeader
         title="Ventas y Caja"
-        description="Punto de venta (POS), historial de comprobantes, facturación electrónica y control diario de caja."
+        description={tabActiva === 'pos' ? undefined : "Punto de venta (POS), historial de comprobantes, facturación electrónica y control diario de caja."}
         badge="Ventas & Caja"
       >
         <div className="flex flex-wrap items-center gap-2">
@@ -275,49 +275,49 @@ export const VentasPage: React.FC = () => {
         </div>
       </PageHeader>
 
-      {/* Navegación por pestañas de ventas y caja */}
-      <Tabs value={tabActiva} onValueChange={handleTabChange} className="w-full space-y-3.5">
-        <TabsList className="bg-muted/70 p-1 flex overflow-x-auto flex-nowrap sm:flex-wrap h-auto gap-1 border border-border/60 max-w-full scrollbar-none justify-start">
-          <TabsTrigger value="pos" className="text-xs font-semibold py-1.5 px-3 gap-1.5 shrink-0">
-            <ShoppingCart className="h-3.5 w-3.5" />
+      {/* Navegación por pestañas de ventas y caja (Barra estilizada y compacta) */}
+      <Tabs value={tabActiva} onValueChange={handleTabChange} className="w-full space-y-2.5">
+        <TabsList className="bg-muted/60 p-0.5 flex overflow-x-auto flex-nowrap h-7 gap-1 border border-border/60 max-w-full scrollbar-none justify-start rounded-md">
+          <TabsTrigger value="pos" className="text-[11px] font-semibold py-0.5 px-2.5 h-6 gap-1 shrink-0">
+            <ShoppingCart className="h-3 w-3" />
             <span>Punto de Venta (POS)</span>
           </TabsTrigger>
 
-          <TabsTrigger value="historial" className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0">
-            <Receipt className="h-3.5 w-3.5" />
+          <TabsTrigger value="historial" className="text-[11px] font-medium py-0.5 px-2.5 h-6 gap-1 shrink-0">
+            <Receipt className="h-3 w-3" />
             <span>Historial de Comprobantes</span>
           </TabsTrigger>
 
-          <TabsTrigger value="caja" className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0">
-            <DollarSign className="h-3.5 w-3.5" />
+          <TabsTrigger value="caja" className="text-[11px] font-medium py-0.5 px-2.5 h-6 gap-1 shrink-0">
+            <DollarSign className="h-3 w-3" />
             <span>Caja y Turnos</span>
           </TabsTrigger>
 
           {/* Pestañas administrativas avanzadas (ocultas para cajero) */}
           {user?.rol !== 'CAJERO' && (
-            <TabsTrigger value="dashboard" className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0">
-              <LayoutDashboard className="h-3.5 w-3.5" />
+            <TabsTrigger value="dashboard" className="text-[11px] font-medium py-0.5 px-2.5 h-6 gap-1 shrink-0">
+              <LayoutDashboard className="h-3 w-3" />
               <span>Resumen del Día</span>
             </TabsTrigger>
           )}
 
           {user?.rol !== 'CAJERO' && nivelNegocio !== 'TIENDA_PEQUENA' && (
             <>
-              <TabsTrigger value="pedidos" className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0">
-                <ShoppingBag className="h-3.5 w-3.5" />
+              <TabsTrigger value="pedidos" className="text-[11px] font-medium py-0.5 px-2.5 h-6 gap-1 shrink-0">
+                <ShoppingBag className="h-3 w-3" />
                 <span>Pedidos ({pedidos.filter((p) => p.estado !== 'ENTREGADO').length})</span>
               </TabsTrigger>
 
-              <TabsTrigger value="cotizaciones" className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0">
-                <FileCheck className="h-3.5 w-3.5" />
+              <TabsTrigger value="cotizaciones" className="text-[11px] font-medium py-0.5 px-2.5 h-6 gap-1 shrink-0">
+                <FileCheck className="h-3 w-3" />
                 <span>Cotizaciones / Proformas</span>
               </TabsTrigger>
             </>
           )}
 
           {user?.rol !== 'CAJERO' && nivelNegocio === 'CADENA_EMPRESARIAL' && (
-            <TabsTrigger value="devoluciones" className="text-xs font-medium py-1.5 px-3 gap-1.5 shrink-0">
-              <RotateCcw className="h-3.5 w-3.5" />
+            <TabsTrigger value="devoluciones" className="text-[11px] font-medium py-0.5 px-2.5 h-6 gap-1 shrink-0">
+              <RotateCcw className="h-3 w-3" />
               <span>Devoluciones</span>
             </TabsTrigger>
           )}

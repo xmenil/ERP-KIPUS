@@ -25,6 +25,9 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
 } from '@/components/ui/sidebar';
 import { APP_ROUTES, getNavigationItemsForRole } from '@/constants/routes';
@@ -48,6 +51,11 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
 export const AppSidebar: React.FC = () => {
   const location = useLocation();
   const { user } = useAuth();
+
+  const currentTab = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get('tab') || 'pos';
+  }, [location.search]);
 
   const navItems = useMemo(() => {
     return getNavigationItemsForRole(user?.rol);
@@ -143,6 +151,7 @@ export const AppSidebar: React.FC = () => {
               {navItems.map((item) => {
                 const Icon = ICON_MAP[item.iconName] || LayoutDashboard;
                 const isActive = isItemActive(item.path);
+                const hasSubItems = Boolean(item.subItems && item.subItems.length > 0);
 
                 return (
                   <SidebarMenuItem key={item.path}>
@@ -172,6 +181,44 @@ export const AppSidebar: React.FC = () => {
                         )}
                       </Link>
                     </SidebarMenuButton>
+
+                    {/* Sub-opciones debajo del botón principal */}
+                    {hasSubItems && (isActive || location.pathname === APP_ROUTES.VENTAS) && (
+                      <SidebarMenuSub className="mt-1 ml-3 border-l-2 border-primary/30 pl-2 space-y-0.5">
+                        {item.subItems!.map((sub) => {
+                          const SubIcon = ICON_MAP[sub.iconName || ''] || ShoppingCart;
+                          const isSubActive =
+                            (location.pathname === APP_ROUTES.VENTAS || (sub.tabKey === 'caja' && location.pathname === APP_ROUTES.CAJA)) &&
+                            (sub.tabKey === 'pos'
+                              ? currentTab === 'pos' || (!location.search.includes('tab=') && location.pathname === APP_ROUTES.VENTAS)
+                              : currentTab === sub.tabKey);
+
+                          return (
+                            <SidebarMenuSubItem key={sub.path}>
+                              <SidebarMenuSubButton
+                                asChild
+                                size="sm"
+                                isActive={isSubActive}
+                                className={`h-7 px-2 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                                  isSubActive
+                                    ? '!bg-primary/15 !text-primary font-bold dark:!bg-primary/25'
+                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/70 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-slate-100'
+                                }`}
+                              >
+                                <Link to={sub.path} className="flex items-center gap-2 w-full">
+                                  <SubIcon
+                                    className={`h-3.5 w-3.5 shrink-0 ${
+                                      isSubActive ? 'text-primary font-bold' : 'text-slate-500 dark:text-slate-400'
+                                    }`}
+                                  />
+                                  <span className="truncate">{sub.name}</span>
+                                </Link>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          );
+                        })}
+                      </SidebarMenuSub>
+                    )}
                   </SidebarMenuItem>
                 );
               })}

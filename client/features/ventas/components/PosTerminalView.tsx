@@ -325,21 +325,16 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
 
   return (
     <div className="space-y-3">
-      {/* Barra de estado del Punto de Venta */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-lg border border-border bg-card p-3 shadow-2xs">
-        <div className="flex flex-wrap items-center gap-3 text-xs">
-          <div className="flex items-center gap-1.5 font-semibold text-foreground">
-            <Building2 className="h-4 w-4 text-primary shrink-0" />
-            <span>{sucursalActiva}</span>
-          </div>
-          <span className="text-border">|</span>
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <span className="font-medium text-foreground">{cajaActiva}</span>
+      {/* Barra de estado del Punto de Venta (Compacta) */}
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card py-1.5 px-3 shadow-2xs">
+        <div className="flex items-center gap-2.5 text-xs">
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <span className="font-semibold text-foreground">{cajaActiva}</span>
             <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" title="Caja abierta" />
           </div>
           <span className="text-border">|</span>
-          <div className="text-muted-foreground">
-            Cajero: <span className="font-medium text-foreground">{vendedorActivo}</span>
+          <div className="text-muted-foreground text-xs">
+            Cajero: <span className="font-semibold text-foreground">{vendedorActivo}</span>
           </div>
         </div>
 
@@ -446,19 +441,38 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
         {/* COLUMNA IZQUIERDA: CATÁLOGO Y BÚSQUEDA (7 de 12 columnas)                 */}
         {/* ========================================================================= */}
         <div className="lg:col-span-7 space-y-3">
-          <div className="space-y-2">
-            <Label htmlFor="pos-codigo">Código de barras / QR</Label>
-            <div className="flex gap-2">
-              <Input id="pos-codigo" ref={lectorRef} value={codigoLectura} className="font-mono text-base md:text-sm"
-                aria-invalid={Boolean(errorLectura)} aria-describedby="pos-codigo-ayuda pos-codigo-error"
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <Label htmlFor="pos-codigo" className="text-xs font-semibold text-foreground">Código de barras / QR</Label>
+              <span className="text-[11px] text-muted-foreground hidden sm:inline">Presiona Enter tras escanear</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Input
+                id="pos-codigo"
+                ref={lectorRef}
+                value={codigoLectura}
+                placeholder="Escanear o digitar código de barras o QR..."
+                className="font-mono text-xs h-8 bg-card flex-1"
+                aria-invalid={Boolean(errorLectura)}
+                aria-describedby="pos-codigo-error"
                 onChange={(e) => { setCodigoLectura(e.target.value); setErrorLectura(''); }}
                 onFocus={(e) => e.currentTarget.select()}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleLeerCodigo(); } }} />
-              <Button type="button" variant="outline" onClick={() => handleLeerCodigo()}>Agregar por código</Button>
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleLeerCodigo(); } }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleLeerCodigo()}
+                className="h-8 px-2.5 text-xs font-medium shrink-0 cursor-pointer"
+              >
+                Agregar
+              </Button>
+              <CameraCodeReader disabled={openCobroModal || openCompletadaModal} onRead={code => handleLeerCodigo(code)} />
             </div>
-            <p id="pos-codigo-ayuda" className="text-xs text-muted-foreground">Escanea y presiona Enter para agregar una unidad.</p>
-            <CameraCodeReader disabled={openCobroModal || openCompletadaModal} onRead={code => handleLeerCodigo(code)} />
-            <p id="pos-codigo-error" role={errorLectura ? 'alert' : undefined} className="text-sm text-danger-text">{errorLectura}</p>
+            {errorLectura && (
+              <p id="pos-codigo-error" role="alert" className="text-xs text-danger-text">{errorLectura}</p>
+            )}
           </div>
           {/* Barra de búsqueda amplia con botón de micrófono */}
           <div className="space-y-2">
@@ -578,10 +592,10 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
             ))}
           </div>
 
-          {/* Grid de productos */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[560px] overflow-y-auto pr-1">
+          {/* Catálogo de productos en filas horizontales compactas */}
+          <div className="flex flex-col gap-1.5 max-h-[560px] overflow-y-auto pr-1">
             {productosFiltrados.length === 0 ? (
-              <div className="col-span-full h-44 flex flex-col items-center justify-center text-center p-4 border border-dashed border-border rounded-lg bg-card">
+              <div className="h-44 flex flex-col items-center justify-center text-center p-4 border border-dashed border-border rounded-lg bg-card">
                 <ShoppingCart className="h-6 w-6 text-muted-foreground mb-1.5" />
                 <p className="text-xs font-medium text-foreground">No se encontraron productos</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -600,50 +614,69 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
                     type="button"
                     disabled={isAgotado}
                     onClick={() => handleAgregarProducto(prod)}
-                    className={`relative flex flex-col justify-between p-3 rounded-lg border text-left transition-all select-none cursor-pointer ${
+                    className={`group relative flex items-center justify-between p-2 px-3 rounded-lg border text-left transition-all select-none cursor-pointer ${
                       isAgotado
-                        ? 'opacity-50 border-border bg-muted/30 cursor-not-allowed'
+                        ? 'opacity-50 border-border bg-muted/20 cursor-not-allowed'
                         : enCarrito
-                        ? 'border-primary bg-primary-soft/20 shadow-xs ring-1 ring-primary'
-                        : 'border-border bg-card hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-xs'
+                        ? 'border-primary/80 bg-primary/5 hover:bg-primary/10 shadow-2xs ring-1 ring-primary/40'
+                        : 'border-border bg-card hover:border-primary/40 hover:bg-muted/30 shadow-2xs'
                     }`}
                   >
-                    {/* Badge de cantidad ya en carrito */}
-                    {enCarrito && (
-                      <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground shadow-xs">
-                        {enCarrito.cantidad}
-                      </span>
-                    )}
-
-                    <div className="space-y-1">
-                      <span className="text-[10px] text-muted-foreground font-mono block">
+                    {/* Información principal a la izquierda: SKU + Nombre + Categoría */}
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-3">
+                      <span className="shrink-0 text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/70">
                         {prod.sku}
                       </span>
-                      <h4 className="text-xs font-semibold text-foreground line-clamp-2 leading-snug">
-                        {prod.nombre}
-                      </h4>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                          {prod.nombre}
+                        </h4>
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                          <span className="truncate">{prod.categoria}</span>
+                          <span>•</span>
+                          <span className="uppercase text-[9px] font-medium">{prod.unidadMedida || 'UND'}</span>
+                          {prod.codigoBarras && (
+                            <>
+                              <span>•</span>
+                              <span className="font-mono text-[9px] text-slate-400 hidden sm:inline">{prod.codigoBarras}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="mt-2.5 pt-2 border-t border-border/60 flex items-end justify-between">
-                      <div className="font-mono">
-                        <span className="text-[10px] text-muted-foreground block">Precio</span>
-                        <span className="text-sm font-bold text-foreground tabular-nums">
-                          {formatCurrency(prod.precioVenta)}
-                        </span>
-                      </div>
-
+                    {/* Stock, precio y acción a la derecha */}
+                    <div className="flex items-center gap-3 shrink-0">
                       {/* Stock semántico */}
                       <span
-                        className={`text-[10px] font-medium px-1.5 py-0.5 rounded tabular-nums ${
+                        className={`text-[10px] font-semibold px-2 py-0.5 rounded tabular-nums border ${
                           isAgotado
-                            ? 'bg-danger-soft text-danger-text'
+                            ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
                             : isBajo
-                            ? 'bg-warning-soft text-warning-text'
-                            : 'bg-muted text-muted-foreground'
+                            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                            : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
                         }`}
                       >
                         {isAgotado ? 'Agotado' : `${prod.stock} disp.`}
                       </span>
+
+                      {/* Precio */}
+                      <div className="text-right min-w-[70px]">
+                        <span className="text-xs sm:text-sm font-bold text-foreground tabular-nums font-mono block">
+                          {formatCurrency(prod.precioVenta)}
+                        </span>
+                      </div>
+
+                      {/* Indicador de carrito o botón añadir */}
+                      {enCarrito ? (
+                        <span className="flex h-6 min-w-[24px] px-1.5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shadow-xs">
+                          {enCarrito.cantidad}
+                        </span>
+                      ) : (
+                        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-colors text-xs font-bold">
+                          +
+                        </span>
+                      )}
                     </div>
                   </button>
                 );
