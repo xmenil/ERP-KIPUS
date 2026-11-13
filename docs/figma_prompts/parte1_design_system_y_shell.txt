@@ -1,0 +1,28 @@
+[PROMPT PARTE 1/6: DESIGN SYSTEM & APP SHELL CON AUTO-LAYOUT]
+Diseña en Figma un software de escritorio ERP profesional (1440x900px, 100% Auto-layout).
+
+ESTILO & TOKENS:
+- Primario: Violeta #431B94 (Hover #351574, Fondo suave #F3EFFB).
+- Superficies: Fondo #F4F6F9, Tarjetas/Paneles #FFFFFF, Bordes #DCE2EB (1px), Radio base 6px.
+- Textos: Títulos #111827, Secundario #556274. Tipografía Inter UI, montos en JetBrains Mono tabular.
+- Semánticos: Éxito #16A34A (soft #F0FDF4), Alerta #F59E0B (soft #FFFBEB), Peligro #DC2626 (soft #FEF2F2). Cian secundario de marca #02A1BC solo para gráficos y logo.
+- Sombras: Sutiles (0px 1px 3px rgba(16,24,40,0.06)).
+
+ESTRUCTURA DE PANTALLA (SHELL):
+1. APP SIDEBAR (Ancho 240px, Auto-layout vertical, fondo #F4F6F9, borde derecho #DCE2EB):
+- Header (64px): Logo Kipu's + badge "PRO" en violeta suave + chip "Rol: Cajero".
+- Menú de navegación:
+  * Inicio (Dashboard)
+  * "Ventas y caja" (Activo fondo #431B94, texto blanco) con SUB-OPCIONES indentadas (borde izq 2px violeta):
+    - [🛒 Punto de Venta (POS)] (Seleccionado, fondo #F3EFFB, texto #431B94)
+    - [🧾 Historial de Comprobantes] (Texto #556274)
+    - [💵 Caja y Turnos] (Texto #556274)
+  * Clientes
+  * Inventario, Compras, Reportes, Administración (según rol).
+- Footer (56px): Avatar 24px, "Carlos Vega", "Sede Central", icono verificado verde.
+
+2. APP HEADER (Alto 52px, fondo #FFFFFF, borde inf #DCE2EB, Auto-layout horizontal):
+- Izq: Botón colapsar menú (32px), Chip sucursal "🏢 Sucursal: Sede Central - Tingo María" (fondo #EDF2F7), Fecha "Vie, 13 Nov. 2026".
+- Der: Pill WebSocket verde pulsante "🟢 En Vivo", Chip T.C. SUNAT "📈 T.C.: C: 3.74 | V: 3.76" monospaciado, Botón Sincronizar, Notificaciones con punto rojo, Botón Tema (luna), Avatar con iniciales "PR Pierina".
+
+Genera componentes maestros con variantes y auto-layout estricto.

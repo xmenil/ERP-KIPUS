@@ -1,0 +1,26 @@
+[PROMPT PARTE 2/6: PANTALLA POS COMPLETA Y CATÁLOGO EN FILAS]
+Diseña en Figma la pantalla principal de Punto de Venta (POS) en 1440x900px, 100% Auto-layout, con el Shell de la Parte 1.
+
+COLUMNA IZQUIERDA (Catálogo y Búsqueda, 7 de 12 cols):
+1. Sub-barra Slim (Alto 34px, borde #DCE2EB, radio 6px, padding 6px 12px):
+- Izq: "Caja 01 - Mostrador 🟢 | Cajero: Carlos Vega" (NO repetir Sede Central).
+- Der: Botones: [|||| Lector Código] [🎙️ Voz KIPU'S] [🔊 Sonidos].
+2. Lector Código de Barras (Línea compacta):
+- Input mono: "Escanear o digitar código..." + [Agregar] + [📷 Cámara].
+3. Buscador Universal:
+- Input con lupa + micrófono IA + chips: [Arroz Costeño] [Leche Gloria] [Inca Kola] [Aceite Primor].
+4. Categorías (Pills con scroll horizontal):
+- [Todos los productos] (Activo violeta #431B94) [Abarrotes] [Bebidas] [Limpieza] [Golosinas].
+5. CATÁLOGO EN FILAS ALARGADAS (No tarjetas cuadradas):
+- Filas horizontales (Alto 44px, padding 6px 12px, borde #DCE2EB, fondo #FFFFFF, radio 6px):
+  * Izq: Badge SKU mono (#EDF2F7, ej. "ACE-PRI-90") + Nombre "Aceite Primor Clásico 900ml" negrita + "Abarrotes • UNIDAD • 7750123456789".
+  * Der: Badge stock ("4 disp." ámbar, "45 disp." verde o "Agotado" rojo) + Precio mono bold "S/ 9.50" + Botón [+] o pill "2 en carrito" (#431B94).
+- Muestra 8-10 filas compactas visibles a la vez sin scroll excesivo.
+
+COLUMNA DERECHA (Panel Carrito y Cobro, Ancho fijo 380px):
+- Header: Icono carrito + "Carrito de Venta (3 items)" + [Vaciar].
+- Cliente: "Consumidor Final (00000000)" + [Cambiar cliente].
+- Items: 3 filas con steppers `[-] [ 2 ] [+]`, subtotal y botón eliminar rojo.
+- Desglose contable: Subtotal gravado S/ 72.88 | IGV (18%) S/ 13.12 | Descuento S/ 0.00.
+- TOTAL GIGANTE: "TOTAL A COBRAR: S/ 86.00" (24px bold mono).
+- Botón principal: "COBRAR (S/ 86.00) [F12]" (Alto 46px, fondo #431B94, blanco negrita).

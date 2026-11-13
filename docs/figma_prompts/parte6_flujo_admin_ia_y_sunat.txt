@@ -1,0 +1,34 @@
+[PROMPT PARTE 6/6: FLUJO ADMINISTRADOR (DASHBOARD, KIPU'S IA Y SUNAT)]
+Diseña en Figma las pantallas estratégicas del Administrador y Dueño (1440x900px, 100% Auto-layout).
+
+1. DASHBOARD PRINCIPAL DE NEGOCIO:
+- Filtros: Rango [Hoy | Esta Semana | Este Mes] + Sucursal [Consolidado | Sede Central | Tienda Mostrador].
+- 4 KPI Cards (Grid 4 cols):
+  * "Ventas del Día": S/ 18,450.00 (Chip verde "+14.2% vs ayer" | 142 transacciones).
+  * "Margen Bruto": 32.8% (S/ 6,051.60 util. estimada).
+  * "Ticket Promedio": S/ 48.20.
+  * "Alertas Críticas": 4 ítems agotados | 2 SUNAT pendientes.
+- Gráfico Ventas (Recharts, 2 series):
+  * Serie 1 Violeta #431B94: Ventas de hoy por hora (área suave).
+  * Serie 2 Cian #02A1BC: Comparativa semana anterior (línea punteada).
+- Widgets (2 cols):
+  * Izq: "Top 5 Más Vendidos": Barras progreso (Aceite Primor, Arroz Costeño, Leche Gloria, Inca Kola).
+  * Der: "Últimas Transacciones": Lista con hora, comprobante, monto y badge SUNAT "Aceptado".
+
+2. SHEET LATERAL KIPU'S IA (Ancho 440px, deslizable der):
+- Header degradado violeta: ✨ "KIPU'S IA - Asistente de Decisiones".
+- Chips de consulta:
+  * [¿Qué productos reabastecer hoy?]
+  * [¿Cuál es mi margen neto tras gastos?]
+  * [Sugerir combo promocional en Abarrotes]
+- Tarjeta de Predicción de Demanda:
+  * "Alerta: 'Aceite Primor 900ml' se agotará en 48 horas al ritmo actual (45 unid/día)."
+  * Botón directo: [Generar Orden de Compra Sugerida] (#431B94, blanco).
+
+3. PANTALLA CONFIGURACIÓN Y SUNAT:
+- Tabs: [Usuarios y Roles (RBAC)] | [Empresa y Sucursales] | [Facturación SUNAT].
+- Tab SUNAT:
+  * RUC emisor, Razón Social, Usuario SOL, Clave SOL.
+  * Certificado Digital (.pfx) con check verde "Válido hasta Dic 2027".
+  * Switch: [Ambiente Producción SUNAT / OSE].
+  * Series: Boletas "B001", Facturas "F001", Notas "NV01".

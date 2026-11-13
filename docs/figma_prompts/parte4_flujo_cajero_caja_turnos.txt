@@ -1,0 +1,30 @@
+[PROMPT PARTE 4/6: FLUJO ROL CAJERO (CAJA, TURNOS Y HISTORIAL)]
+Diseña en Figma las pantallas de caja y comprobantes del Cajero (1440x900px, 100% Auto-layout).
+
+1. MODAL APERTURA DE CAJA (Ancho 480px, centrado):
+- Datos: Sede Central | Caja 01 - Mostrador | Cajero: Carlos Vega | Fecha actual.
+- Input monto inicial: "Monto Inicial en Gaveta (S/): [ 150.00 ]" (Font-mono 20px bold).
+- Notas opcionales + Botón primario: [ABRIR TURNO DE CAJA] (#431B94, blanco).
+
+2. HISTORIAL DE COMPROBANTES (Pestaña / Sub-botón de navegación):
+- Header: Título "Historial de Comprobantes" + badge "Turno Activo".
+- Filtros rápidos: [Todos] [Boletas] [Facturas] [Notas] + Buscador correlativo.
+- Tabla DataTableERP:
+  * Columnas: Hora | N° Comprobante | Cliente | Medio Pago | Total (S/) | Estado SUNAT | Acciones.
+  * Filas:
+    - 10:45 AM | B001-00004219 | Consumidor Final | Efectivo | S/ 86.00 | Verde "Aceptado" | [🖨️] [❌]
+    - 10:32 AM | F001-00001048 | Inversiones Huallaga | Yape | S/ 320.00 | Verde "Aceptado" | [🖨️] [❌]
+    - 10:15 AM | B001-00004218 | María Rodríguez | Tarjeta | S/ 45.00 | Verde "Aceptado" | [🖨️] [❌]
+- Paginación: "Mostrando 15 comprobantes del turno".
+
+3. MODAL MOVIMIENTO CAJA CHICA (Ancho 460px):
+- Selector tipo: [📥 Entrada] | [📤 Salida / Gasto Menor] (Activo).
+- Monto: "S/ 25.00" + Motivo: "Compra de cinta y bolsas para mostrador".
+- Botón: [REGISTRAR MOVIMIENTO].
+
+4. PANTALLA ARQUEO Y CIERRE DE TURNO:
+- Resumen: Ventas Efectivo: S/ 1,240.00 | Yape: S/ 480.00 | Tarjeta: S/ 620.00.
+- Arqueo Ciego: Conteo físico (Billetes 100: [12] | 50: [4] | 20: [7] | Monedas: [50]).
+- Comparativa: Total Sistema S/ 1,390.00 vs Total Contado S/ 1,390.00.
+- Balance: Chip verde destacado "Diferencia: S/ 0.00 (Cuadre Exacto)".
+- Botón: [GENERAR REPORTE Z Y CERRAR TURNO] (#431B94, blanco).

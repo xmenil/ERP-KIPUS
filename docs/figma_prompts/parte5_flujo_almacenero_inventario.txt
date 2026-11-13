@@ -1,0 +1,31 @@
+[PROMPT PARTE 5/6: FLUJO ROL ALMACENERO (INVENTARIO, KARDEX Y RECEPCIÓN)]
+Diseña en Figma las pantallas del Almacenero y Supervisor (1440x900px, 100% Auto-layout).
+
+1. PANTALLA INVENTARIO GENERAL:
+- Sidebar: Inicio, Inventario (Activo), Compras, Reportes.
+- Header: Título "Control de Inventario" + [+ Nuevo Producto] + [Auditoría Conteo].
+- 3 KPI Cards:
+  * "Total Productos: 856" (Azul)
+  * "En Stock Mínimo: 14" (Badge ámbar #FFFBEB, texto #B45309)
+  * "Agotados: 3" (Badge rojo #FEF2F2, texto #B91C1C)
+- Filtros: Buscador SKU/nombre + Categoría + Ubicación + Switch "Solo alertas".
+- Tabla DataTableERP:
+  * Columnas: SKU | Producto | Categoría | Ubicación | Stock (Semáforo) | Mín | Costo (S/) | Precio (S/) | Acciones.
+  * Filas:
+    - ACE-PRI-90 | Aceite Primor 900ml | Abarrotes | A-02 | Ámbar "4 disp." | 10 | S/ 7.20 | S/ 9.50 | [Kardex] [✏️]
+    - ARR-COS-01 | Arroz Costeño 1kg | Abarrotes | A-01 | Verde "45 disp." | 15 | S/ 3.80 | S/ 4.80 | [Kardex] [✏️]
+    - GAS-COC-50 | Coca Cola 500ml | Bebidas | F-01 | Rojo "0 disp." | 12 | S/ 2.50 | S/ 3.50 | [Kardex] [✏️]
+
+2. MODAL ESCÁNER CÁMARA (Ancho 460px):
+- Visor de cámara en vivo con visor rectangular y línea láser roja horizontal.
+- Detección automática EAN-13/QR + botón [Capturar manual] + [Cerrar].
+
+3. MODAL KARDEX FÍSICO-VALORIZADO (Ancho 720px):
+- Header: "Kardex Valorizado: Arroz Costeño 1kg" + Stock: 45 UND.
+- Tabla Kardex (Promedio Ponderado):
+  * Columnas: Fecha | Doc. Ref | Concepto | Entrada | Salida | Saldo (Cant/Costo/Total).
+  * Fila 1: 10/11/26 | F001-892 | Compra Proveedor | +50 / S/ 190.00 | - | 50 / S/ 3.80 / S/ 190.00
+  * Fila 2: 13/11/26 | B001-4219 | Venta POS | - | -5 / S/ 19.00 | 45 / S/ 3.80 / S/ 171.00
+
+4. PANTALLA RECEPCIÓN DE COMPRA:
+- Proveedor RUC + Orden #OC-0024 + Cotejo Solicitado vs Recibido + [INGRESAR ALMACÉN].

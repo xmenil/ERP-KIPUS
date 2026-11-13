@@ -1,0 +1,27 @@
+[PROMPT PARTE 3/6: MODALES DE COBRO SUNAT Y TICKET TÉRMICO]
+Diseña en Figma los 2 modales clave del cobro en overlay oscuro (#111827/60), 100% Auto-layout.
+
+1. MODAL COBRO MULTIMÉTODO (Ancho 620px, radio 10px, fondo #FFFFFF):
+- Header: Título "Completar Venta y Cobro" + correlativo "B001-00004219".
+- Caja de Total (Fondo violeta suave #F3EFFB, borde #431B94/20, radio 8px, padding 10px):
+  * "Total a Cobrar:" + Cifra gigante font-mono 28px bold #431B94: "S/ 86.00".
+- Tipo Comprobante: [Boleta (03)] (Activo violeta) | [Factura (01)] | [Nota de Venta (00)].
+- Métodos de Pago (Tabs): [💵 Efectivo] (Activo) | [📱 Yape/Plin] | [💳 Tarjeta] | [⏳ Crédito] | [🔀 Mixto].
+- Contenido Efectivo:
+  * Input "Monto Recibido": "S/ 100.00" (Autofoco, font-mono 18px).
+  * Billetes rápidos: [Exacto] [S/ 10] [S/ 20] [S/ 50] [S/ 100] (Activo).
+  * Panel Vuelto (Fondo verde #F0FDF4, borde #16A34A/30, radio 6px, padding 8px):
+    - "Vuelto al Cliente: S/ 14.00" (Verde #15803D, font-mono 18px bold).
+- Footer: [Cancelar [Esc]] + Botón gigante [EMITIR COMPROBANTE (ENTER)] (#431B94, blanco).
+
+2. TICKET TÉRMICO SUNAT (Ancho 380px, estilo papel térmico 80mm):
+- Header: Logo Kipu's + "DISTRIBUIDORA LOS ANDES S.A.C." + "RUC: 20601234567".
+- Datos: "BOLETA: B001-00004219" + Fecha/Hora: 13/11/2026 10:45 AM + Cajero: Carlos Vega.
+- Tabla con líneas punteadas:
+  * 2 x Aceite Primor 900ml | S/ 9.50 | S/ 19.00
+  * 1 x Arroz Costeño 5kg | S/ 23.50 | S/ 23.50
+  * 1 x Fardo Leche Gloria | S/ 43.50 | S/ 43.50
+- Desglose: Op. Gravada: S/ 72.88 | IGV (18%): S/ 13.12 | TOTAL: S/ 86.00.
+- Pago: Efectivo: S/ 100.00 | Vuelto: S/ 14.00.
+- Código QR SUNAT (90x90px) + Hash SHA-256 + "Representación impresa autorizada por SUNAT".
+- Acciones: [🖨️ Imprimir] [📲 WhatsApp] [📥 PDF] [Nueva Venta (Esc)].
