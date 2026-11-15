@@ -1,436 +1,149 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { CajaPage } from '@/features/caja/pages/CajaPage';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { PosTerminalView } from '../components/PosTerminalView';
-import { VentasDashboardView } from '../components/VentasDashboardView';
 import { VentasHistorialView } from '../components/VentasHistorialView';
+import { PedidosCotizacionesView } from '../components/PedidosCotizacionesView';
+import { VentasDashboardView } from '../components/VentasDashboardView';
 import { VentaDetalleModal } from '../components/VentaDetalleModal';
-import { DevolucionesView } from '../components/DevolucionesView';
-import { PedidosView } from '../components/PedidosView';
-import { CotizacionesView } from '../components/CotizacionesView';
 import { KipusIaVentasSheet } from '../components/KipusIaVentasSheet';
-import { ventasService } from '../services/ventasService';
-import { productosService } from '@/features/productos/services/productosService';
-import { clientesService } from '@/features/clientes/services/clientesService';
-import {
-  Venta,
-  NuevaVentaPayload,
-  Pedido,
-  Cotizacion,
-  Devolucion,
-  ResumenVentasKpis,
-  NivelComplejidadNegocio,
-  EstadoPedido,
-} from '../types/ventas.types';
-import { Producto } from '@/features/productos/types/productos.types';
-import { Cliente } from '@/features/clientes/types/clientes.types';
-import { subscribeToErp } from '@/services/erp/erpStore';
-import { useSocketEvent } from '@/services/socket/useSocketEvent';
-import {
-  ShoppingCart,
-  LayoutDashboard,
-  Receipt,
-  DollarSign,
-  ShoppingBag,
-  FileCheck,
-  RotateCcw,
-  Sparkles,
-  Store,
-  Building2,
-  Sliders,
-} from 'lucide-react';
-import { toast } from 'sonner';
+import { useVentasData } from '../hooks/useVentasData';
+import { Venta } from '../types/ventas.types';
+import { Sparkles } from 'lucide-react';
 
 export const VentasPage: React.FC = () => {
   const { user } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
 
-  // Estado de navegación
-  const [tabActiva, setTabActiva] = useState<string>(() => {
+  const tabActiva = useMemo(() => {
     if (tabParam === 'caja') return 'caja';
-    if (tabParam && ['pos', 'dashboard', 'historial', 'pedidos', 'cotizaciones', 'devoluciones'].includes(tabParam)) {
-      return tabParam;
-    }
+    if (tabParam === 'historial') return 'historial';
+    if (tabParam === 'pedidos' || tabParam === 'cotizaciones') return 'pedidos';
+    if (tabParam === 'dashboard') return 'dashboard';
     return 'pos';
-  });
-
-  useEffect(() => {
-    if (tabParam && tabParam !== tabActiva) {
-      setTabActiva(tabParam);
-    }
   }, [tabParam]);
 
-  const handleTabChange = (val: string) => {
-    setTabActiva(val);
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        if (val === 'pos') {
-          next.delete('tab');
-        } else {
-          next.set('tab', val);
-        }
-        return next;
-      },
-      { replace: true }
-    );
-  };
+  const {
+    ventas,
+    productos,
+    clientes,
+    pedidos,
+    cotizaciones,
+    kpis,
+    loading,
+    emitirVenta,
+    anularVenta,
+    cambiarEstadoPedido,
+    convertirPedidoAVenta,
+    crearPedido,
+    convertirCotizacionAVenta,
+    crearCotizacion,
+  } = useVentasData();
 
-  // Complejidad progresiva (adaptable al tamaño de negocio)
-  const [nivelNegocio, setNivelNegocio] = useState<NivelComplejidadNegocio>('COMERCIO_MEDIANO');
-
-  // Sucursal y caja activa
-  const [sucursalActiva, setSucursalActiva] = useState('Sede Central (Tingo María)');
-  const [cajaActiva, setCajaActiva] = useState('Caja 01 - Mostrador');
-
-  // Datos principales
-  const [ventas, setVentas] = useState<Venta[]>([]);
-  const [productos, setProductos] = useState<Producto[]>([]);
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
-  const [cotizaciones, setCotizaciones] = useState<Cotizacion[]>([]);
-  const [devoluciones, setDevoluciones] = useState<Devolucion[]>([]);
-  const [kpis, setKpis] = useState<ResumenVentasKpis | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  // Modales
   const [ventaSeleccionadaDetalle, setVentaSeleccionadaDetalle] = useState<Venta | null>(null);
   const [openDetalleModal, setOpenDetalleModal] = useState(false);
   const [openIaSheet, setOpenIaSheet] = useState(false);
-  const [ventaParaDevolucion, setVentaParaDevolucion] = useState<Venta | null>(null);
 
-  // Carga de datos
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [ventasData, prodsData, cliData, pedData, cotData, devData, kpisData] =
-        await Promise.all([
-          ventasService.getVentas(),
-          productosService.getProductos(),
-          clientesService.getClientes(),
-          ventasService.getPedidos(),
-          ventasService.getCotizaciones(),
-          ventasService.getDevoluciones(),
-          ventasService.getKpisVentas(),
-        ]);
-
-      setVentas(ventasData);
-      setProductos(prodsData);
-      setClientes(cliData);
-      setPedidos(pedData);
-      setCotizaciones(cotData);
-      setDevoluciones(devData);
-      setKpis(kpisData);
-    } catch {
-      toast.error('Error al cargar datos del módulo de ventas');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-    const unsubscribe = subscribeToErp(() => {
-      fetchData();
-    });
-    return unsubscribe;
-  }, []);
-
-  // Sincronización multi-terminal en tiempo real vía WebSockets
-  useSocketEvent('stock:actualizado', (data: { productoId: string; delta: number; nuevoStock: number }) => {
-    setProductos((prev) =>
-      prev.map((p) => {
-        if (p.id === data.productoId) {
-          const updatedStock =
-            data.nuevoStock !== undefined && data.nuevoStock >= 0
-              ? data.nuevoStock
-              : Math.max(0, p.stock + (data.delta || 0));
-          return { ...p, stock: updatedStock };
-        }
-        return p;
-      })
-    );
-  });
-
-  useSocketEvent('ventas:nueva_venta', (data: { serieCorrelativo: string; total: number; cajero: string }) => {
-    // Actualizar historial y métricas sin interrumpir la operación actual del cajero
-    ventasService.getVentas().then(setVentas);
-    ventasService.getKpisVentas().then(setKpis);
-  });
-
-  // Handlers
-  const handleEmitirVenta = async (payload: NuevaVentaPayload): Promise<Venta> => {
-    const nueva = await ventasService.crearVenta(payload);
-    await fetchData();
-    return nueva;
-  };
-
-  const handleAnularVenta = async (id: string, motivo: string) => {
-    await ventasService.anularVenta(id, motivo);
-    await fetchData();
-  };
-
-  const handleRegistrarDevolucion = async (payload: any) => {
-    await ventasService.registrarDevolucion(payload);
-    await fetchData();
-  };
-
-  const handleCambiarEstadoPedido = async (id: string, nuevoEstado: EstadoPedido) => {
-    await ventasService.cambiarEstadoPedido(id, nuevoEstado);
-    await fetchData();
-  };
-
-  const handleConvertirPedidoAVenta = async (pedidoId: string) => {
-    await ventasService.convertirPedidoAVenta(pedidoId);
-    await fetchData();
-  };
-
-  const handleCrearPedido = async (payload: any) => {
-    await ventasService.crearPedido(payload);
-    await fetchData();
-  };
-
-  const handleConvertirCotizacionAVenta = async (cotizacionId: string) => {
-    await ventasService.convertirCotizacionAVenta(cotizacionId);
-    await fetchData();
-  };
-
-  const handleCrearCotizacion = async (payload: any) => {
-    await ventasService.crearCotizacion(payload);
-    await fetchData();
-  };
-
-  const handleVerDetalleVenta = (v: Venta) => {
+  const handleVerDetalle = (v: Venta) => {
     setVentaSeleccionadaDetalle(v);
     setOpenDetalleModal(true);
   };
 
-  const handleIniciarDevolucionDesdeVenta = (v: Venta) => {
-    setVentaParaDevolucion(v);
-    setTabActiva('devoluciones');
-  };
+  const badgeTitle =
+    tabActiva === 'pos'
+      ? 'Punto de Venta (POS)'
+      : tabActiva === 'historial'
+      ? 'Historial de Comprobantes'
+      : tabActiva === 'caja'
+      ? 'Caja y Turnos'
+      : tabActiva === 'pedidos'
+      ? 'Pedidos y Cotizaciones'
+      : 'Resumen del Día';
 
   return (
-    <div className="space-y-2.5">
-      {/* Encabezado Principal Compacto */}
+    <div className="space-y-3">
       <PageHeader
         title="Ventas y Caja"
-        description={tabActiva === 'pos' ? undefined : "Punto de venta (POS), historial de comprobantes, facturación electrónica y control diario de caja."}
-        badge="Ventas & Caja"
+        description={tabActiva === 'pos' ? undefined : 'Punto de venta táctil, comprobantes SUNAT, arqueo y preventa.'}
+        badge={badgeTitle}
       >
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Selector de complejidad progresiva del negocio */}
-          <div className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1 text-xs">
-            <Sliders className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-muted-foreground hidden sm:inline">Modo:</span>
-            <select
-              value={nivelNegocio}
-              onChange={(e) => setNivelNegocio(e.target.value as NivelComplejidadNegocio)}
-              className="bg-transparent font-medium text-foreground text-xs focus:outline-none cursor-pointer"
-            >
-              <option value="TIENDA_PEQUENA">Tienda Rápida / Bodega</option>
-              <option value="COMERCIO_MEDIANO">Comercio Mediano</option>
-              <option value="CADENA_EMPRESARIAL">Cadena Multitienda</option>
-            </select>
-          </div>
-
-          {/* Selector de Sucursal si es mediano o empresarial */}
-          {nivelNegocio !== 'TIENDA_PEQUENA' && (
-            <div className="hidden md:flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1 text-xs">
-              <Building2 className="h-3.5 w-3.5 text-primary" />
-              <select
-                value={sucursalActiva}
-                onChange={(e) => setSucursalActiva(e.target.value)}
-                className="bg-transparent font-medium text-foreground text-xs focus:outline-none cursor-pointer"
-              >
-                <option value="Sede Central (Tingo María)">Sede Central</option>
-                <option value="Tienda Mostrador (Tingo María)">Tienda Mostrador</option>
-                <option value="Sucursal Huánuco">Sucursal Huánuco</option>
-              </select>
-            </div>
-          )}
-
-          {/* Botón Asistente KIPU'S IA */}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setOpenIaSheet(true)}
-            className="gap-1.5 h-8 text-xs font-semibold text-primary border-primary/30 hover:bg-primary-soft cursor-pointer"
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>KIPU'S IA</span>
-          </Button>
-        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setOpenIaSheet(true)}
+          className="gap-1.5 h-8 text-xs font-semibold text-primary border-primary/30 hover:bg-primary-soft cursor-pointer"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          <span>KIPU'S IA</span>
+        </Button>
       </PageHeader>
 
-      {/* Navegación por pestañas de ventas y caja (Barra estilizada y compacta) */}
-      <Tabs value={tabActiva} onValueChange={handleTabChange} className="w-full space-y-2.5">
-        <TabsList className="bg-muted/60 p-0.5 flex overflow-x-auto flex-nowrap h-7 gap-1 border border-border/60 max-w-full scrollbar-none justify-start rounded-md">
-          <TabsTrigger value="pos" className="text-[11px] font-semibold py-0.5 px-2.5 h-6 gap-1 shrink-0">
-            <ShoppingCart className="h-3 w-3" />
-            <span>Punto de Venta (POS)</span>
-          </TabsTrigger>
-
-          <TabsTrigger value="historial" className="text-[11px] font-medium py-0.5 px-2.5 h-6 gap-1 shrink-0">
-            <Receipt className="h-3 w-3" />
-            <span>Historial de Comprobantes</span>
-          </TabsTrigger>
-
-          <TabsTrigger value="caja" className="text-[11px] font-medium py-0.5 px-2.5 h-6 gap-1 shrink-0">
-            <DollarSign className="h-3 w-3" />
-            <span>Caja y Turnos</span>
-          </TabsTrigger>
-
-          {/* Pestañas administrativas avanzadas (ocultas para cajero) */}
-          {user?.rol !== 'CAJERO' && (
-            <TabsTrigger value="dashboard" className="text-[11px] font-medium py-0.5 px-2.5 h-6 gap-1 shrink-0">
-              <LayoutDashboard className="h-3 w-3" />
-              <span>Resumen del Día</span>
-            </TabsTrigger>
-          )}
-
-          {user?.rol !== 'CAJERO' && nivelNegocio !== 'TIENDA_PEQUENA' && (
-            <>
-              <TabsTrigger value="pedidos" className="text-[11px] font-medium py-0.5 px-2.5 h-6 gap-1 shrink-0">
-                <ShoppingBag className="h-3 w-3" />
-                <span>Pedidos ({pedidos.filter((p) => p.estado !== 'ENTREGADO').length})</span>
-              </TabsTrigger>
-
-              <TabsTrigger value="cotizaciones" className="text-[11px] font-medium py-0.5 px-2.5 h-6 gap-1 shrink-0">
-                <FileCheck className="h-3 w-3" />
-                <span>Cotizaciones / Proformas</span>
-              </TabsTrigger>
-            </>
-          )}
-
-          {user?.rol !== 'CAJERO' && nivelNegocio === 'CADENA_EMPRESARIAL' && (
-            <TabsTrigger value="devoluciones" className="text-[11px] font-medium py-0.5 px-2.5 h-6 gap-1 shrink-0">
-              <RotateCcw className="h-3 w-3" />
-              <span>Devoluciones</span>
-            </TabsTrigger>
-          )}
-        </TabsList>
-
-        {/* ========================================================================= */}
-        {/* PESTAÑA 1: TERMINAL PUNTO DE VENTA (POS)                                  */}
-        {/* ========================================================================= */}
-        <TabsContent value="pos" className="space-y-4">
-          <PosTerminalView
-            productos={productos}
-            clientes={clientes}
-            onEmitirVenta={handleEmitirVenta}
-            sucursalActiva={sucursalActiva}
-            cajaActiva={cajaActiva}
-            vendedorActivo="Carlos Vega"
-          />
-        </TabsContent>
-
-        {/* ========================================================================= */}
-        {/* PESTAÑA 2: DASHBOARD RESUMEN DE VENTAS                                    */}
-        {/* ========================================================================= */}
-        <TabsContent value="dashboard" className="space-y-4">
-          <VentasDashboardView
-            ventas={ventas}
-            kpis={kpis}
-            onIrAPos={() => setTabActiva('pos')}
-            onVerDetalleVenta={handleVerDetalleVenta}
-          />
-        </TabsContent>
-
-        {/* ========================================================================= */}
-        {/* PESTAÑA 3: HISTORIAL DE VENTAS                                            */}
-        {/* ========================================================================= */}
-        <TabsContent value="historial" className="space-y-4">
-          <VentasHistorialView
-            ventas={ventas}
-            loading={loading}
-            onVerDetalle={handleVerDetalleVenta}
-            onIniciarDevolucion={handleIniciarDevolucionDesdeVenta}
-          />
-        </TabsContent>
-
-        {/* ========================================================================= */}
-        {/* PESTAÑA 4: CAJA Y TURNOS                                                  */}
-        {/* ========================================================================= */}
-        <TabsContent value="caja" className="space-y-4">
-          <CajaPage embedded={true} />
-        </TabsContent>
-
-        {/* ========================================================================= */}
-        {/* PESTAÑA 4: PEDIDOS                                                        */}
-        {/* ========================================================================= */}
-        {nivelNegocio !== 'TIENDA_PEQUENA' && (
-          <TabsContent value="pedidos" className="space-y-4">
-            <PedidosView
-              pedidos={pedidos}
+      <div className="pt-0">
+        {tabActiva === 'pos' && (
+          <ErrorBoundary moduleName="Punto de Venta POS">
+            <PosTerminalView
               productos={productos}
               clientes={clientes}
-              onCambiarEstado={handleCambiarEstadoPedido}
-              onConvertirAVenta={handleConvertirPedidoAVenta}
-              onCrearPedido={handleCrearPedido}
+              onEmitirVenta={emitirVenta}
+              sucursalActiva="Sede Central (Tingo María)"
+              cajaActiva="Caja 01 - Mostrador"
+              vendedorActivo={user?.nombreCompleto || 'Carlos Vega'}
             />
-          </TabsContent>
+          </ErrorBoundary>
         )}
 
-        {/* ========================================================================= */}
-        {/* PESTAÑA 5: COTIZACIONES                                                   */}
-        {/* ========================================================================= */}
-        {nivelNegocio !== 'TIENDA_PEQUENA' && (
-          <TabsContent value="cotizaciones" className="space-y-4">
-            <CotizacionesView
+        {tabActiva === 'historial' && (
+          <ErrorBoundary moduleName="Historial de Comprobantes">
+            <VentasHistorialView ventas={ventas} loading={loading} onVerDetalle={handleVerDetalle} />
+          </ErrorBoundary>
+        )}
+
+        {tabActiva === 'caja' && (
+          <ErrorBoundary moduleName="Caja y Turnos">
+            <CajaPage embedded={true} />
+          </ErrorBoundary>
+        )}
+
+        {tabActiva === 'pedidos' && (
+          <ErrorBoundary moduleName="Pedidos y Cotizaciones">
+            <PedidosCotizacionesView
+              pedidos={pedidos}
               cotizaciones={cotizaciones}
               productos={productos}
               clientes={clientes}
-              onConvertirAVenta={handleConvertirCotizacionAVenta}
-              onCrearCotizacion={handleCrearCotizacion}
+              onCambiarEstadoPedido={cambiarEstadoPedido}
+              onConvertirPedidoAVenta={convertirPedidoAVenta}
+              onCrearPedido={crearPedido}
+              onConvertirCotizacionAVenta={convertirCotizacionAVenta}
+              onCrearCotizacion={crearCotizacion}
             />
-          </TabsContent>
+          </ErrorBoundary>
         )}
 
-        {/* ========================================================================= */}
-        {/* PESTAÑA 6: DEVOLUCIONES                                                   */}
-        {/* ========================================================================= */}
-        {nivelNegocio === 'CADENA_EMPRESARIAL' && (
-          <TabsContent value="devoluciones" className="space-y-4">
-            <DevolucionesView
+        {tabActiva === 'dashboard' && user?.rol !== 'CAJERO' && (
+          <ErrorBoundary moduleName="Resumen del Día">
+            <VentasDashboardView
               ventas={ventas}
-              devoluciones={devoluciones}
-              onRegistrarDevolucion={handleRegistrarDevolucion}
-              ventaPreseleccionada={ventaParaDevolucion}
+              kpis={kpis}
+              onIrAPos={() => {}}
+              onVerDetalleVenta={handleVerDetalle}
             />
-          </TabsContent>
+          </ErrorBoundary>
         )}
-      </Tabs>
+      </div>
 
-      {/* Modal de Detalle de Venta */}
       <VentaDetalleModal
         open={openDetalleModal}
         onOpenChange={setOpenDetalleModal}
         venta={ventaSeleccionadaDetalle}
-        onAnularVenta={handleAnularVenta}
-        onIniciarDevolucion={handleIniciarDevolucionDesdeVenta}
+        onAnularVenta={anularVenta}
       />
-
-      {/* Panel lateral KIPU'S IA */}
-      <KipusIaVentasSheet
-        open={openIaSheet}
-        onOpenChange={setOpenIaSheet}
-        ventas={ventas}
-        productos={productos}
-        kpis={kpis}
-      />
+      <KipusIaVentasSheet open={openIaSheet} onOpenChange={setOpenIaSheet} ventas={ventas} productos={productos} kpis={kpis} />
     </div>
   );
 };

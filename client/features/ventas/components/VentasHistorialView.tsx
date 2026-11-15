@@ -28,6 +28,10 @@ import {
   FileText,
   Filter,
   Download,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -131,13 +135,14 @@ export const VentasHistorialView: React.FC<VentasHistorialViewProps> = ({
 
       {/* Tabla para Desktop con min-w protegido contra deformación */}
       <div className="hidden sm:block overflow-x-auto rounded border border-border bg-card shadow-2xs">
-        <Table className="min-w-[880px]">
+        <Table className="min-w-[920px]">
           <TableHeader>
             <TableRow className="bg-muted/50 border-b border-border hover:bg-transparent">
               <TableHead className="text-xs font-semibold py-2.5 whitespace-nowrap">Comprobante</TableHead>
-              <TableHead className="text-xs font-semibold py-2.5 min-w-[180px] whitespace-nowrap">Cliente / Documento</TableHead>
+              <TableHead className="text-xs font-semibold py-2.5 min-w-[170px] whitespace-nowrap">Cliente / Documento</TableHead>
               <TableHead className="text-xs font-semibold py-2.5 whitespace-nowrap">Fecha y Hora</TableHead>
               <TableHead className="text-xs font-semibold py-2.5 whitespace-nowrap">Medio Pago</TableHead>
+              <TableHead className="text-xs font-semibold py-2.5 whitespace-nowrap">Estado SUNAT</TableHead>
               <TableHead className="text-xs font-semibold py-2.5 whitespace-nowrap">Estado</TableHead>
               <TableHead className="text-xs font-semibold py-2.5 text-right whitespace-nowrap">Total Cobrado</TableHead>
               <TableHead className="text-xs font-semibold py-2.5 text-center w-28 whitespace-nowrap">Acciones</TableHead>
@@ -146,92 +151,127 @@ export const VentasHistorialView: React.FC<VentasHistorialViewProps> = ({
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-28 text-center text-xs text-muted-foreground">
-                  Cargando historial de ventas...
+                <TableCell colSpan={8} className="h-28 text-center text-xs text-muted-foreground">
+                  Cargando historial de comprobantes...
                 </TableCell>
               </TableRow>
             ) : filteredVentas.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-28 text-center text-xs text-muted-foreground">
+                <TableCell colSpan={8} className="h-28 text-center text-xs text-muted-foreground">
                   No se encontraron ventas con los filtros seleccionados.
                 </TableCell>
               </TableRow>
             ) : (
-              filteredVentas.map((venta) => (
-                <TableRow
-                  key={venta.id}
-                  className="text-xs hover:bg-muted/20 border-b border-border/70 transition-colors"
-                >
-                  <TableCell className="py-2.5 whitespace-nowrap">
-                    <span className="font-mono font-semibold text-primary block text-[13px]">
-                      {venta.serieCorrelativo}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground font-medium">
-                      {venta.tipoComprobante}
-                    </span>
-                  </TableCell>
+              filteredVentas.map((venta) => {
+                const estadoSunat = venta.estadoSunat
+                  ? venta.estadoSunat
+                  : venta.tipoComprobante === 'NOTA_VENTA'
+                  ? 'INTERNO'
+                  : venta.estado === 'ANULADA'
+                  ? 'ANULADO'
+                  : venta.estado === 'COMPLETADA'
+                  ? 'ACEPTADO'
+                  : 'PENDIENTE';
 
-                  <TableCell className="py-2.5 min-w-[180px]">
-                    <span className="font-semibold text-foreground block text-[13px]">
-                      {venta.clienteNombre}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground font-mono">
-                      Doc: {venta.clienteDocumento}
-                    </span>
-                  </TableCell>
+                return (
+                  <TableRow
+                    key={venta.id}
+                    className="text-xs hover:bg-muted/20 border-b border-border/70 transition-colors"
+                  >
+                    <TableCell className="py-2.5 whitespace-nowrap">
+                      <span className="font-mono font-semibold text-primary block text-[13px]">
+                        {venta.serieCorrelativo}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground font-medium">
+                        {venta.tipoComprobante}
+                      </span>
+                    </TableCell>
 
-                  <TableCell className="text-muted-foreground py-2.5 font-mono text-[11px] whitespace-nowrap">
-                    {venta.fecha}
-                  </TableCell>
+                    <TableCell className="py-2.5 min-w-[170px]">
+                      <span className="font-semibold text-foreground block text-[13px]">
+                        {venta.clienteNombre}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground font-mono">
+                        Doc: {venta.clienteDocumento}
+                      </span>
+                    </TableCell>
 
-                  <TableCell className="py-2.5 whitespace-nowrap">
-                    <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-muted border border-border/60">
-                      {venta.metodoPago}
-                    </span>
-                  </TableCell>
+                    <TableCell className="text-muted-foreground py-2.5 font-mono text-[11px] whitespace-nowrap">
+                      {venta.fecha}
+                    </TableCell>
 
-                  <TableCell className="py-2.5 whitespace-nowrap">
-                    <StatusBadge
-                      status={venta.estado}
-                      variant={
-                        venta.estado === 'COMPLETADA'
-                          ? 'success'
-                          : venta.estado === 'PENDIENTE'
-                          ? 'warning'
-                          : 'danger'
-                      }
-                    />
-                  </TableCell>
+                    <TableCell className="py-2.5 whitespace-nowrap">
+                      <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-muted border border-border/60">
+                        {venta.metodoPago}
+                      </span>
+                    </TableCell>
 
-                  <TableCell className="text-right font-semibold font-mono text-foreground py-2.5 text-sm tabular-nums whitespace-nowrap">
-                    {formatCurrency(venta.total)}
-                  </TableCell>
+                    <TableCell className="py-2.5 whitespace-nowrap">
+                      {estadoSunat === 'ACEPTADO' && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10.5px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20" title="Validado con CDR SUNAT">
+                          <CheckCircle2 className="h-3 w-3" /> Aceptado
+                        </span>
+                      )}
+                      {estadoSunat === 'PENDIENTE' && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10.5px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20" title="En cola de envío a SUNAT">
+                          <Clock className="h-3 w-3" /> Pendiente
+                        </span>
+                      )}
+                      {estadoSunat === 'ANULADO' && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10.5px] font-semibold bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20" title="Anulado con Nota de Crédito">
+                          <XCircle className="h-3 w-3" /> Anulado
+                        </span>
+                      )}
+                      {estadoSunat === 'INTERNO' && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10.5px] font-semibold bg-muted text-muted-foreground border border-border/60" title="Uso interno (Nota de Venta)">
+                          <FileText className="h-3 w-3" /> Interno
+                        </span>
+                      )}
+                    </TableCell>
 
-                  <TableCell className="text-center py-2.5 whitespace-nowrap">
-                    <div className="flex items-center justify-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onVerDetalle(venta)}
-                        className="h-7 w-7 p-0"
-                        title="Ver detalle del comprobante"
-                      >
-                        <Eye className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
-                      </Button>
+                    <TableCell className="py-2.5 whitespace-nowrap">
+                      <StatusBadge
+                        status={venta.estado}
+                        variant={
+                          venta.estado === 'COMPLETADA'
+                            ? 'success'
+                            : venta.estado === 'PENDIENTE'
+                            ? 'warning'
+                            : 'danger'
+                        }
+                      />
+                    </TableCell>
 
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toast.info(`Imprimiendo comprobante ${venta.serieCorrelativo}...`)}
-                        className="h-7 w-7 p-0"
-                        title="Imprimir ticket"
-                      >
-                        <Printer className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+                    <TableCell className="text-right font-semibold font-mono text-foreground py-2.5 text-sm tabular-nums whitespace-nowrap">
+                      {formatCurrency(venta.total)}
+                    </TableCell>
+
+                    <TableCell className="text-center py-2.5 whitespace-nowrap">
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onVerDetalle(venta)}
+                          className="h-7 w-7 p-0"
+                          title="Ver detalle del comprobante"
+                        >
+                          <Eye className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toast.info(`Imprimiendo ticket térmico ${venta.serieCorrelativo}...`)}
+                          className="h-7 w-7 p-0"
+                          title="Imprimir ticket térmico directo"
+                        >
+                          <Printer className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
@@ -239,40 +279,57 @@ export const VentasHistorialView: React.FC<VentasHistorialViewProps> = ({
 
       {/* Lista de Tarjetas Compactas para Móviles (Evita scroll horizontal feo) */}
       <div className="sm:hidden space-y-2">
-        {filteredVentas.map((venta) => (
-          <div
-            key={venta.id}
-            onClick={() => onVerDetalle(venta)}
-            className="p-3 rounded-lg border border-border bg-card shadow-2xs space-y-2 cursor-pointer active:bg-muted/40"
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="font-mono font-bold text-primary text-xs">
-                  {venta.serieCorrelativo}
-                </span>
-                <span className="text-[11px] text-foreground font-semibold block mt-0.5">
-                  {venta.clienteNombre}
-                </span>
-              </div>
-              <span className="text-sm font-bold font-mono text-foreground tabular-nums">
-                {formatCurrency(venta.total)}
-              </span>
-            </div>
+        {filteredVentas.map((venta) => {
+          const estadoSunat = venta.estadoSunat
+            ? venta.estadoSunat
+            : venta.tipoComprobante === 'NOTA_VENTA'
+            ? 'INTERNO'
+            : venta.estado === 'ANULADA'
+            ? 'ANULADO'
+            : venta.estado === 'COMPLETADA'
+            ? 'ACEPTADO'
+            : 'PENDIENTE';
 
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/60">
-              <span className="font-mono">{venta.fecha}</span>
-              <div className="flex items-center gap-1.5">
-                <span className="px-1.5 py-0.2 rounded bg-muted text-[10px] font-medium">
-                  {venta.metodoPago}
+          return (
+            <div
+              key={venta.id}
+              onClick={() => onVerDetalle(venta)}
+              className="p-3 rounded-lg border border-border bg-card shadow-2xs space-y-2 cursor-pointer active:bg-muted/40"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-primary text-xs">
+                      {venta.serieCorrelativo}
+                    </span>
+                    <span className="text-[10px] px-1 py-0.2 rounded bg-muted text-muted-foreground font-medium">
+                      {venta.tipoComprobante}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-foreground font-semibold block mt-0.5">
+                    {venta.clienteNombre}
+                  </span>
+                </div>
+                <span className="text-sm font-bold font-mono text-foreground tabular-nums">
+                  {formatCurrency(venta.total)}
                 </span>
-                <StatusBadge
-                  status={venta.estado}
-                  variant={venta.estado === 'COMPLETADA' ? 'success' : 'danger'}
-                />
+              </div>
+
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/60">
+                <span className="font-mono">{venta.fecha}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-bold text-emerald-600">
+                    {estadoSunat === 'ACEPTADO' ? '✓ SUNAT' : estadoSunat}
+                  </span>
+                  <StatusBadge
+                    status={venta.estado}
+                    variant={venta.estado === 'COMPLETADA' ? 'success' : 'danger'}
+                  />
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

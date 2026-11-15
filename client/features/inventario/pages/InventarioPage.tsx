@@ -1,551 +1,94 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '@/components/common/PageHeader';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { SummaryCard } from '../components/SummaryCard';
-import { FilterBar } from '../components/FilterBar';
-import { InventoryTable } from '../components/InventoryTable';
-import { ProductInventoryDetail } from '../components/ProductInventoryDetail';
-import { MovementTable } from '../components/MovementTable';
-import { AdjustmentTable } from '../components/AdjustmentTable';
-import { AdjustmentForm } from '../components/AdjustmentForm';
-import { PhysicalInventoryTable } from '../components/PhysicalInventoryTable';
-import { LoadingState } from '../components/LoadingState';
-import { ErrorState } from '../components/ErrorState';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
-import { inventarioService } from '../services/inventarioService';
-import {
-  ItemStockDetalle,
-  MovimientoStock,
-  AjusteInventario,
-  AlmacenResumen,
-  NuevoAjustePayload,
-} from '../types/inventario.types';
-import { subscribeToErp } from '@/services/erp/erpStore';
-import { useSocketEvent } from '@/services/socket/useSocketEvent';
-import { formatCurrency } from '@/utils/formatters';
-import { ProductoFormDialog } from '@/features/productos/components/ProductoFormDialog';
-import { EscanerProductoModal } from '@/features/productos/components/EscanerProductoModal';
-import { productosService } from '@/features/productos/services/productosService';
-import { Producto, NuevoProductoPayload } from '@/features/productos/types/productos.types';
-import { Plus, ScanBarcode, AlertTriangle } from 'lucide-react';
-import { toast } from 'sonner';
+import { CatalogoProductosView } from '../components/CatalogoProductosView';
+import { ControlStockView } from '../components/ControlStockView';
+import { KardexMovimientosView } from '../components/KardexMovimientosView';
+import { CategoriasUnidadesView } from '../components/CategoriasUnidadesView';
 
-type SeccionInventario = 'existencias' | 'entradas-salidas' | 'ajustes' | 'inventario-fisico';
+export type InventarioTab = 'catalogo' | 'stock' | 'kardex' | 'categorias';
+
+const TAB_CONFIG: Record<
+  InventarioTab,
+  { label: string; description: string }
+> = {
+  catalogo: {
+    label: 'Catálogo de Productos',
+    description: 'Búsqueda reactiva, edición con panel deslizable y control comercial de productos.',
+  },
+  stock: {
+    label: 'Control de Stock y Ajustes',
+    description: 'Existencias físicas por almacén, alertas de quiebre de stock y calibración de inventario.',
+  },
+  kardex: {
+    label: 'Kardex y Movimientos',
+    description: 'Trazabilidad de entradas, salidas, documentos de origen y saldo valorizado.',
+  },
+  categorias: {
+    label: 'Categorías y Unidades',
+    description: 'Clasificaciones comerciales y catálogo de unidades de medida homologadas con SUNAT.',
+  },
+};
 
 /**
- * Módulo de INVENTARIO de KIPU'S ERP.
- * Centro de control del stock estructurado en 4 áreas esenciales:
- * 1. Existencias
- * 2. Entradas y salidas
- * 3. Ajustes
- * 4. Inventario físico
+ * Orquestador principal del módulo de INVENTARIO Y PRODUCTOS de KIPU'S ERP.
+ * Gobernado directamente por el submenú del Sidebar mediante `?tab=`.
  */
 export const InventarioPage: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
 
-  // Estados de datos
-  const [productos, setProductos] = useState<ItemStockDetalle[]>([]);
-  const [movimientos, setMovimientos] = useState<MovimientoStock[]>([]);
-  const [ajustes, setAjustes] = useState<AjusteInventario[]>([]);
-  const [almacenes, setAlmacenes] = useState<AlmacenResumen[]>([]);
-  const [catalogoProductos, setCatalogoProductos] = useState<Producto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Sección activa (controlada eficientemente por URL y estado sincronizado)
-  const tabParam = searchParams.get('tab');
-  const getSeccionValida = (tab: string | null): SeccionInventario =>
-    tab && ['existencias', 'entradas-salidas', 'ajustes', 'inventario-fisico'].includes(tab)
-      ? (tab as SeccionInventario)
-      : 'existencias';
-
-  const [seccionActiva, setSeccionActiva] = useState<SeccionInventario>(() => getSeccionValida(tabParam));
-
-  // Sincronizar estado cuando cambia URL param por botones de historial
-  useEffect(() => {
-    const valid = getSeccionValida(tabParam);
-    if (valid !== seccionActiva) {
-      setSeccionActiva(valid);
+  const activeTab: InventarioTab = useMemo(() => {
+    const rawTab = searchParams.get('tab');
+    if (rawTab === 'stock' || rawTab === 'ajustes' || rawTab === 'inventario-fisico') {
+      return 'stock';
     }
-  }, [tabParam]);
-
-  // Cambio de pestaña instantáneo: sin recargas de página, sin retrasos y sin ensuciar el historial
-  const handleTabChange = (value: string) => {
-    const nuevaSeccion = value as SeccionInventario;
-    setSeccionActiva(nuevaSeccion);
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        if (nuevaSeccion === 'existencias') {
-          next.delete('tab');
-        } else {
-          next.set('tab', nuevaSeccion);
-        }
-        return next;
-      },
-      { replace: true }
-    );
-  };
-
-  // Modales
-  const [productoSeleccionado, setProductoSeleccionado] = useState<ItemStockDetalle | null>(null);
-  const [openDetalleModal, setOpenDetalleModal] = useState(false);
-  const [openAjusteModal, setOpenAjusteModal] = useState(false);
-  const [formModalOpen, setFormModalOpen] = useState(false);
-  const [productoAEditar, setProductoAEditar] = useState<Producto | null>(null);
-  const [escanerModalOpen, setEscanerModalOpen] = useState(false);
-
-  // Filtro de búsqueda cruzada para Entradas y Salidas
-  const [filtroMovimientosProducto, setFiltroMovimientosProducto] = useState<string>('');
-
-  // Filtros de la pantalla de Existencias
-  const [busquedaExistencias, setBusquedaExistencias] = useState('');
-  const [categoriaFiltro, setCategoriaFiltro] = useState('TODAS');
-  const [estadoFiltro, setEstadoFiltro] = useState('TODOS');
-  const [almacenFiltro, setAlmacenFiltro] = useState('TODOS');
-
-  // Carga de datos unificada: sólo muestra esqueleto en la primera carga para evitar parpadeos
-  const cargarDatos = async (isInitial: boolean = false) => {
-    if (isInitial) {
-      setLoading(true);
+    if (rawTab === 'kardex' || rawTab === 'entradas-salidas') {
+      return 'kardex';
     }
-    setError(null);
-    try {
-      const [prodsData, movsData, ajustesData, almacenesData, catData] = await Promise.all([
-        inventarioService.getProductosStock(),
-        inventarioService.getMovimientos(),
-        inventarioService.getAjustes(),
-        inventarioService.getAlmacenes(),
-        productosService.getProductos(),
-      ]);
-      setProductos(prodsData || []);
-      setMovimientos(movsData || []);
-      setAjustes(ajustesData || []);
-      setAlmacenes(almacenesData || []);
-      setCatalogoProductos(catData || []);
-    } catch {
-      setError('No se pudo cargar la información del inventario. Revisa tu conexión a internet.');
-      toast.error('Error al sincronizar inventario');
-    } finally {
-      if (isInitial) {
-        setLoading(false);
-      }
+    if (rawTab === 'categorias') {
+      return 'categorias';
     }
-  };
+    return 'catalogo';
+  }, [searchParams]);
 
-  useEffect(() => {
-    cargarDatos(true);
-    const unsubscribe = subscribeToErp(() => {
-      cargarDatos(false);
-    });
-    return unsubscribe;
-  }, []);
-
-  // Sincronización multi-terminal de existencias y kardex vía WebSockets
-  useSocketEvent('stock:actualizado', () => {
-    cargarDatos(false);
-  });
-
-  // Lista de categorías únicas para los filtros
-  const categorias = useMemo(() => {
-    return Array.from(new Set(productos.map((p) => p.categoria))).filter(Boolean);
-  }, [productos]);
-
-  // Indicadores superiores (Sección 3)
-  const metricas = useMemo(() => {
-    const total = productos.length;
-    const stockBajo = productos.filter((p) => p.estadoNivel === 'STOCK_BAJO').length;
-    const agotados = productos.filter((p) => p.estadoNivel === 'AGOTADO').length;
-    const valorAprox = productos.reduce((acc, p) => acc + p.valorizadoCosto, 0);
-
-    return {
-      total,
-      stockBajo,
-      agotados,
-      valorAprox,
-    };
-  }, [productos]);
-
-  // Filtrado de la tabla de Existencias
-  const productosFiltrados = useMemo(() => {
-    return productos.filter((p) => {
-      const matchBusqueda =
-        p.nombre.toLowerCase().includes(busquedaExistencias.toLowerCase()) ||
-        p.sku.toLowerCase().includes(busquedaExistencias.toLowerCase());
-
-      const matchCategoria =
-        categoriaFiltro === 'TODAS' || p.categoria === categoriaFiltro;
-
-      const matchEstado =
-        estadoFiltro === 'TODOS' || p.estadoNivel === estadoFiltro;
-
-      const matchAlmacen =
-        almacenFiltro === 'TODOS' || (p.almacen && p.almacen.includes(almacenFiltro));
-
-      return matchBusqueda && matchCategoria && matchEstado && matchAlmacen;
-    });
-  }, [productos, busquedaExistencias, categoriaFiltro, estadoFiltro, almacenFiltro]);
-
-  const hayFiltrosExistenciasActivos =
-    busquedaExistencias !== '' ||
-    categoriaFiltro !== 'TODAS' ||
-    estadoFiltro !== 'TODOS' ||
-    almacenFiltro !== 'TODOS';
-
-  const resetFiltrosExistencias = () => {
-    setBusquedaExistencias('');
-    setCategoriaFiltro('TODAS');
-    setEstadoFiltro('TODOS');
-    setAlmacenFiltro('TODOS');
-  };
-
-  // Ver detalle de producto
-  const handleVerDetalle = (prod: ItemStockDetalle) => {
-    setProductoSeleccionado(prod);
-    setOpenDetalleModal(true);
-  };
-
-  // Navegación fluida: de Detalle de Producto a Entradas y Salidas
-  const handleIrAEntradasSalidas = (sku: string, _nombre: string) => {
-    setFiltroMovimientosProducto(sku);
-    handleTabChange('entradas-salidas');
-  };
-
-  // Registrar nuevo ajuste individual
-  const handleGuardarAjuste = async (payload: NuevoAjustePayload) => {
-    await inventarioService.registrarAjuste(payload);
-    await cargarDatos();
-  };
-
-  // Aplicar ajustes masivos de inventario físico
-  const handleAplicarAjustesFisicos = async (
-    items: { productoId: string; stockFisico: number; motivo?: string }[]
-  ) => {
-    await inventarioService.aplicarAjustesFisicos(items);
-    await cargarDatos();
-  };
-
-  // Guardar producto nuevo o editado
-  const handleGuardarProducto = async (payload: NuevoProductoPayload, id?: string) => {
-    if (id) {
-      await productosService.actualizarProducto(id, payload);
-      toast.success('Producto actualizado correctamente');
-    } else {
-      await productosService.crearProducto(payload);
-      toast.success('Producto agregado al inventario');
-    }
-    await cargarDatos();
-  };
-
-  const handleEditarProducto = async (prod: ItemStockDetalle) => {
-    try {
-      const full = catalogoProductos.find((p) => p.id === prod.id);
-      setProductoAEditar(full || (prod as unknown as Producto));
-      setFormModalOpen(true);
-    } catch {
-      toast.error('No se pudo cargar la información del producto para editar');
-    }
-  };
-
-  const handleFiltrarStockBajo = () => {
-    setEstadoFiltro('STOCK_BAJO');
-    if (seccionActiva !== 'existencias') {
-      handleTabChange('existencias');
-    }
-  };
-
-  // Movimientos filtrados para el modal de detalle del producto seleccionado
-  const movimientosDelProductoSeleccionado = useMemo(() => {
-    if (!productoSeleccionado) return [];
-    return movimientos.filter(
-      (m) =>
-        m.sku === productoSeleccionado.sku ||
-        m.productoNombre === productoSeleccionado.nombre
-    );
-  }, [movimientos, productoSeleccionado]);
+  const currentInfo = TAB_CONFIG[activeTab];
 
   return (
-    <div className="space-y-5">
-      {/* Encabezado Principal según sección 3 */}
+    <div className="space-y-4">
+      {/* Cabecera Ergonómica Contextual */}
       <PageHeader
-        title="Inventario"
-        description="Consulta y controla el stock, existencias y movimientos de tus productos."
-      >
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setEscanerModalOpen(true)}
-            className="gap-1.5 text-xs font-medium border-border"
-            title="Escanear código de barras"
-          >
-            <ScanBarcode className="h-4 w-4" />
-            <span className="hidden sm:inline">Escanear</span>
-          </Button>
+        title="Inventario y Productos"
+        description={currentInfo.description}
+        badge={currentInfo.label}
+      />
 
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleFiltrarStockBajo}
-            className="gap-1.5 text-xs font-medium border-border text-amber-700 dark:text-amber-400"
-            title="Ver productos con stock bajo o crítico"
-          >
-            <AlertTriangle className="h-4 w-4" />
-            <span className="hidden sm:inline">Stock bajo ({metricas.stockBajo})</span>
-          </Button>
+      {/* Vistas Modulares Desacopladas (gobernadas por el Sidebar) */}
+      <div className="pt-0">
+        {activeTab === 'catalogo' && (
+          <ErrorBoundary moduleName="Catálogo de Productos">
+            <CatalogoProductosView />
+          </ErrorBoundary>
+        )}
 
-          {seccionActiva === 'ajustes' && (
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => setOpenAjusteModal(true)}
-              className="gap-1.5 text-xs font-semibold bg-primary text-primary-foreground shadow-xs"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Nuevo ajuste</span>
-            </Button>
-          )}
+        {activeTab === 'stock' && (
+          <ErrorBoundary moduleName="Control de Stock y Ajustes">
+            <ControlStockView />
+          </ErrorBoundary>
+        )}
 
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => {
-              setProductoAEditar(null);
-              setFormModalOpen(true);
-            }}
-            className="gap-1.5 text-xs font-semibold bg-primary text-primary-foreground shadow-xs"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Nuevo producto</span>
-          </Button>
-        </div>
-      </PageHeader>
+        {activeTab === 'kardex' && (
+          <ErrorBoundary moduleName="Kardex y Movimientos">
+            <KardexMovimientosView />
+          </ErrorBoundary>
+        )}
 
-      {/* Indicadores Superiores Discretos (Sección 3) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <SummaryCard
-          label="Total de productos"
-          value={metricas.total}
-          description="registrados en catálogo"
-        />
-        <SummaryCard
-          label="Stock bajo"
-          value={metricas.stockBajo}
-          description={metricas.stockBajo > 0 ? 'requieren reposición' : 'niveles estables'}
-          variant={metricas.stockBajo > 0 ? 'warning' : 'default'}
-        />
-        <SummaryCard
-          label="Agotados"
-          value={metricas.agotados}
-          description={metricas.agotados > 0 ? 'sin unidades disponibles' : 'ninguno agotado'}
-          variant={metricas.agotados > 0 ? 'danger' : 'default'}
-        />
-        <SummaryCard
-          label="Valor aprox. del inventario"
-          value={formatCurrency(metricas.valorAprox)}
-          description="calculado al costo de compra"
-        />
+        {activeTab === 'categorias' && (
+          <ErrorBoundary moduleName="Categorías y Unidades">
+            <CategoriasUnidadesView />
+          </ErrorBoundary>
+        )}
       </div>
-
-      {/* Pestañas de Navegación del Módulo: Únicamente las 4 requeridas */}
-      <Tabs value={seccionActiva} onValueChange={handleTabChange} className="w-full space-y-4">
-        <div className="border-b border-border overflow-x-auto pb-px scrollbar-none">
-          <TabsList className="bg-transparent p-0 h-auto flex flex-nowrap gap-1 sm:gap-2 justify-start border-none">
-            <TabsTrigger
-              value="existencias"
-              className="rounded-none border-b-2 border-transparent px-3.5 py-2.5 min-h-[40px] text-xs sm:text-sm font-medium whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:font-semibold text-muted-foreground hover:text-foreground transition-all shrink-0"
-            >
-              Existencias
-            </TabsTrigger>
-            <TabsTrigger
-              value="entradas-salidas"
-              className="rounded-none border-b-2 border-transparent px-3.5 py-2.5 min-h-[40px] text-xs sm:text-sm font-medium whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:font-semibold text-muted-foreground hover:text-foreground transition-all shrink-0"
-            >
-              Entradas y salidas
-            </TabsTrigger>
-            <TabsTrigger
-              value="ajustes"
-              className="rounded-none border-b-2 border-transparent px-3.5 py-2.5 min-h-[40px] text-xs sm:text-sm font-medium whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:font-semibold text-muted-foreground hover:text-foreground transition-all shrink-0"
-            >
-              Ajustes
-            </TabsTrigger>
-            <TabsTrigger
-              value="inventario-fisico"
-              className="rounded-none border-b-2 border-transparent px-3.5 py-2.5 min-h-[40px] text-xs sm:text-sm font-medium whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:font-semibold text-muted-foreground hover:text-foreground transition-all shrink-0"
-            >
-              Inventario físico
-            </TabsTrigger>
-          </TabsList>
-        </div>
-
-        {/* Estado de Error */}
-        {error && (
-          <ErrorState message={error} onRetry={cargarDatos} className="mt-2" />
-        )}
-
-        {/* Estado de Carga */}
-        {loading && !error && <LoadingState rows={6} hasCards={false} />}
-
-        {/* ========================================================================= */}
-        {/* SECCIÓN 1: EXISTENCIAS (Pantalla Principal)                               */}
-        {/* ========================================================================= */}
-        {!loading && !error && (
-          <TabsContent value="existencias" className="space-y-4 m-0 focus-visible:outline-none">
-            <ErrorBoundary moduleName="Catálogo de Existencias">
-              {/* Barra de Filtros */}
-              <FilterBar
-                busqueda={busquedaExistencias}
-                onBusquedaChange={setBusquedaExistencias}
-                categoria={categoriaFiltro}
-                onCategoriaChange={setCategoriaFiltro}
-                categorias={categorias}
-                estado={estadoFiltro}
-                onEstadoChange={setEstadoFiltro}
-                almacen={almacenFiltro}
-                onAlmacenChange={setAlmacenFiltro}
-                almacenes={almacenes}
-                onResetFilters={resetFiltrosExistencias}
-                hayFiltrosActivos={hayFiltrosExistenciasActivos}
-                totalResultados={productosFiltrados.length}
-              />
-
-              {/* Tabla de Existencias */}
-              <InventoryTable
-                productos={productosFiltrados}
-                onVerDetalle={handleVerDetalle}
-                onResetFilters={resetFiltrosExistencias}
-                isFiltered={hayFiltrosExistenciasActivos}
-              />
-            </ErrorBoundary>
-          </TabsContent>
-        )}
-
-        {/* ========================================================================= */}
-        {/* SECCIÓN 2: ENTRADAS Y SALIDAS                                             */}
-        {/* ========================================================================= */}
-        {!loading && !error && (
-          <TabsContent value="entradas-salidas" className="space-y-4 m-0 focus-visible:outline-none">
-            <ErrorBoundary moduleName="Entradas y Salidas">
-              <div className="space-y-1">
-                <h2 className="text-base font-semibold text-foreground">Entradas y salidas</h2>
-                <p className="text-xs text-muted-foreground">
-                  Consulta cómo ha cambiado el stock de tus productos a partir de compras, ventas y ajustes.
-                </p>
-              </div>
-
-              <MovementTable
-                movimientos={movimientos}
-                initialSearch={filtroMovimientosProducto}
-                onClearInitialSearch={() => setFiltroMovimientosProducto('')}
-              />
-            </ErrorBoundary>
-          </TabsContent>
-        )}
-
-        {/* ========================================================================= */}
-        {/* SECCIÓN 3: AJUSTES DE INVENTARIO                                          */}
-        {/* ========================================================================= */}
-        {!loading && !error && (
-          <TabsContent value="ajustes" className="space-y-4 m-0 focus-visible:outline-none">
-            <ErrorBoundary moduleName="Ajustes de Inventario">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="space-y-1">
-                  <h2 className="text-base font-semibold text-foreground">Ajustes de inventario</h2>
-                  <p className="text-xs text-muted-foreground">
-                    Corrige diferencias entre el stock registrado y el stock real por mermas, vencimientos o recuentos.
-                  </p>
-                </div>
-
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => setOpenAjusteModal(true)}
-                  className="gap-1.5 text-xs font-semibold bg-primary text-primary-foreground self-start sm:self-auto shadow-xs"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Nuevo ajuste</span>
-                </Button>
-              </div>
-
-              <AdjustmentTable
-                ajustes={ajustes}
-                onNuevoAjuste={() => setOpenAjusteModal(true)}
-              />
-            </ErrorBoundary>
-          </TabsContent>
-        )}
-
-        {/* ========================================================================= */}
-        {/* SECCIÓN 4: INVENTARIO FÍSICO                                              */}
-        {/* ========================================================================= */}
-        {!loading && !error && (
-          <TabsContent value="inventario-fisico" className="space-y-4 m-0 focus-visible:outline-none">
-            <ErrorBoundary moduleName="Inventario Físico">
-              <div className="space-y-1">
-                <h2 className="text-base font-semibold text-foreground">Inventario físico</h2>
-                <p className="text-xs text-muted-foreground">
-                  Compara el stock registrado con la cantidad real disponible ingresando el conteo de cada producto.
-                </p>
-              </div>
-
-              <PhysicalInventoryTable
-                productos={productos}
-                almacenes={almacenes}
-                onAplicarAjustes={handleAplicarAjustesFisicos}
-              />
-            </ErrorBoundary>
-          </TabsContent>
-        )}
-      </Tabs>
-
-      {/* Modal: Detalle de Producto con Últimas Entradas y Salidas */}
-      <ProductInventoryDetail
-        open={openDetalleModal}
-        onOpenChange={setOpenDetalleModal}
-        producto={productoSeleccionado}
-        movimientosProducto={movimientosDelProductoSeleccionado}
-        onIrAEntradasSalidas={handleIrAEntradasSalidas}
-        onEditarProducto={handleEditarProducto}
-      />
-
-      {/* Modal: Formulario de Nuevo Ajuste con Confirmación de 2 Fases */}
-      <AdjustmentForm
-        open={openAjusteModal}
-        onOpenChange={setOpenAjusteModal}
-        productos={productos}
-        onGuardarAjuste={handleGuardarAjuste}
-        productoInicialId={productoSeleccionado?.id}
-      />
-
-      {/* Modal: Formulario de Creación / Edición de Producto */}
-      <ProductoFormDialog
-        open={formModalOpen}
-        onOpenChange={setFormModalOpen}
-        onGuardar={handleGuardarProducto}
-        productoAEditar={productoAEditar}
-      />
-
-      {/* Modal: Escáner de Código de Barras */}
-      <EscanerProductoModal
-        open={escanerModalOpen}
-        onOpenChange={setEscanerModalOpen}
-        productosExistentes={catalogoProductos}
-        onGuardarProducto={handleGuardarProducto}
-        onAbrirFormularioCompleto={(payload) => {
-          setProductoAEditar(payload as unknown as Producto);
-          setEscanerModalOpen(false);
-          setFormModalOpen(true);
-        }}
-        onEditarProducto={(prod) => {
-          setProductoAEditar(prod);
-          setEscanerModalOpen(false);
-          setFormModalOpen(true);
-        }}
-      />
     </div>
   );
 };

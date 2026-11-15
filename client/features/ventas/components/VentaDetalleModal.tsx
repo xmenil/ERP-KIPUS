@@ -198,15 +198,27 @@ export const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({
               <p className="text-[11px] text-muted-foreground leading-relaxed">
                 Al anular, los productos retornarán automáticamente al stock en inventario (Kardex) y el dinero se registrará como egreso de caja si se cobró en efectivo.
               </p>
-              <div className="space-y-1">
-                <Label className="text-[11px] font-medium text-foreground">
-                  Motivo de anulación (requerido para SUNAT y auditoría):
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-semibold text-foreground">
+                  Motivo normativo SUNAT (para emisión de Nota de Crédito):
                 </Label>
+                <select
+                  value={motivoAnulacion}
+                  onChange={(e) => setMotivoAnulacion(e.target.value)}
+                  className="w-full h-8 text-xs rounded border border-input bg-card px-2 focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
+                >
+                  <option value="">-- Selecciona motivo oficial SUNAT --</option>
+                  <option value="Anulación de la operación (Venta cancelada)">01 - Anulación de la operación</option>
+                  <option value="Anulación por error en el RUC o datos del cliente">02 - Anulación por error en el RUC o DNI</option>
+                  <option value="Corrección por error en la descripción de ítems">03 - Corrección por error en la descripción</option>
+                  <option value="Devolución total de la mercadería">06 - Devolución total</option>
+                  <option value="Error de digitación o cobro duplicado">07 - Error de digitación / duplicado</option>
+                </select>
                 <Input
                   value={motivoAnulacion}
                   onChange={(e) => setMotivoAnulacion(e.target.value)}
-                  placeholder="Ej. Error en RUC del cliente, venta duplicada..."
-                  className="h-8 text-xs bg-card"
+                  placeholder="O escribe un motivo detallado..."
+                  className="h-8 text-xs bg-card mt-1"
                 />
               </div>
               <div className="flex items-center justify-end gap-2 pt-1">

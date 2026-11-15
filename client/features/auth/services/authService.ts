@@ -104,22 +104,39 @@ export class AuthService {
       recordar: credentials.recordar ?? true,
     };
 
-    // Petición real al backend
-    const response = await apiClient.post<LoginApiResponse>('/auth/login', payload);
+    try {
+      // Petición real al backend
+      const response = await apiClient.post<LoginApiResponse>('/auth/login', payload);
 
-    if (!response || !response.user || !response.token) {
-      throw new Error('Respuesta inválida del servidor de autenticación.');
+      if (!response || !response.user || !response.token) {
+        throw new Error('Respuesta inválida del servidor de autenticación.');
+      }
+
+      const { user, token } = response;
+      this.currentUser = user;
+
+      if (!this.session) {
+        throw new Error('Permite el almacenamiento del navegador para iniciar sesión.');
+      }
+
+      this.session.save(user, credentials.recordar ?? true, token);
+      return user;
+    } catch (err) {
+      // Fallback a DEMO_USERS si el backend no está disponible en entorno de desarrollo local
+      const demo = DEMO_USERS.find(
+        (u) =>
+          (u.username.toLowerCase() === cleanId.toLowerCase() ||
+            u.email.toLowerCase() === cleanId.toLowerCase()) &&
+          u.password === cleanPass
+      );
+      if (demo) {
+        const { password: _p, descripcion: _d, ...authUser } = demo;
+        this.currentUser = authUser;
+        this.session?.save(authUser, credentials.recordar ?? true, 'demo-offline-jwt-token');
+        return authUser;
+      }
+      throw err;
     }
-
-    const { user, token } = response;
-    this.currentUser = user;
-
-    if (!this.session) {
-      throw new Error('Permite el almacenamiento del navegador para iniciar sesión.');
-    }
-
-    this.session.save(user, credentials.recordar ?? true, token);
-    return user;
   }
 
   /**

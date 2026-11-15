@@ -11,8 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { MetricCard } from '@/components/common/MetricCard';
-import { UsuarioFormDialog } from '../components/UsuarioFormDialog';
+import { UsuarioFormSheet } from '../components/UsuarioFormSheet';
 import { UsuarioDetalleModal } from '../components/UsuarioDetalleModal';
 import { usuariosService } from '../services/usuariosService';
 import { Usuario, NuevoUsuarioPayload, UserRole } from '../types/usuarios.types';
@@ -260,7 +259,7 @@ export const UsuariosPage: React.FC<UsuariosPageProps> = ({ embedded = false }) 
             <Button
               size="sm"
               onClick={handleNuevoUsuario}
-              className="h-9 text-xs gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs"
+              className="h-9 text-xs gap-1.5 bg-primary hover:bg-primary-hover text-primary-foreground font-semibold shadow-xs"
             >
               <Plus className="h-4 w-4" />
               <span>Nuevo Usuario</span>
@@ -286,7 +285,7 @@ export const UsuariosPage: React.FC<UsuariosPageProps> = ({ embedded = false }) 
             <Button
               size="sm"
               onClick={handleNuevoUsuario}
-              className="h-8 text-xs gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs"
+              className="h-8 text-xs gap-1.5 bg-primary hover:bg-primary-hover text-primary-foreground font-semibold shadow-xs"
             >
               <Plus className="h-3.5 w-3.5" />
               <span>Nuevo Usuario</span>
@@ -295,37 +294,7 @@ export const UsuariosPage: React.FC<UsuariosPageProps> = ({ embedded = false }) 
         </div>
       )}
 
-      {/* Tarjetas Métricas Responsivas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <MetricCard
-          title="Total Usuarios Activos"
-          value={totalActivos}
-          subtitle="Cuentas habilitadas con login"
-          icon={ShieldCheck}
-          iconColor="text-emerald-700 bg-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-400"
-        />
-        <MetricCard
-          title="Administradores"
-          value={totalAdmins}
-          subtitle="Acceso completo al ERP"
-          icon={KeyRound}
-          iconColor="text-purple-700 bg-purple-100 dark:bg-purple-950/60 dark:text-purple-400"
-        />
-        <MetricCard
-          title="Cajeros y POS"
-          value={totalCajeros}
-          subtitle="Operaciones de caja y ventas"
-          icon={Users}
-          iconColor="text-amber-700 bg-amber-100 dark:bg-amber-950/60 dark:text-amber-400"
-        />
-        <MetricCard
-          title="Supervisores / Almacén"
-          value={totalSupervisores}
-          subtitle="Control de stock y kardex"
-          icon={Building}
-          iconColor="text-blue-700 bg-blue-100 dark:bg-blue-950/60 dark:text-blue-400"
-        />
-      </div>
+
 
       {/* Contenedor Principal: Filtros y Tabla / Tarjetas */}
       <Card className="border-border bg-card">
@@ -715,7 +684,7 @@ export const UsuariosPage: React.FC<UsuariosPageProps> = ({ embedded = false }) 
       </Card>
 
       {/* Modal Formulario Usuario (Crear o Editar) */}
-      <UsuarioFormDialog
+      <UsuarioFormSheet
         open={formModalOpen}
         onOpenChange={setFormModalOpen}
         onGuardar={handleGuardarUsuario}

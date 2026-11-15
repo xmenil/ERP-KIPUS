@@ -53,6 +53,8 @@ export interface Venta {
   caja?: string;
   vendedor?: string;
   motivoAnulacion?: string;
+  estadoSunat?: 'ACEPTADO' | 'PENDIENTE' | 'RECHAZADO' | 'ANULADO' | 'INTERNO';
+  notaCreditoGenerada?: string;
 }
 
 export interface NuevaVentaPayload {

@@ -92,11 +92,12 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
   // Comprobante
   const [tipoComprobante, setTipoComprobante] = useState<TipoComprobante>('BOLETA');
 
-  // Modales
+  // Modales y Teclado Táctil
   const [openCobroModal, setOpenCobroModal] = useState(false);
   const [ventaCompletada, setVentaCompletada] = useState<Venta | null>(null);
   const [openCompletadaModal, setOpenCompletadaModal] = useState(false);
   const [sonidoSilenciado, setSonidoSilenciado] = useState(audioFeedbackService.isMuted());
+  const [mostrarTecladoTactil, setMostrarTecladoTactil] = useState(false);
 
   // Asistente por voz interactivo
   const [modoVozActivo, setModoVozActivo] = useState(false);
@@ -277,6 +278,36 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
     }
   };
 
+  // Atajos de teclado ergonómicos para mostrador retail (F2, F4, F8)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // F2: Buscar producto
+      if (e.key === 'F2') {
+        e.preventDefault();
+        const buscador = document.getElementById('pos-buscador');
+        buscador?.focus();
+        if (buscador instanceof HTMLInputElement) {
+          buscador.select();
+        }
+      }
+      // F4: Cobrar si hay ítems en carrito
+      if (e.key === 'F4') {
+        e.preventDefault();
+        if (carrito.length > 0 && !openCobroModal) {
+          setOpenCobroModal(true);
+        }
+      }
+      // F8: Limpiar carrito
+      if (e.key === 'F8') {
+        e.preventDefault();
+        handleVaciarCarrito();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [carrito, openCobroModal]);
+
   // Lector de código de barras físico USB / Bluetooth (Keyboard Wedge)
   useBarcodeScanner({
     onScan: (barcode) => {
@@ -325,8 +356,8 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
 
   return (
     <div className="space-y-3">
-      {/* Barra de estado del Punto de Venta (Compacta) */}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card py-1.5 px-3 shadow-2xs">
+      {/* Barra de estado del Punto de Venta (Limpia) */}
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card py-2 px-3 shadow-2xs">
         <div className="flex items-center gap-2.5 text-xs">
           <div className="flex items-center gap-1.5 text-muted-foreground">
             <span className="font-semibold text-foreground">{cajaActiva}</span>
@@ -336,69 +367,10 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
           <div className="text-muted-foreground text-xs">
             Cajero: <span className="font-semibold text-foreground">{vendedorActivo}</span>
           </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => { lectorRef.current?.focus(); lectorRef.current?.select(); }}
-            className="inline-flex items-center gap-1 rounded border border-border bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer"
-            title="Enfocar el campo de lectura de código de barras o QR"
-          >
-            <Barcode className="h-3.5 w-3.5" />
-            <span>Lector Código</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={toggleListening}
-            className={`inline-flex items-center gap-1 rounded border px-2.5 py-1 text-xs font-medium cursor-pointer transition-colors ${
-              isListening
-                ? 'border-rose-500 bg-rose-50 text-rose-700 font-semibold animate-pulse dark:bg-rose-950/40 dark:text-rose-300'
-                : 'border-border bg-background text-muted-foreground hover:bg-muted'
-            }`}
-            title="Activar micrófono para buscar productos por voz"
-          >
-            {isListening ? (
-              <>
-                <MicOff className="h-3.5 w-3.5 text-rose-600" />
-                <span>Escuchando...</span>
-              </>
-            ) : (
-              <>
-                <Mic className="h-3.5 w-3.5 text-primary" />
-                <span>Voz KIPU&apos;S</span>
-              </>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              const nuevo = !sonidoSilenciado;
-              audioFeedbackService.setMuted(nuevo);
-              setSonidoSilenciado(nuevo);
-              toast.info(nuevo ? 'Sonidos del POS silenciados' : 'Sonidos del POS activados', { duration: 1000 });
-            }}
-            className={`inline-flex items-center gap-1 rounded border px-2.5 py-1 text-xs font-medium cursor-pointer transition-colors ${
-              sonidoSilenciado
-                ? 'border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
-                : 'border-border bg-background text-muted-foreground hover:bg-muted'
-            }`}
-            title={sonidoSilenciado ? 'Activar sonido de escaneo' : 'Silenciar sonido de escaneo'}
-          >
-            {sonidoSilenciado ? (
-              <>
-                <VolumeX className="h-3.5 w-3.5 text-amber-600" />
-                <span>Mudo</span>
-              </>
-            ) : (
-              <>
-                <Volume2 className="h-3.5 w-3.5 text-primary" />
-                <span>Sonidos</span>
-              </>
-            )}
-          </button>
+          <span className="text-border">|</span>
+          <div className="text-muted-foreground text-xs">
+            Sucursal: <span className="font-semibold text-foreground">{sucursalActiva}</span>
+          </div>
         </div>
       </div>
 
@@ -479,10 +451,11 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
             <div className="relative flex items-center">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
+                id="pos-buscador"
                 placeholder={
                   isListening
                     ? 'Escuchando tu voz... Di el producto (ej: Arroz, Leche Gloria, Inca Kola)'
-                    : 'Buscar producto por nombre, SKU o código de barras...'
+                    : 'Buscar producto por nombre, SKU o código de barras (F2)...'
                 }
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -944,6 +917,139 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
                 </div>
               </div>
 
+              {/* Teclado Numérico Virtual Táctil para Mostrador */}
+              {mostrarTecladoTactil && (
+                <div className="p-2.5 rounded-lg border border-border bg-muted/40 space-y-2 animate-in fade-in-50 duration-150">
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
+                    <span>Teclado Numérico Táctil</span>
+                    {carrito.length > 0 && (
+                      <span className="text-primary truncate max-w-[170px]">
+                        Último: {carrito[carrito.length - 1].nombre}
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5 text-xs font-mono font-bold">
+                    {['7', '8', '9'].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => {
+                          if (carrito.length > 0) {
+                            const ultimo = carrito[carrito.length - 1];
+                            handleModificarCantidad(ultimo.productoId, Number(n) - ultimo.cantidad);
+                          }
+                        }}
+                        className="h-9 rounded bg-card border border-border text-foreground hover:bg-muted active:bg-primary active:text-primary-foreground shadow-2xs text-sm"
+                      >
+                        {n}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (carrito.length > 0) {
+                          handleModificarCantidad(carrito[carrito.length - 1].productoId, 1);
+                        }
+                      }}
+                      className="h-9 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-bold hover:bg-emerald-500/20 active:bg-emerald-500 active:text-white"
+                      title="Sumar 1 unidad al último ítem"
+                    >
+                      +1
+                    </button>
+
+                    {['4', '5', '6'].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => {
+                          if (carrito.length > 0) {
+                            const ultimo = carrito[carrito.length - 1];
+                            handleModificarCantidad(ultimo.productoId, Number(n) - ultimo.cantidad);
+                          }
+                        }}
+                        className="h-9 rounded bg-card border border-border text-foreground hover:bg-muted active:bg-primary active:text-primary-foreground shadow-2xs text-sm"
+                      >
+                        {n}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (carrito.length > 0) {
+                          handleModificarCantidad(carrito[carrito.length - 1].productoId, -1);
+                        }
+                      }}
+                      className="h-9 rounded bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 font-bold hover:bg-amber-500/20 active:bg-amber-500 active:text-white"
+                      title="Restar 1 unidad al último ítem"
+                    >
+                      -1
+                    </button>
+
+                    {['1', '2', '3'].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => {
+                          if (carrito.length > 0) {
+                            const ultimo = carrito[carrito.length - 1];
+                            handleModificarCantidad(ultimo.productoId, Number(n) - ultimo.cantidad);
+                          }
+                        }}
+                        className="h-9 rounded bg-card border border-border text-foreground hover:bg-muted active:bg-primary active:text-primary-foreground shadow-2xs text-sm"
+                      >
+                        {n}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={handleVaciarCarrito}
+                      className="h-9 rounded bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-400 font-bold hover:bg-rose-500/20 text-[10px]"
+                      title="Vaciar carrito (F8)"
+                    >
+                      Vaciar
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (carrito.length > 0) {
+                          const ultimo = carrito[carrito.length - 1];
+                          handleModificarCantidad(ultimo.productoId, -ultimo.cantidad);
+                        }
+                      }}
+                      className="h-9 rounded bg-card border border-border text-muted-foreground hover:bg-muted text-xs"
+                      title="Quitar último ítem"
+                    >
+                      C
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (carrito.length > 0) {
+                          const ultimo = carrito[carrito.length - 1];
+                          handleModificarCantidad(ultimo.productoId, 10 - ultimo.cantidad);
+                        }
+                      }}
+                      className="h-9 rounded bg-card border border-border text-foreground hover:bg-muted active:bg-primary active:text-primary-foreground shadow-2xs text-sm"
+                    >
+                      0
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (carrito.length > 0) {
+                          setOpenCobroModal(true);
+                        }
+                      }}
+                      className="col-span-2 h-9 rounded bg-primary text-primary-foreground font-bold shadow-xs hover:bg-primary/90 text-xs"
+                      title="Cobrar venta (F4)"
+                    >
+                      Cobrar [F4]
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Botón Gigante de COBRAR */}
               <Button
                 type="button"
@@ -954,7 +1060,7 @@ export const PosTerminalView: React.FC<PosTerminalViewProps> = ({
                 <span>COBRAR</span>
                 <span className="font-mono text-base">({formatCurrency(total)})</span>
                 <span className="text-[10px] opacity-80 font-normal ml-auto hidden sm:inline">
-                  [F12]
+                  [F4]
                 </span>
               </Button>
             </CardContent>

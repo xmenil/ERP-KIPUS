@@ -2,9 +2,20 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { DashboardMetrics } from '../types/dashboard.types';
 import { formatCurrency } from '@/utils/formatters';
-import { ArrowUpRight, TrendingUp, TrendingDown, AlertTriangle, Clock, Package, Warehouse } from 'lucide-react';
+import {
+  ArrowUpRight,
+  TrendingUp,
+  TrendingDown,
+  AlertTriangle,
+  ShoppingCart,
+  DollarSign,
+  Package,
+  Truck,
+  ArrowLeftRight,
+  Wallet,
+  PiggyBank,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { APP_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { isRoleAlmacenero } from '@/features/auth/utils/permissions';
 
@@ -22,61 +33,65 @@ export const DashboardKpiCards: React.FC<DashboardKpiCardsProps> = ({
 
   if (isLoading || !metrics) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="h-28 rounded-md bg-muted/50 border border-border animate-pulse" />
-          <div className="h-28 rounded-md bg-muted/50 border border-border animate-pulse" />
-        </div>
-        <div className="h-28 rounded-md bg-muted/50 border border-border animate-pulse" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-28 rounded-lg bg-muted/40 border border-border animate-pulse" />
+        ))}
       </div>
     );
   }
 
-  // Vista exclusiva para rol Almacenero (sin datos de ventas ni saldos de caja)
+  // Vista exclusiva para rol Almacenero (operativa física sin saldos financieros)
   if (esAlmacenero) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="rounded-md border-border bg-card shadow-xs">
-          <CardContent className="p-4 sm:p-5 flex flex-col justify-between h-full">
-            <div>
-              <span className="text-xs font-medium text-muted-foreground block">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* 1. Catálogo */}
+        <Card className="rounded-lg border-border bg-card shadow-xs">
+          <CardContent className="p-4 flex flex-col justify-between h-full">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">
                 Artículos en Almacén
               </span>
-              <div className="mt-1 flex items-baseline gap-2">
-                <span className="text-2xl font-semibold tabular-nums text-foreground">
-                  {metrics.totalProductosActivos ?? 142} productos
-                </span>
-              </div>
+              <Package className="h-4 w-4 text-primary" />
+            </div>
+            <div className="mt-2">
+              <span className="text-2xl font-bold tabular-nums text-foreground">
+                {metrics.totalProductosActivos ?? 142}
+              </span>
+              <span className="text-xs text-muted-foreground ml-1 font-medium">ítems activos</span>
             </div>
             <div className="mt-3 pt-2 border-t border-border flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Catálogo homologado</span>
+              <span className="text-muted-foreground">Catálogo total</span>
               <Link
-                to={APP_ROUTES.INVENTARIO}
+                to="/inventario?tab=catalogo"
                 className="text-primary hover:underline font-medium inline-flex items-center gap-0.5"
               >
-                Ver existencias
+                Ver catálogo
                 <ArrowUpRight className="h-3 w-3" />
               </Link>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="rounded-md border-border bg-card shadow-xs">
-          <CardContent className="p-4 sm:p-5 flex flex-col justify-between h-full">
-            <div>
-              <span className="text-xs font-medium text-muted-foreground block">
+        {/* 2. Stock Bajo / Crítico */}
+        <Card className="rounded-lg border-border bg-card shadow-xs">
+          <CardContent className="p-4 flex flex-col justify-between h-full">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">
                 Stock Bajo o Crítico
               </span>
-              <div className="mt-1 flex items-baseline gap-2">
-                <span className="text-2xl font-semibold tabular-nums text-danger-text">
-                  {metrics.productosBajoStock} ítems
-                </span>
-              </div>
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+            </div>
+            <div className="mt-2">
+              <span className="text-2xl font-bold tabular-nums text-danger-text">
+                {metrics.productosBajoStock}
+              </span>
+              <span className="text-xs text-danger-text/80 ml-1 font-medium">por reponer</span>
             </div>
             <div className="mt-3 pt-2 border-t border-border flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Requieren reposición</span>
+              <span className="text-muted-foreground">Quiebres inminentes</span>
               <Link
-                to={APP_ROUTES.INVENTARIO}
+                to="/inventario?tab=stock"
                 className="text-primary hover:underline font-medium inline-flex items-center gap-0.5"
               >
                 Revisar alertas
@@ -86,25 +101,56 @@ export const DashboardKpiCards: React.FC<DashboardKpiCardsProps> = ({
           </CardContent>
         </Card>
 
-        <Card className="rounded-md border-border bg-card shadow-xs">
-          <CardContent className="p-4 sm:p-5 flex flex-col justify-between h-full">
-            <div>
-              <span className="text-xs font-medium text-muted-foreground block">
+        {/* 3. Recepciones de compra pendientes */}
+        <Card className="rounded-lg border-border bg-card shadow-xs">
+          <CardContent className="p-4 flex flex-col justify-between h-full">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">
                 Recepción de Compras
               </span>
-              <div className="mt-1 flex items-baseline gap-2">
-                <span className="text-2xl font-semibold tabular-nums text-foreground">
-                  {metrics.comprasPendientes ?? metrics.pedidosPendientes ?? 3} órdenes
-                </span>
-              </div>
+              <Truck className="h-4 w-4 text-blue-500" />
+            </div>
+            <div className="mt-2">
+              <span className="text-2xl font-bold tabular-nums text-foreground">
+                {metrics.comprasPendientes ?? metrics.pedidosPendientes ?? 3}
+              </span>
+              <span className="text-xs text-muted-foreground ml-1 font-medium">órdenes pendientes</span>
             </div>
             <div className="mt-3 pt-2 border-t border-border flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Por ingresar a stock</span>
+              <span className="text-muted-foreground">Por ingresar</span>
               <Link
-                to={APP_ROUTES.COMPRAS}
+                to="/compras?tab=recepcion"
                 className="text-primary hover:underline font-medium inline-flex items-center gap-0.5"
               >
-                Ver órdenes
+                Recepcionar
+                <ArrowUpRight className="h-3 w-3" />
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 4. Kardex y conteos */}
+        <Card className="rounded-lg border-border bg-card shadow-xs">
+          <CardContent className="p-4 flex flex-col justify-between h-full">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">
+                Kardex y Conteos
+              </span>
+              <ArrowLeftRight className="h-4 w-4 text-emerald-500" />
+            </div>
+            <div className="mt-2">
+              <span className="text-base font-semibold text-foreground">
+                Auditoría Activa
+              </span>
+              <p className="text-[11px] text-muted-foreground">Movimientos en tiempo real</p>
+            </div>
+            <div className="mt-3 pt-2 border-t border-border flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Historial físico</span>
+              <Link
+                to="/inventario?tab=kardex"
+                className="text-primary hover:underline font-medium inline-flex items-center gap-0.5"
+              >
+                Ver kardex
                 <ArrowUpRight className="h-3 w-3" />
               </Link>
             </div>
@@ -114,121 +160,149 @@ export const DashboardKpiCards: React.FC<DashboardKpiCardsProps> = ({
     );
   }
 
+  // Vista Ejecutiva de 4 KPIs para Dueño / Admin y Cajero
   const isVentasPositive = (metrics.variacionVentas ?? 0) >= 0;
+  const gananciaEstimada = metrics.gananciaEstimada ?? Math.round(metrics.ventasHoy * 0.30 * 100) / 100;
+  const totalAlertas = (metrics.productosBajoStock || 0) + (metrics.pedidosPendientes || 0);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {/* Bloque 1: Resumen de Dinero (Ventas y Caja) */}
-      <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Ventas de hoy */}
-        <Card className="rounded-md border-border bg-card shadow-xs">
-          <CardContent className="p-4 sm:p-5 flex flex-col justify-between h-full">
-            <div>
-              <span className="text-xs font-medium text-muted-foreground block">
-                Ventas de hoy
-              </span>
-              <div className="mt-1 flex items-baseline gap-2">
-                <span className="text-2xl font-semibold tabular-nums text-foreground">
-                  {formatCurrency(metrics.ventasHoy)}
-                </span>
-                {metrics.variacionVentas !== undefined && (
-                  <span
-                    className={`inline-flex items-center text-xs font-medium px-1.5 py-0.5 rounded-sm ${
-                      isVentasPositive
-                        ? 'bg-success-soft text-success-text'
-                        : 'bg-danger-soft text-danger-text'
-                    }`}
-                  >
-                    {isVentasPositive ? (
-                      <TrendingUp className="mr-0.5 h-3 w-3" />
-                    ) : (
-                      <TrendingDown className="mr-0.5 h-3 w-3" />
-                    )}
-                    {isVentasPositive
-                      ? `+${metrics.variacionVentas}%`
-                      : `${metrics.variacionVentas}%`}
-                  </span>
-                )}
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-3 pt-2 border-t border-border">
-              Comprobantes emitidos en el día
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Saldo en caja */}
-        <Card className="rounded-md border-border bg-card shadow-xs">
-          <CardContent className="p-4 sm:p-5 flex flex-col justify-between h-full">
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">
-                  Efectivo en caja chica
-                </span>
-                <span className="text-xs font-medium px-2 py-0.5 rounded-sm bg-primary-soft text-primary">
-                  Caja abierta
-                </span>
-              </div>
-              <div className="mt-1">
-                <span className="text-2xl font-semibold tabular-nums text-foreground">
-                  {formatCurrency(metrics.saldoCaja)}
-                </span>
-              </div>
-            </div>
-            <div className="mt-3 pt-2 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-              <span>Turno activo</span>
-              <Link
-                to="/ventas?tab=caja"
-                className="text-primary hover:underline font-medium inline-flex items-center gap-0.5"
-              >
-                Cuadre de caja
-                <ArrowUpRight className="h-3 w-3" />
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Bloque 2: Panel de Urgencias y Atención */}
-      <Card className="rounded-md border-border bg-card shadow-xs flex flex-col justify-between">
-        <CardContent className="p-4 sm:p-5 flex flex-col justify-between h-full">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {/* KPI 1: Ventas del día */}
+      <Card className="rounded-lg border-border bg-card shadow-xs">
+        <CardContent className="p-4 flex flex-col justify-between h-full">
           <div>
-            <span className="text-xs font-medium text-muted-foreground block mb-2.5">
-              Atención inmediata
-            </span>
-
-            <div className="space-y-2">
-              {/* Alerta de Stock */}
-              <div className="flex items-center justify-between text-xs">
-                <span className="flex items-center gap-1.5 text-foreground">
-                  <AlertTriangle className="h-3.5 w-3.5 text-danger-text" />
-                  Stock bajo o crítico
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">
+                Ventas del día
+              </span>
+              <ShoppingCart className="h-4 w-4 text-primary" />
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-2xl font-bold tabular-nums text-foreground">
+                {formatCurrency(metrics.ventasHoy)}
+              </span>
+              {metrics.variacionVentas !== undefined && (
+                <span
+                  className={`inline-flex items-center text-[11px] font-semibold px-1.5 py-0.5 rounded ${
+                    isVentasPositive
+                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                      : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
+                  }`}
+                  title="Comparativo vs. jornada anterior"
+                >
+                  {isVentasPositive ? (
+                    <TrendingUp className="mr-0.5 h-3 w-3" />
+                  ) : (
+                    <TrendingDown className="mr-0.5 h-3 w-3" />
+                  )}
+                  {isVentasPositive ? `+${metrics.variacionVentas}%` : `${metrics.variacionVentas}%`}
                 </span>
-                <span className="font-mono text-xs font-medium px-1.5 py-0.5 rounded-sm bg-danger-soft text-danger-text">
-                  {metrics.productosBajoStock} ítems
-                </span>
-              </div>
-
-              {/* Comprobantes pendientes */}
-              <div className="flex items-center justify-between text-xs">
-                <span className="flex items-center gap-1.5 text-foreground">
-                  <Clock className="h-3.5 w-3.5 text-warning-text" />
-                  Pendientes de cobro
-                </span>
-                <span className="font-mono text-xs font-medium px-1.5 py-0.5 rounded-sm bg-warning-soft text-warning-text">
-                  {metrics.pedidosPendientes} doc.
-                </span>
-              </div>
+              )}
             </div>
           </div>
-
           <div className="mt-3 pt-2 border-t border-border flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Requiere revisión</span>
+            <span className="text-muted-foreground">Jornada actual</span>
             <Link
-              to={APP_ROUTES.INVENTARIO}
+              to="/ventas?tab=pos"
               className="text-primary hover:underline font-medium inline-flex items-center gap-0.5"
             >
-              Ver inventario
+              Ir a POS (F2)
+              <ArrowUpRight className="h-3 w-3" />
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* KPI 2: Ganancia estimada (Margen Bruto) */}
+      <Card className="rounded-lg border-border bg-card shadow-xs">
+        <CardContent className="p-4 flex flex-col justify-between h-full">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">
+                Ganancia estimada
+              </span>
+              <PiggyBank className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-2xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                {formatCurrency(gananciaEstimada)}
+              </span>
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase px-1 py-0.5 rounded bg-muted">
+                ~30% margen
+              </span>
+            </div>
+          </div>
+          <div className="mt-3 pt-2 border-t border-border flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Margen bruto proyectado</span>
+            <Link
+              to="/reportes?tab=ventas"
+              className="text-primary hover:underline font-medium inline-flex items-center gap-0.5"
+            >
+              Ver análisis
+              <ArrowUpRight className="h-3 w-3" />
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* KPI 3: Estado de Caja */}
+      <Card className="rounded-lg border-border bg-card shadow-xs">
+        <CardContent className="p-4 flex flex-col justify-between h-full">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">
+                Efectivo en caja
+              </span>
+              <Wallet className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-2xl font-bold tabular-nums text-foreground">
+                {formatCurrency(metrics.saldoCaja)}
+              </span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                Abierta
+              </span>
+            </div>
+          </div>
+          <div className="mt-3 pt-2 border-t border-border flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Turno activo</span>
+            <Link
+              to="/ventas?tab=caja"
+              className="text-primary hover:underline font-medium inline-flex items-center gap-0.5"
+            >
+              Arqueo de caja
+              <ArrowUpRight className="h-3 w-3" />
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* KPI 4: Alertas Críticas */}
+      <Card className="rounded-lg border-border bg-card shadow-xs">
+        <CardContent className="p-4 flex flex-col justify-between h-full">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">
+                Alertas críticas
+              </span>
+              <AlertTriangle className={`h-4 w-4 ${totalAlertas > 0 ? 'text-amber-500' : 'text-emerald-500'}`} />
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className={`text-2xl font-bold tabular-nums ${totalAlertas > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'}`}>
+                {totalAlertas}
+              </span>
+              <span className="text-xs text-muted-foreground font-medium">
+                ({metrics.productosBajoStock} stock · {metrics.pedidosPendientes} fiados)
+              </span>
+            </div>
+          </div>
+          <div className="mt-3 pt-2 border-t border-border flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Atención prioritaria</span>
+            <Link
+              to="/inventario?tab=stock"
+              className="text-primary hover:underline font-medium inline-flex items-center gap-0.5"
+            >
+              Resolver
               <ArrowUpRight className="h-3 w-3" />
             </Link>
           </div>
@@ -238,3 +312,4 @@ export const DashboardKpiCards: React.FC<DashboardKpiCardsProps> = ({
   );
 };
 
+export default DashboardKpiCards;

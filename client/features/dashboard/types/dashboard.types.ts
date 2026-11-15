@@ -5,6 +5,7 @@ export interface DashboardMetrics {
   productosBajoStock: number;
   saldoCaja: number;
   comprasMes: number;
+  gananciaEstimada?: number;
   totalProductosActivos?: number;
   comprasPendientes?: number;
 }

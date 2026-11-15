@@ -26,6 +26,26 @@ describe('Dashboard Service — Integración REST', () => {
     expect(res.pedidosPendientes).toBe(3);
   });
 
+  it('soporta métricas extendidas con ganancia estimada y stock para diferentes roles', async () => {
+    const mockMetrics: DashboardMetrics = {
+      ventasHoy: 1250.0,
+      variacionVentas: 15.2,
+      pedidosPendientes: 3,
+      productosBajoStock: 2,
+      saldoCaja: 580.0,
+      comprasMes: 3400.0,
+      gananciaEstimada: 375.0,
+      totalProductosActivos: 142,
+      comprasPendientes: 4,
+    };
+
+    vi.spyOn(apiClient, 'get').mockResolvedValueOnce(mockMetrics);
+    const res = await dashboardService.getMetrics();
+    expect(res.gananciaEstimada).toBe(375.0);
+    expect(res.totalProductosActivos).toBe(142);
+    expect(res.comprasPendientes).toBe(4);
+  });
+
   it('obtiene las ventas recientes llamando a GET /dashboard/recent-sales', async () => {
     const mockRecent: RecentSale[] = [
       {

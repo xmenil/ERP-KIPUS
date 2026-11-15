@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -9,9 +9,22 @@ import {
   BarChart3,
   ShieldCheck,
   Users,
+  Building,
+  FileCheck,
+  Printer,
   Settings,
   DollarSign,
   Package,
+  ChevronDown,
+  Boxes,
+  ArrowLeftRight,
+  Tags,
+  ClipboardList,
+  PackageCheck,
+  CreditCard,
+  TrendingUp,
+  Sparkles,
+  FileText,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -43,9 +56,35 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   BarChart3,
   ShieldCheck,
   Users,
+  Building,
+  FileCheck,
+  Printer,
   Settings,
   DollarSign,
   Package,
+  Boxes,
+  ArrowLeftRight,
+  Tags,
+  ClipboardList,
+  PackageCheck,
+  CreditCard,
+  TrendingUp,
+  Sparkles,
+  FileText,
+};
+
+const SIDEBAR_STORAGE_KEY = 'kipus_sidebar_open_submenus';
+
+const getInitialOpenSubMenus = (): Record<string, boolean> => {
+  try {
+    const raw = sessionStorage.getItem(SIDEBAR_STORAGE_KEY);
+    if (raw) {
+      return JSON.parse(raw);
+    }
+  } catch {
+    // ignorar error de parseo
+  }
+  return {};
 };
 
 export const AppSidebar: React.FC = () => {
@@ -54,12 +93,40 @@ export const AppSidebar: React.FC = () => {
 
   const currentTab = useMemo(() => {
     const params = new URLSearchParams(location.search);
-    return params.get('tab') || 'pos';
+    return params.get('tab');
   }, [location.search]);
 
   const navItems = useMemo(() => {
     return getNavigationItemsForRole(user?.rol);
   }, [user?.rol]);
+
+  const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>(getInitialOpenSubMenus);
+
+  const saveSubMenusState = (updated: Record<string, boolean>) => {
+    try {
+      sessionStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(updated));
+    } catch {
+      // ignorar en entornos sin acceso a storage
+    }
+  };
+
+  const isSubMenuOpen = (path: string, isActive: boolean) => {
+    if (openSubMenus[path] !== undefined) {
+      return openSubMenus[path];
+    }
+    return isActive;
+  };
+
+  const toggleSubMenu = (path: string, defaultOpen: boolean) => {
+    setOpenSubMenus((prev) => {
+      const nextState = {
+        ...prev,
+        [path]: prev[path] !== undefined ? !prev[path] : !defaultOpen,
+      };
+      saveSubMenusState(nextState);
+      return nextState;
+    });
+  };
 
   const isItemActive = (itemPath: string) => {
     const current = location.pathname;
@@ -152,46 +219,115 @@ export const AppSidebar: React.FC = () => {
                 const Icon = ICON_MAP[item.iconName] || LayoutDashboard;
                 const isActive = isItemActive(item.path);
                 const hasSubItems = Boolean(item.subItems && item.subItems.length > 0);
+                const isOpen = hasSubItems && isSubMenuOpen(item.path, isActive);
 
                 return (
                   <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      tooltip={item.name}
-                      className={`h-9 px-2.5 rounded-md font-medium text-[13px] transition-colors ${
-                        isActive
-                          ? '!bg-primary !text-primary-foreground font-semibold shadow-xs'
-                          : 'text-slate-800 dark:text-slate-200 hover:bg-slate-200/70 dark:hover:bg-slate-800/80 hover:text-slate-900'
-                      }`}
-                    >
-                      <Link to={item.path} className="flex items-center gap-2.5 w-full">
-                        <Icon
-                          className={`h-4 w-4 shrink-0 ${
+                    <div className="relative flex items-center w-full">
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive}
+                        tooltip={item.name}
+                        className={`h-9 px-2.5 rounded-md font-medium text-[13px] transition-colors w-full ${
+                          hasSubItems ? 'pr-8' : ''
+                        } ${
+                          isActive
+                            ? '!bg-primary !text-primary-foreground font-semibold shadow-xs'
+                            : 'text-slate-800 dark:text-slate-200 hover:bg-slate-200/70 dark:hover:bg-slate-800/80 hover:text-slate-900'
+                        }`}
+                      >
+                        <Link
+                          to={hasSubItems && !isActive ? item.subItems![0].path : item.path}
+                          onClick={() => {
+                            if (hasSubItems) {
+                              if (isActive) {
+                                toggleSubMenu(item.path, true);
+                              } else {
+                                setOpenSubMenus((prev) => {
+                                  const nextState = { ...prev, [item.path]: true };
+                                  saveSubMenusState(nextState);
+                                  return nextState;
+                                });
+                              }
+                            }
+                          }}
+                          className="flex items-center gap-2.5 w-full"
+                        >
+                          <Icon
+                            className={`h-4 w-4 shrink-0 ${
+                              isActive
+                                ? 'text-primary-foreground'
+                                : 'text-slate-600 dark:text-slate-400'
+                            }`}
+                          />
+                          <span className="truncate">{item.name}</span>
+                          {item.badge && (
+                            <SidebarMenuBadge className="ml-auto mr-5 bg-amber-500/15 text-amber-700 dark:text-amber-400 font-bold text-[10px] px-1.5 py-0.2 rounded border border-amber-500/30">
+                              {item.badge}
+                            </SidebarMenuBadge>
+                          )}
+                        </Link>
+                      </SidebarMenuButton>
+
+                      {hasSubItems && (
+                        <button
+                          type="button"
+                          title={isOpen ? `Plegar submenú de ${item.name}` : `Desplegar submenú de ${item.name}`}
+                          aria-label={isOpen ? `Plegar submenú de ${item.name}` : `Desplegar submenú de ${item.name}`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleSubMenu(item.path, isActive);
+                          }}
+                          className={`absolute right-1.5 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center rounded transition-colors cursor-pointer z-10 group-data-[collapsible=icon]:hidden ${
                             isActive
-                              ? 'text-primary-foreground'
-                              : 'text-slate-600 dark:text-slate-400'
+                              ? 'text-primary-foreground/90 hover:bg-white/20'
+                              : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:text-slate-400'
                           }`}
-                        />
-                        <span className="truncate">{item.name}</span>
-                        {item.badge && (
-                          <SidebarMenuBadge className="ml-auto bg-amber-500/15 text-amber-700 dark:text-amber-400 font-bold text-[10px] px-1.5 py-0.2 rounded border border-amber-500/30">
-                            {item.badge}
-                          </SidebarMenuBadge>
-                        )}
-                      </Link>
-                    </SidebarMenuButton>
+                        >
+                          <ChevronDown
+                            className={`h-4 w-4 transition-transform duration-200 ${
+                              isOpen ? 'rotate-0' : '-rotate-90'
+                            }`}
+                          />
+                        </button>
+                      )}
+                    </div>
 
                     {/* Sub-opciones debajo del botón principal */}
-                    {hasSubItems && (isActive || location.pathname === APP_ROUTES.VENTAS) && (
-                      <SidebarMenuSub className="mt-1 ml-3 border-l-2 border-primary/30 pl-2 space-y-0.5">
+                    {hasSubItems && isOpen && (
+                      <SidebarMenuSub className="mt-1 ml-3 border-l-2 border-primary/30 pl-2 space-y-0.5 animate-in fade-in-50 duration-150">
                         {item.subItems!.map((sub) => {
                           const SubIcon = ICON_MAP[sub.iconName || ''] || ShoppingCart;
-                          const isSubActive =
-                            (location.pathname === APP_ROUTES.VENTAS || (sub.tabKey === 'caja' && location.pathname === APP_ROUTES.CAJA)) &&
-                            (sub.tabKey === 'pos'
-                              ? currentTab === 'pos' || (!location.search.includes('tab=') && location.pathname === APP_ROUTES.VENTAS)
-                              : currentTab === sub.tabKey);
+                          let isSubActive = false;
+
+                          if (isActive) {
+                            if (item.path === APP_ROUTES.VENTAS) {
+                              const activeTab = currentTab || 'pos';
+                              isSubActive = sub.tabKey === activeTab;
+                            } else if (item.path === APP_ROUTES.ADMINISTRACION) {
+                              const activeTab = currentTab || 'usuarios';
+                              isSubActive =
+                                sub.tabKey === activeTab ||
+                                (sub.tabKey === 'empresa' && currentTab === 'sucursales');
+                            } else if (item.path === APP_ROUTES.INVENTARIO) {
+                              const activeTab = currentTab || 'catalogo';
+                              isSubActive = sub.tabKey === activeTab;
+                            } else if (item.path === APP_ROUTES.COMPRAS) {
+                              const activeTab = currentTab || 'ordenes';
+                              isSubActive = sub.tabKey === activeTab;
+                            } else if (item.path === APP_ROUTES.GASTOS) {
+                              const activeTab = currentTab || 'gastos';
+                              isSubActive = sub.tabKey === activeTab;
+                            } else if (item.path === APP_ROUTES.REPORTES) {
+                              const activeTab = currentTab || 'ventas';
+                              isSubActive = sub.tabKey === activeTab;
+                            } else {
+                              isSubActive = currentTab
+                                ? sub.tabKey === currentTab
+                                : sub === item.subItems![0];
+                            }
+                          }
 
                           return (
                             <SidebarMenuSubItem key={sub.path}>
@@ -212,6 +348,11 @@ export const AppSidebar: React.FC = () => {
                                     }`}
                                   />
                                   <span className="truncate">{sub.name}</span>
+                                  {sub.badge && (
+                                    <span className="ml-auto text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+                                      {sub.badge}
+                                    </span>
+                                  )}
                                 </Link>
                               </SidebarMenuSubButton>
                             </SidebarMenuSubItem>
