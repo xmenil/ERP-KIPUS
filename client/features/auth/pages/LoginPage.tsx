@@ -25,7 +25,7 @@ import letterS from '@/assets/letters/s.png';
 import kipusLogoFull from '@/assets/kipus-logo.png';
 
 export const LoginPage: React.FC = () => {
-  const { login, isAuthenticated, sessionExpired } = useAuth();
+  const { user, login, isAuthenticated, sessionExpired } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -72,12 +72,16 @@ export const LoginPage: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
+      if (user?.rol === 'SUPER_ADMIN') {
+        navigate(APP_ROUTES.SUPER_ADMIN, { replace: true });
+        return;
+      }
       const origin =
         (location.state as { from?: { pathname?: string } })?.from?.pathname ||
         APP_ROUTES.DASHBOARD;
       navigate(origin, { replace: true });
     }
-  }, [isAuthenticated, navigate, location]);
+  }, [isAuthenticated, user?.rol, navigate, location]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -471,11 +475,13 @@ export const LoginPage: React.FC = () => {
                   </span>
                   <span className="text-[10px] text-muted-foreground">Demo local</span>
                 </div>
-                <div className="grid grid-cols-3 gap-1.5 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs">
                   {DEMO_USERS.filter((u) => u.id !== 'user-super').map((demo) => {
                     const isSelected = identifier === demo.username;
                     const label =
-                      demo.rol === 'ADMINISTRADOR'
+                      demo.rol === 'SUPER_ADMIN'
+                        ? 'Super Admin'
+                        : demo.rol === 'ADMINISTRADOR'
                         ? 'Admin'
                         : demo.rol === 'CAJERO'
                         ? 'Cajero'
@@ -486,13 +492,13 @@ export const LoginPage: React.FC = () => {
                         key={demo.id}
                         type="button"
                         onClick={() => fillDemoAccount(demo.username, demo.password)}
-                        className={`py-2 px-2 rounded-lg border text-center transition-all ${
+                        className={`py-2 px-1.5 rounded-lg border text-center transition-all cursor-pointer ${
                           isSelected
                             ? 'border-[#5B1C8A] bg-[#5B1C8A]/10 text-[#5B1C8A] font-semibold ring-1 ring-[#5B1C8A]'
                             : 'border-border bg-white text-muted-foreground hover:text-foreground hover:bg-[#FAF6FD] hover:border-[#E9D5FF]'
                         }`}
                       >
-                        <span className="block text-xs leading-none font-medium">
+                        <span className="block text-xs leading-none font-medium truncate">
                           {label}
                         </span>
                         <span className="block text-[10px] font-mono text-muted-foreground/80 mt-1 truncate">

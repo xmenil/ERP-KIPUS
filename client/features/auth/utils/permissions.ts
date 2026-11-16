@@ -5,7 +5,11 @@
 
 import { APP_ROUTES } from '@/constants/routes';
 
-export type UserRole = 'ADMINISTRADOR' | 'CAJERO' | 'ALMACENERO' | 'SUPERVISOR';
+export type UserRole = 'SUPER_ADMIN' | 'ADMINISTRADOR' | 'CAJERO' | 'ALMACENERO' | 'SUPERVISOR';
+
+export const isRoleSuperAdmin = (rol?: string): boolean => {
+  return rol === 'SUPER_ADMIN';
+};
 
 export const isRoleAdmin = (rol?: string): boolean => {
   return rol === 'ADMINISTRADOR';
@@ -20,6 +24,7 @@ export const isRoleCajero = (rol?: string): boolean => {
 };
 
 export const getRoleDisplayName = (rol?: string): string => {
+  if (isRoleSuperAdmin(rol)) return 'Super Administrador';
   if (isRoleAdmin(rol)) return 'Dueño / Administrador';
   if (isRoleAlmacenero(rol)) return 'Almacenero';
   if (isRoleCajero(rol)) return 'Cajero';
@@ -37,9 +42,20 @@ export const canAccessRoute = (pathname: string, rol?: string): boolean => {
 
   // Rutas públicas o universales
   if (cleanPath === APP_ROUTES.LOGIN) return true;
+
+  // Ruta exclusiva de Super Admin
+  if (cleanPath === APP_ROUTES.SUPER_ADMIN) {
+    return isRoleSuperAdmin(rol);
+  }
+
+  // Si es Super Admin, tiene acceso total a la plataforma
+  if (isRoleSuperAdmin(rol)) {
+    return true;
+  }
+
   if (cleanPath === APP_ROUTES.HOME || cleanPath === APP_ROUTES.DASHBOARD) return true;
 
-  // 1. DUEÑO / ADMINISTRADOR: Acceso completo a todos los módulos autorizados
+  // 1. DUEÑO / ADMINISTRADOR: Acceso completo a todos los módulos autorizados de la tienda
   if (isRoleAdmin(rol)) {
     return true;
   }

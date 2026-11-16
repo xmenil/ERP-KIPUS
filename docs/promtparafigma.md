@@ -4,6 +4,7 @@
 > Para no superar el límite de **2000 / 2000** caracteres de Figma AI y mantener **el 100% de los detalles técnicos, tokens, componentes y flujos por rol**, el prompt ha sido dividido en **6 secciones secuenciales independientes** (todas entre 1,770 y 1,860 caracteres).
 >
 > También puedes encontrar cada sección como archivo de texto plano listo en:
+>
 > - [`docs/figma_prompts/parte1_design_system_y_shell.txt`](file:///d:/ERP-UNIFICADO/ERP-APP/docs/figma_prompts/parte1_design_system_y_shell.txt) (1,846 chars)
 > - [`docs/figma_prompts/parte2_terminal_pos_y_catalogo.txt`](file:///d:/ERP-UNIFICADO/ERP-APP/docs/figma_prompts/parte2_terminal_pos_y_catalogo.txt) (1,859 chars)
 > - [`docs/figma_prompts/parte3_modales_cobro_y_ticket.txt`](file:///d:/ERP-UNIFICADO/ERP-APP/docs/figma_prompts/parte3_modales_cobro_y_ticket.txt) (1,778 chars)
@@ -14,6 +15,7 @@
 ---
 
 ## 📌 PARTE 1: DESIGN SYSTEM, TOKENS Y APP SHELL (1,846 caracteres)
+
 *Copia y pega este bloque en el primer prompt de Figma:*
 
 ```text
@@ -50,6 +52,7 @@ Genera componentes maestros con variantes y auto-layout estricto.
 ---
 
 ## 📌 PARTE 2: TERMINAL POS Y CATÁLOGO EN FILAS ALARGADAS (1,859 caracteres)
+
 *Copia y pega este bloque en el segundo prompt de Figma:*
 
 ```text
@@ -84,6 +87,7 @@ COLUMNA DERECHA (Panel Carrito y Cobro, Ancho fijo 380px):
 ---
 
 ## 📌 PARTE 3: MODALES DE COBRO SUNAT Y TICKET TÉRMICO (1,778 caracteres)
+
 *Copia y pega este bloque en el tercer prompt de Figma:*
 
 ```text
@@ -119,6 +123,7 @@ Diseña en Figma los 2 modales clave del cobro en overlay oscuro (#111827/60), 1
 ---
 
 ## 📌 PARTE 4: FLUJO ROL CAJERO — CAJA, TURNOS Y HISTORIAL (1,802 caracteres)
+
 *Copia y pega este bloque en el cuarto prompt de Figma:*
 
 ```text
@@ -157,6 +162,7 @@ Diseña en Figma las pantallas de caja y comprobantes del Cajero (1440x900px, 10
 ---
 
 ## 📌 PARTE 5: FLUJO ROL ALMACENERO — INVENTARIO, KARDEX Y RECEPCIÓN (1,823 caracteres)
+
 *Copia y pega este bloque en el quinto prompt de Figma:*
 
 ```text
@@ -196,6 +202,7 @@ Diseña en Figma las pantallas del Almacenero y Supervisor (1440x900px, 100% Aut
 ---
 
 ## 📌 PARTE 6: FLUJO ROL ADMINISTRADOR — DASHBOARD, KIPU'S IA Y SUNAT (1,815 caracteres)
+
 *Copia y pega este bloque en el sexto prompt de Figma:*
 
 ```text
@@ -238,6 +245,7 @@ Diseña en Figma las pantallas estratégicas del Administrador y Dueño (1440x90
 ---
 
 ## 🚀 Cómo utilizarlos paso a paso:
+
 1. Copia el contenido de la **Parte 1** y pégalo en la barra de prompts de Figma AI. Presiona Enter.
 2. Espera que Figma genere el Design System y el Shell.
 3. Copia y pega sucesivamente la **Parte 2**, luego la **Parte 3**, **Parte 4**, **Parte 5** y **Parte 6**.

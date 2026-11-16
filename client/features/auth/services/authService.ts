@@ -5,6 +5,17 @@ import { apiClient } from '@/services/api/apiClient';
 // Usuarios de demostración (se conservan para facilitar el autocompletado en el formulario de login)
 export const DEMO_USERS: (AuthUser & { password: string; descripcion: string })[] = [
   {
+    id: 'user-superadmin',
+    username: 'superadmin',
+    email: 'superadmin@kipus.pe',
+    password: 'superadmin123',
+    nombreCompleto: 'Super Administrador del Sistema',
+    rol: 'SUPER_ADMIN',
+    sucursal: 'Plataforma Global',
+    avatarInitials: 'SA',
+    descripcion: 'Control y administración global de tiendas del sistema',
+  },
+  {
     id: 'user-admin',
     username: 'admin',
     email: 'admin@kipus.pe',

@@ -15,7 +15,33 @@ import GastosPage from '@/features/gastos/pages/GastosPage';
 import ClientesPage from '@/features/clientes/pages/ClientesPage';
 import ReportesPage from '@/features/reportes/pages/ReportesPage';
 import AdministracionPage from '@/features/administracion/pages/AdministracionPage';
+import SuperAdminPage from '@/features/super-admin/pages/SuperAdminPage';
 import NotFound from '@/pages/NotFound';
+
+/**
+ * Manejador de ruta raíz (Home / Inicio):
+ * Si es Super Admin, redirige al panel global de Super Admin (/super-admin).
+ * Para otros roles de tienda (Dueño, Cajero, Almacenero), redirige al Dashboard (/dashboard).
+ */
+const HomeRouteHandler: React.FC = () => {
+  const { user } = useAuth();
+  if (user?.rol === 'SUPER_ADMIN') {
+    return <Navigate to={APP_ROUTES.SUPER_ADMIN} replace />;
+  }
+  return <Navigate to={APP_ROUTES.DASHBOARD} replace />;
+};
+
+/**
+ * Manejador de ruta para el Dashboard:
+ * Si es Super Admin, lo conduce a su panel de control correspondiente.
+ */
+const DashboardRouteHandler: React.FC = () => {
+  const { user } = useAuth();
+  if (user?.rol === 'SUPER_ADMIN') {
+    return <Navigate to={APP_ROUTES.SUPER_ADMIN} replace />;
+  }
+  return <DashboardPage />;
+};
 
 /**
  * Manejador de ruta para Clientes:
@@ -44,11 +70,11 @@ export const AppRouter: React.FC = () => {
       {/* Rutas protegidas bajo el Shell del ERP */}
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
-          {/* Redirección raíz al Dashboard (Inicio) */}
-          <Route path={APP_ROUTES.HOME} element={<Navigate to={APP_ROUTES.DASHBOARD} replace />} />
+          {/* Redirección raíz según el rol del usuario */}
+          <Route path={APP_ROUTES.HOME} element={<HomeRouteHandler />} />
 
           {/* 1. Inicio */}
-          <Route path={APP_ROUTES.DASHBOARD} element={<DashboardPage />} />
+          <Route path={APP_ROUTES.DASHBOARD} element={<DashboardRouteHandler />} />
 
           {/* 2. Ventas y caja */}
           <Route path={APP_ROUTES.VENTAS} element={<VentasPage />} />
@@ -74,6 +100,9 @@ export const AppRouter: React.FC = () => {
           <Route path={APP_ROUTES.ADMINISTRACION} element={<AdministracionPage />} />
           <Route path={APP_ROUTES.USUARIOS} element={<Navigate to="/administracion?tab=usuarios" replace />} />
           <Route path={APP_ROUTES.CONFIGURACION} element={<Navigate to="/administracion?tab=sistema" replace />} />
+
+          {/* 8. Super Admin (Gestión de Tiendas, Dueños y Ecosistema) */}
+          <Route path={APP_ROUTES.SUPER_ADMIN} element={<SuperAdminPage />} />
         </Route>
       </Route>
 

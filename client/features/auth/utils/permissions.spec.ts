@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  isRoleSuperAdmin,
   isRoleAdmin,
   isRoleAlmacenero,
   isRoleCajero,
@@ -9,6 +10,13 @@ import {
 import { getNavigationItemsForRole, APP_ROUTES } from '@/constants/routes';
 
 describe('Permisos y Roles de Usuario en KIPU\'S ERP', () => {
+  it('identifica correctamente al rol Super Administrador', () => {
+    expect(isRoleSuperAdmin('SUPER_ADMIN')).toBe(true);
+    expect(isRoleSuperAdmin('ADMINISTRADOR')).toBe(false);
+    expect(isRoleSuperAdmin('CAJERO')).toBe(false);
+    expect(isRoleSuperAdmin(undefined)).toBe(false);
+  });
+
   it('identifica correctamente al rol Administrador / Dueño', () => {
     expect(isRoleAdmin('ADMINISTRADOR')).toBe(true);
     expect(isRoleAdmin('CAJERO')).toBe(false);
@@ -30,12 +38,20 @@ describe('Permisos y Roles de Usuario en KIPU\'S ERP', () => {
   });
 
   it('obtiene nombres amigables de roles', () => {
+    expect(getRoleDisplayName('SUPER_ADMIN')).toBe('Super Administrador');
     expect(getRoleDisplayName('ADMINISTRADOR')).toBe('Dueño / Administrador');
     expect(getRoleDisplayName('ALMACENERO')).toBe('Almacenero');
     expect(getRoleDisplayName('CAJERO')).toBe('Cajero');
   });
 
   describe('Control de acceso a rutas canAccessRoute', () => {
+    it('permite al Super Administrador acceder a su panel exclusivo y restringe a otros roles', () => {
+      expect(canAccessRoute(APP_ROUTES.SUPER_ADMIN, 'SUPER_ADMIN')).toBe(true);
+      expect(canAccessRoute(APP_ROUTES.SUPER_ADMIN, 'ADMINISTRADOR')).toBe(false);
+      expect(canAccessRoute(APP_ROUTES.SUPER_ADMIN, 'CAJERO')).toBe(false);
+      expect(canAccessRoute(APP_ROUTES.SUPER_ADMIN, 'ALMACENERO')).toBe(false);
+    });
+
     it('permite al Administrador acceder a todos los módulos', () => {
       expect(canAccessRoute(APP_ROUTES.DASHBOARD, 'ADMINISTRADOR')).toBe(true);
       expect(canAccessRoute(APP_ROUTES.VENTAS, 'ADMINISTRADOR')).toBe(true);
@@ -74,6 +90,14 @@ describe('Permisos y Roles de Usuario en KIPU\'S ERP', () => {
   });
 
   describe('Menú dinámico según el rol (getNavigationItemsForRole)', () => {
+    it('genera exactamente 1 opción principal para Super Administrador', () => {
+      const items = getNavigationItemsForRole('SUPER_ADMIN');
+      expect(items).toHaveLength(1);
+      expect(items[0].name).toBe('Panel Super Admin');
+      expect(items[0].path).toBe(APP_ROUTES.SUPER_ADMIN);
+      expect(items[0].subItems).toHaveLength(2);
+    });
+
     it('genera exactamente 7 opciones para Dueño / Administrador', () => {
       const items = getNavigationItemsForRole('ADMINISTRADOR');
       expect(items).toHaveLength(7);

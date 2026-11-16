@@ -20,6 +20,7 @@ export const APP_ROUTES = {
   USUARIOS: '/usuarios', // Redirige a /administracion?tab=usuarios
   CONFIGURACION: '/configuracion', // Redirige a /administracion?tab=configuracion
   ADMINISTRACION: '/administracion',
+  SUPER_ADMIN: '/super-admin',
 } as const;
 
 export type AppRoute = typeof APP_ROUTES[keyof typeof APP_ROUTES];
@@ -65,6 +66,31 @@ export interface NavigationItem {
  *    - Clientes
  */
 export const getNavigationItemsForRole = (rol?: string): NavigationItem[] => {
+  if (rol === 'SUPER_ADMIN') {
+    return [
+      {
+        name: 'Panel Super Admin',
+        path: APP_ROUTES.SUPER_ADMIN,
+        iconName: 'ShieldAlert',
+        description: 'Gestión global de tiendas, dueños y plataforma',
+        subItems: [
+          {
+            name: 'Directorio de Tiendas',
+            path: '/super-admin?tab=tiendas',
+            tabKey: 'tiendas',
+            iconName: 'Building',
+          },
+          {
+            name: 'Métricas de Plataforma',
+            path: '/super-admin?tab=metricas',
+            tabKey: 'metricas',
+            iconName: 'BarChart3',
+          },
+        ],
+      },
+    ];
+  }
+
   if (rol === 'CAJERO') {
     return [
       {

@@ -25,6 +25,9 @@ import {
   TrendingUp,
   Sparkles,
   FileText,
+  ShieldAlert,
+  Building2,
+  Store,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -71,6 +74,9 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   TrendingUp,
   Sparkles,
   FileText,
+  ShieldAlert,
+  Building2,
+  Store,
 };
 
 const SIDEBAR_STORAGE_KEY = 'kipus_sidebar_open_submenus';
@@ -167,6 +173,10 @@ export const AppSidebar: React.FC = () => {
       return current === APP_ROUTES.CLIENTES;
     }
 
+    if (itemPath === APP_ROUTES.SUPER_ADMIN) {
+      return current === APP_ROUTES.SUPER_ADMIN;
+    }
+
     return current === itemPath || current.startsWith(`${itemPath}/`);
   };
 
@@ -183,7 +193,7 @@ export const AppSidebar: React.FC = () => {
               className="h-10 w-auto object-contain shrink-0 dark:brightness-110"
             />
             <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-bold">
-              PRO
+              {user?.rol === 'SUPER_ADMIN' ? 'SUPER ADMIN' : 'PRO'}
             </span>
           </div>
 
