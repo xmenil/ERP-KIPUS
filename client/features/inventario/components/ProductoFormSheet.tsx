@@ -20,6 +20,8 @@ import {
 import { Producto, NuevoProductoPayload } from '@/features/productos/types/productos.types';
 import { productosService } from '@/features/productos/services/productosService';
 import { normalizarCodigo } from '@/features/productos/utils/codigosProducto';
+import { BarcodeCameraScanner } from '@/features/productos/components/BarcodeCameraScanner';
+import { buscarProductoPorCodigo } from '@/features/productos/services/barcodeCatalogService';
 import { formatCurrency } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
 import {
@@ -36,6 +38,8 @@ import {
   RefreshCw,
   Barcode,
   Boxes,
+  QrCode,
+  Camera,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -101,6 +105,11 @@ export const ProductoFormSheet: React.FC<ProductoFormSheetProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errores, setErrores] = useState<Record<string, string>>({});
 
+  // Lector de QR y Códigos de Barras
+  const [mostrarEscaner, setMostrarEscaner] = useState(false);
+  const [escaneandoCargando, setEscaneandoCargando] = useState(false);
+  const [autoGuardarAlDetectar, setAutoGuardarAlDetectar] = useState(false);
+
   const codigoRef = useRef<HTMLInputElement>(null);
   const enviandoRef = useRef(false);
 
@@ -122,6 +131,7 @@ export const ProductoFormSheet: React.FC<ProductoFormSheetProps> = ({
     setErrorCodigo('');
     setCoincidencia(undefined);
     setCodigoDisponible(false);
+    setMostrarEscaner(false);
 
     if (productoAEditar) {
       setSku(productoAEditar.sku || '');
@@ -196,6 +206,108 @@ export const ProductoFormSheet: React.FC<ProductoFormSheetProps> = ({
   const margenPorcentaje = numVenta > 0 ? +((margenSoles / numVenta) * 100).toFixed(1) : 0;
   const esVentaMenorQueCosto = numVenta > 0 && numCompra > 0 && numVenta < numCompra;
 
+  // Lector de QR / Códigos de barras con cámara
+  const handleCodigoEscaneado = async (codigoLeido: string) => {
+    try {
+      const codigoRaw = codigoLeido.trim();
+      if (!codigoRaw) return;
+
+      setEscaneandoCargando(true);
+
+      // A. Verificar si es un QR con formato JSON estructurado
+      let datosJson: any = null;
+      try {
+        if (codigoRaw.startsWith('{') && codigoRaw.endsWith('}')) {
+          datosJson = JSON.parse(codigoRaw);
+        }
+      } catch {
+        // No es JSON, procesar como código de barras estándar
+      }
+
+      if (datosJson && typeof datosJson === 'object') {
+        const nom = datosJson.nombre || datosJson.descripcion || datosJson.name || '';
+        const bar = datosJson.codigoBarras || datosJson.codigo || datosJson.barcode || '';
+        const codSku = datosJson.sku || (bar ? `SKU-${bar.substring(0, 8)}` : sku);
+        const pVenta = Number(datosJson.precioVenta || datosJson.precio || datosJson.price || 0);
+        const pCompra = Number(datosJson.precioCompra || datosJson.costo || datosJson.cost || 0);
+        const stk = Number(datosJson.stock || datosJson.cantidad || 10);
+        const cat = datosJson.categoria || datosJson.category || categoria;
+        const und = datosJson.unidadMedida || datosJson.unidad || unidadMedida;
+        const ubi = datosJson.ubicacion || ubicacion;
+
+        if (bar) setCodigoBarras(normalizarCodigo(bar));
+        if (nom) setNombre(nom);
+        if (codSku) setSku(codSku);
+        if (pVenta > 0) setPrecioVenta(pVenta);
+        if (pCompra > 0) setPrecioCompra(pCompra);
+        if (stk > 0) setStock(stk);
+        if (cat) setCategoria(cat);
+        if (und) setUnidadMedida(und);
+        if (ubi) setUbicacion(ubi);
+
+        setMostrarEscaner(false);
+        toast.success(`¡QR estructurado detectado!: "${nom || bar}"`);
+
+        if (autoGuardarAlDetectar && nom && pVenta > 0) {
+          toast.info('Guardando producto automáticamente...');
+          setTimeout(() => {
+            const form = document.getElementById('producto-form-sheet') as HTMLFormElement;
+            form?.requestSubmit();
+          }, 300);
+        }
+        return;
+      }
+
+      // B. Código de barras o QR de producto estándar:
+      const normalizado = normalizarCodigo(codigoRaw);
+      setCodigoBarras(normalizado);
+
+      const resultado = await buscarProductoPorCodigo(normalizado, productosExistentes);
+
+      if (resultado.status === 'existente_en_catalogo') {
+        setCoincidencia(resultado.producto);
+        setNombre(resultado.producto.nombre);
+        setSku(resultado.producto.sku);
+        setCategoria(resultado.producto.categoria);
+        setUnidadMedida(resultado.producto.unidadMedida);
+        setPrecioCompra(resultado.producto.precioCompra);
+        setPrecioVenta(resultado.producto.precioVenta);
+        setStock(resultado.producto.stock);
+        setStockMinimo(resultado.producto.stockMinimo);
+        if (resultado.producto.ubicacion) setUbicacion(resultado.producto.ubicacion);
+        toast.info(`Producto existente en el catálogo: "${resultado.producto.nombre}"`);
+      } else if (resultado.status === 'encontrado') {
+        setNombre(resultado.datos.nombre);
+        setSku(resultado.datos.sku || `SKU-${normalizado.substring(0, 8)}`);
+        if (resultado.datos.categoria) setCategoria(resultado.datos.categoria);
+        if (resultado.datos.unidadMedida) setUnidadMedida(resultado.datos.unidadMedida);
+        if (resultado.datos.precioCompra > 0) setPrecioCompra(resultado.datos.precioCompra);
+        if (resultado.datos.precioVenta > 0) setPrecioVenta(resultado.datos.precioVenta);
+        if (resultado.datos.stockSugerido > 0) setStock(resultado.datos.stockSugerido);
+        if (resultado.datos.stockMinimoSugerido > 0) setStockMinimo(resultado.datos.stockMinimoSugerido);
+
+        toast.success(`¡Información cargada!: "${resultado.datos.nombre}"`);
+
+        if (autoGuardarAlDetectar && resultado.datos.precioVenta > 0) {
+          toast.info('Agregando producto al catálogo...');
+          setTimeout(() => {
+            const form = document.getElementById('producto-form-sheet') as HTMLFormElement;
+            form?.requestSubmit();
+          }, 300);
+        }
+      } else {
+        setSku(`SKU-${normalizado.substring(Math.max(0, normalizado.length - 6))}`);
+        toast.info(`Código escaneado: ${normalizado}. Completa el nombre y precio.`);
+      }
+
+      setMostrarEscaner(false);
+    } catch (err: any) {
+      toast.error(err?.message || 'Error al procesar el código');
+    } finally {
+      setEscaneandoCargando(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (enviandoRef.current) return;
@@ -263,20 +375,34 @@ export const ProductoFormSheet: React.FC<ProductoFormSheetProps> = ({
         {/* Cabecera del Sheet */}
         <div className="p-6 border-b border-border bg-muted/20">
           <SheetHeader>
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                <Package className="h-5 w-5" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                  <Package className="h-5 w-5" />
+                </div>
+                <div>
+                  <SheetTitle className="text-base font-bold">
+                    {esEdicion ? 'Editar Producto' : 'Nuevo Producto en Catálogo'}
+                  </SheetTitle>
+                  <SheetDescription className="text-xs">
+                    {esEdicion
+                      ? `Modifica los datos del producto SKU: ${productoAEditar?.sku}`
+                      : 'Ingresa los datos del producto, precios e inventario para el retail.'}
+                  </SheetDescription>
+                </div>
               </div>
-              <div>
-                <SheetTitle className="text-base font-bold">
-                  {esEdicion ? 'Editar Producto' : 'Nuevo Producto en Catálogo'}
-                </SheetTitle>
-                <SheetDescription className="text-xs">
-                  {esEdicion
-                    ? `Modifica los datos del producto SKU: ${productoAEditar?.sku}`
-                    : 'Ingresa los datos del producto, precios e inventario para el retail.'}
-                </SheetDescription>
-              </div>
+
+              {/* Botón destacado Lector QR / Barras */}
+              <Button
+                type="button"
+                variant={mostrarEscaner ? 'secondary' : 'outline'}
+                size="sm"
+                onClick={() => setMostrarEscaner(!mostrarEscaner)}
+                className="shrink-0 gap-1.5 text-xs font-semibold border-purple-300 dark:border-purple-700 bg-purple-50 hover:bg-purple-100 text-[#5B1C8A] dark:bg-purple-950/40 dark:text-purple-200 cursor-pointer shadow-xs"
+              >
+                <QrCode className="h-4 w-4 text-[#5B1C8A] dark:text-purple-400" />
+                <span>{mostrarEscaner ? 'Cerrar Cámara' : 'Lector QR / Barras'}</span>
+              </Button>
             </div>
           </SheetHeader>
         </div>
@@ -287,6 +413,55 @@ export const ProductoFormSheet: React.FC<ProductoFormSheetProps> = ({
             <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive text-xs rounded-md flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 shrink-0" />
               <span>{errores.general}</span>
+            </div>
+          )}
+
+          {/* Panel Desplegable del Lector QR y Barras con Cámara */}
+          {mostrarEscaner && (
+            <div className="rounded-xl border-2 border-dashed border-[#5B1C8A]/60 bg-[#FAF6FD] dark:bg-purple-950/20 p-4 space-y-3 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-[#5B1C8A]/10 text-[#5B1C8A]">
+                    <QrCode className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-foreground">
+                      Lector de QR y Códigos de Barras en Vivo
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground">
+                      Apunta la cámara al producto para llenar automáticamente su información y precio.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setMostrarEscaner(false)}
+                  className="h-7 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  ✕ Cerrar
+                </Button>
+              </div>
+
+              {/* Opción de auto-guardar tras escanear */}
+              <div className="flex items-center gap-2 pt-1 border-t border-purple-200/60 dark:border-purple-800/40 text-[11px]">
+                <input
+                  type="checkbox"
+                  id="auto-guardar-scan"
+                  checked={autoGuardarAlDetectar}
+                  onChange={(e) => setAutoGuardarAlDetectar(e.target.checked)}
+                  className="rounded border-purple-300 text-[#5B1C8A] focus:ring-[#5B1C8A] cursor-pointer"
+                />
+                <label htmlFor="auto-guardar-scan" className="text-muted-foreground cursor-pointer select-none">
+                  Guardar y agregar producto al catálogo automáticamente al detectar información completa
+                </label>
+              </div>
+
+              <BarcodeCameraScanner
+                onScan={handleCodigoEscaneado}
+                isScanning={mostrarEscaner}
+              />
             </div>
           )}
 
@@ -353,11 +528,22 @@ export const ProductoFormSheet: React.FC<ProductoFormSheetProps> = ({
                   <Label htmlFor="prod-barcode" className="text-xs font-semibold">
                     Código de Barras (EAN-13 / UPC)
                   </Label>
-                  {codigoDisponible && (
-                    <span className="text-[10px] text-emerald-600 flex items-center gap-1">
-                      <CheckCircle2 className="h-2.5 w-2.5" /> Disponible
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {codigoDisponible && (
+                      <span className="text-[10px] text-emerald-600 flex items-center gap-1">
+                        <CheckCircle2 className="h-2.5 w-2.5" /> Disponible
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setMostrarEscaner(true)}
+                      className="text-[11px] text-[#5B1C8A] dark:text-purple-300 font-semibold flex items-center gap-1 hover:underline cursor-pointer"
+                      title="Abrir cámara para escanear QR o código de barras"
+                    >
+                      <QrCode className="h-3 w-3" />
+                      <span>Escanear QR</span>
+                    </button>
+                  </div>
                 </div>
                 <div className="relative">
                   <Barcode className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />

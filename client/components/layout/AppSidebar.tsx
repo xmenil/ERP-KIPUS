@@ -117,18 +117,28 @@ export const AppSidebar: React.FC = () => {
   };
 
   const isSubMenuOpen = (path: string, isActive: boolean) => {
+    // Si hay un estado explícito para este path
     if (openSubMenus[path] !== undefined) {
       return openSubMenus[path];
+    }
+    // Comportamiento acordeón: si hay otro submenú abierto explícitamente, este permanece cerrado
+    const hasExplicitOtherOpen = Object.entries(openSubMenus).some(
+      ([k, v]) => k !== path && v === true
+    );
+    if (hasExplicitOtherOpen) {
+      return false;
     }
     return isActive;
   };
 
+  // Acordeón estricto: al abrir un submenú se cierran automáticamente todos los demás
   const toggleSubMenu = (path: string, defaultOpen: boolean) => {
     setOpenSubMenus((prev) => {
-      const nextState = {
-        ...prev,
-        [path]: prev[path] !== undefined ? !prev[path] : !defaultOpen,
-      };
+      const isCurrentlyOpen = isSubMenuOpen(path, defaultOpen);
+      // Si estaba abierto se pliega; si estaba cerrado, se despliega cerrando los demás
+      const nextState: Record<string, boolean> = isCurrentlyOpen
+        ? { [path]: false }
+        : { [path]: true };
       saveSubMenusState(nextState);
       return nextState;
     });
@@ -253,12 +263,15 @@ export const AppSidebar: React.FC = () => {
                               if (isActive) {
                                 toggleSubMenu(item.path, true);
                               } else {
-                                setOpenSubMenus((prev) => {
-                                  const nextState = { ...prev, [item.path]: true };
-                                  saveSubMenusState(nextState);
-                                  return nextState;
-                                });
+                                // Acordeón: al seleccionar otro grupo, cerrar los demás y abrir solo este
+                                const nextState: Record<string, boolean> = { [item.path]: true };
+                                setOpenSubMenus(nextState);
+                                saveSubMenusState(nextState);
                               }
+                            } else {
+                              // Al pulsar en un ítem directo sin submenús (ej. Inicio), cerrar submenús
+                              setOpenSubMenus({});
+                              saveSubMenusState({});
                             }
                           }}
                           className="flex items-center gap-2.5 w-full"
