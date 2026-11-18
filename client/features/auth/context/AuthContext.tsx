@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { AuthUser, LoginCredentials, AuthContextType } from '../types/auth.types';
+import { AuthUser, LoginCredentials, RegisterPayload, AuthContextType } from '../types/auth.types';
 import { authService } from '../services/authService';
 import { toast } from 'sonner';
 import { AUTH_STORAGE_KEY, AUTH_ACTIVITY_KEY, AUTH_TOKEN_KEY } from '../services/sessionStore';
@@ -85,6 +85,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const register = async (payload: RegisterPayload): Promise<boolean> => {
+    setIsLoading(true);
+    try {
+      const newUser = await authService.register(payload);
+      setUser(newUser);
+      setSessionExpired(false);
+      toast.success(`¡Bienvenido a KIPU'S ERP! Tienda "${payload.nombreTienda}" registrada con éxito.`);
+      return true;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al registrar la tienda';
+      toast.error(msg);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = () => {
     authService.logout();
     setUser(null);
@@ -100,6 +117,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isLoading,
         sessionExpired,
         login,
+        register,
         logout,
       }}
     >

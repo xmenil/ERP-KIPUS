@@ -64,8 +64,9 @@ const ClientesRouteHandler: React.FC = () => {
 export const AppRouter: React.FC = () => {
   return (
     <Routes>
-      {/* Ruta pública de Autenticación */}
+      {/* Rutas públicas de Autenticación y Registro */}
       <Route path={APP_ROUTES.LOGIN} element={<LoginPage />} />
+      <Route path={APP_ROUTES.REGISTER} element={<LoginPage defaultMode="register" />} />
 
       {/* Rutas protegidas bajo el Shell del ERP */}
       <Route element={<ProtectedRoute />}>

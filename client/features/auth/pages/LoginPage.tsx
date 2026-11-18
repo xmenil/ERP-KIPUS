@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { DEMO_USERS } from '../services/authService';
 import { APP_ROUTES } from '@/constants/routes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +13,11 @@ import {
   AlertCircle,
   User as UserIcon,
   Lock as LockIcon,
+  Store,
+  Mail,
+  Phone,
+  Sparkles,
+  Info,
 } from 'lucide-react';
 
 // Letras independientes extraídas en alta resolución y transparencia
@@ -24,17 +28,45 @@ import letterU from '@/assets/letters/u.png';
 import letterS from '@/assets/letters/s.png';
 import kipusLogoFull from '@/assets/kipus-logo.png';
 
-export const LoginPage: React.FC = () => {
-  const { user, login, isAuthenticated, sessionExpired } = useAuth();
+interface LoginPageProps {
+  defaultMode?: 'login' | 'register';
+}
+
+export const LoginPage: React.FC<LoginPageProps> = ({ defaultMode }) => {
+  const { user, login, register, isAuthenticated, sessionExpired } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
+  const isRegisterRoute = location.pathname === APP_ROUTES.REGISTER || defaultMode === 'register';
+  const [authMode, setAuthMode] = useState<'login' | 'register'>(isRegisterRoute ? 'register' : 'login');
+
+  // Campos de Iniciar Sesión (comienzan vacíos)
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [recordar, setRecordar] = useState(true);
+
+  // Campos de Crear Cuenta de Tienda
+  const [regNombreTienda, setRegNombreTienda] = useState('');
+  const [regNombreCompleto, setRegNombreCompleto] = useState('');
+  const [regUsername, setRegUsername] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regShowPassword, setRegShowPassword] = useState(false);
+  const [regTelefono, setRegTelefono] = useState('');
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
+
+  // Sincronizar authMode si la URL cambia
+  useEffect(() => {
+    if (location.pathname === APP_ROUTES.REGISTER) {
+      setAuthMode('register');
+    } else if (location.pathname === APP_ROUTES.LOGIN && !defaultMode) {
+      setAuthMode('login');
+    }
+  }, [location.pathname, defaultMode]);
 
   // Mostrar la introducción en cada acceso al login, también tras expirar la sesión.
   const [introState, setIntroState] = useState<'showing' | 'fading' | 'revealed'>('showing');
@@ -48,8 +80,7 @@ export const LoginPage: React.FC = () => {
     const onVisibilityChange = () => {
       const visible = document.visibilityState === 'visible';
       setPageVisible(visible);
-      // If login was reached in the background, show the full intro on return.
-      if (visible) setIntroState(current => current === 'revealed' ? current : 'showing');
+      if (visible) setIntroState((current) => (current === 'revealed' ? current : 'showing'));
     };
     document.addEventListener('visibilitychange', onVisibilityChange);
     return () => document.removeEventListener('visibilitychange', onVisibilityChange);
@@ -83,9 +114,10 @@ export const LoginPage: React.FC = () => {
     }
   }, [isAuthenticated, user?.rol, navigate, location]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setInfoMessage(null);
 
     const cleanId = identifier.trim();
     const cleanPass = password.trim();
@@ -123,10 +155,77 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const fillDemoAccount = (username: string, pass: string) => {
-    setIdentifier(username);
-    setPassword(pass);
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setErrorMessage(null);
+    setInfoMessage(null);
+
+    const tienda = regNombreTienda.trim();
+    const dueno = regNombreCompleto.trim();
+    const username = regUsername.trim().toLowerCase();
+    const email = regEmail.trim().toLowerCase();
+    const pass = regPassword.trim();
+    const telefono = regTelefono.trim();
+
+    if (!tienda) {
+      setErrorMessage('Ingresa el nombre de tu tienda o negocio.');
+      return;
+    }
+    if (!dueno) {
+      setErrorMessage('Ingresa tu nombre y apellido completo.');
+      return;
+    }
+    if (!username) {
+      setErrorMessage('Ingresa un nombre de usuario para iniciar sesión.');
+      return;
+    }
+    if (/\s/.test(username)) {
+      setErrorMessage('El nombre de usuario no puede contener espacios.');
+      return;
+    }
+    if (!email) {
+      setErrorMessage('Ingresa tu correo electrónico.');
+      return;
+    }
+    if (!email.includes('@')) {
+      setErrorMessage('Ingresa un correo electrónico válido.');
+      return;
+    }
+    if (!pass || pass.length < 6) {
+      setErrorMessage('La contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const ok = await register({
+        nombreTienda: tienda,
+        nombreCompleto: dueno,
+        username,
+        email,
+        password: pass,
+        telefono: telefono || undefined,
+        recordar: true,
+      });
+
+      if (ok) {
+        navigate(APP_ROUTES.DASHBOARD, { replace: true });
+      } else {
+        setErrorMessage('No se pudo registrar la tienda. Intenta con otro usuario o correo.');
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Error al conectar con el servidor.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleForgotPassword = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+    setInfoMessage(
+      'Para restablecer tu contraseña, solicita asistencia al administrador de tu tienda o al Super Administrador de KIPU\'S.'
+    );
   };
 
   // Arreglo de letras independientes con su animación desfasada
@@ -177,7 +276,7 @@ export const LoginPage: React.FC = () => {
 
       {/* 
         ========================================================================
-        1. INTRO OSCURA (3 SEGUNDOS): LETRAS INDEPENDIENTES SALTANDO Y SIN FONDO BLANCO
+        1. INTRO OSCURA (3 SEGUNDOS): LETRAS INDEPENDIENTES SALTANDO
         ========================================================================
       */}
       {introState !== 'revealed' && (
@@ -199,41 +298,43 @@ export const LoginPage: React.FC = () => {
               e.stopPropagation();
               skipIntro();
             }}
-            className="absolute top-5 right-5 sm:top-7 sm:right-7 px-3.5 py-1.5 rounded-full text-xs font-medium text-white/70 hover:text-white bg-white/10 hover:bg-white/20 border border-white/15 backdrop-blur-md transition-all shadow-sm"
+            className="absolute top-6 right-6 text-white/50 hover:text-white text-xs px-3 py-1.5 rounded-full border border-white/20 bg-white/5 hover:bg-white/10 transition-all cursor-pointer"
           >
-            Omitir
+            Saltar intro ✕
           </button>
 
-          {/* Halo ambiental suave morado y cian detrás de las letras */}
-          <div className="absolute w-80 h-80 sm:w-[32rem] sm:h-[32rem] rounded-full bg-gradient-to-tr from-[#5B1C8A]/45 via-[#7022B8]/35 to-[#00A7CA]/35 blur-3xl pointer-events-none animate-pulse" />
-
-          {/* Contenedor central de la intro */}
-          <div className="relative z-10 flex flex-col items-center px-4 text-center max-w-2xl w-full">
-            
-            {/* LETRAS DEL LOGO INDEPENDIENTES QUE REBOTAN EN ONDA (SIN CUADRO BLANCO) */}
-            <div className="flex items-center justify-center mb-10 select-none">
-              {logoLetters.map((item, index) => (
+          <div
+            onClick={skipIntro}
+            className="flex flex-col items-center justify-center gap-6 px-4 cursor-pointer select-none text-center"
+          >
+            {/* Letras saltando */}
+            <div className="flex items-center justify-center gap-1.5 sm:gap-2 md:gap-3 py-2">
+              {logoLetters.map((letter, idx) => (
                 <div
-                  key={index}
+                  key={idx}
                   className="letter-bounce-item"
-                  style={{ animationDelay: item.delay }}
+                  style={{ animationDelay: letter.delay }}
                 >
                   <img
-                    src={item.src}
-                    alt={item.alt}
-                    className="h-20 sm:h-28 md:h-36 lg:h-40 w-auto object-contain pointer-events-none select-none"
+                    src={letter.src}
+                    alt={letter.alt}
+                    className="h-16 sm:h-20 md:h-24 lg:h-28 w-auto object-contain pointer-events-none"
+                    style={{
+                      backgroundColor: 'transparent',
+                      mixBlendMode: 'normal',
+                    }}
                   />
                 </div>
               ))}
             </div>
 
-            {/* CADA PALABRA SALTA INDEPENDIENTEMENTE: GESTIONA TU NEGOCIO */}
-            <div className="flex items-center justify-center flex-wrap gap-x-4 sm:gap-x-6 gap-y-2 select-none">
-              {words.map((word, wIdx) => (
+            {/* Palabras inferiores saltando */}
+            <div className="flex items-center justify-center gap-3 sm:gap-4 md:gap-5 mt-2">
+              {words.map((word, index) => (
                 <span
-                  key={wIdx}
-                  className="word-bounce-item text-lg sm:text-2xl md:text-3xl font-black tracking-[0.22em] text-white select-none"
-                  style={{ animationDelay: `${0.6 + wIdx * 0.2}s` }}
+                  key={word}
+                  className="word-bounce-item font-black tracking-[0.25em] sm:tracking-[0.3em] text-white text-sm sm:text-base md:text-xl uppercase drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]"
+                  style={{ animationDelay: `${index * 0.22}s` }}
                 >
                   {word}
                 </span>
@@ -245,78 +346,21 @@ export const LoginPage: React.FC = () => {
 
       {/* 
         ========================================================================
-        2. FONDO GENERAL EN MORADO CLARO (Medio morado claro de fondo)
+        2. VISTA PRINCIPAL
         ========================================================================
       */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* Resplandor superior izquierdo en morado suave */}
-        <div
-          className="absolute -top-32 -left-32 w-[34rem] h-[34rem] rounded-full blur-3xl opacity-60 pointer-events-none"
-          style={{
-            background:
-              'radial-gradient(circle, rgba(233, 213, 255, 0.75) 0%, rgba(243, 232, 255, 0.4) 60%, transparent 100%)',
-          }}
-        />
-        {/* Resplandor inferior derecho con tinte suave morado-cian */}
-        <div
-          className="absolute -bottom-36 -right-36 w-[36rem] h-[36rem] rounded-full blur-3xl opacity-50 pointer-events-none"
-          style={{
-            background:
-              'radial-gradient(circle, rgba(224, 231, 255, 0.6) 0%, rgba(245, 238, 254, 0.5) 50%, transparent 100%)',
-          }}
-        />
-        {/* Textura sutil de puntos */}
-        <div
-          className="absolute inset-0 opacity-[0.035] pointer-events-none"
-          style={{
-            backgroundImage:
-              'radial-gradient(#5B1C8A 1px, transparent 1px)',
-            backgroundSize: '24px 24px',
-          }}
-        />
-      </div>
-
-      {/* 
-        ========================================================================
-        3. PANTALLA PRINCIPAL: MITAD EL LOGO Y MITAD EL LOGIN
-        ========================================================================
-      */}
-      <div className="relative z-10 min-h-screen w-full flex flex-col justify-between">
-        {/* Contenedor 50% / 50% */}
-        <main className="flex-1 w-full max-w-6xl mx-auto flex flex-col lg:flex-row items-center justify-center p-4 sm:p-6 lg:p-10 gap-8 lg:gap-16">
-          
-          {/* 
-            ------------------------------------------------------------------
-            COLUMNA IZQUIERDA (50% en PC): SOLO EL LOGO + "GESTIONA TU NEGOCIO"
-            ------------------------------------------------------------------
-          */}
-          <section className="hidden lg:flex w-full lg:w-1/2 flex-col items-center text-center justify-center space-y-6 pr-4 animate-in fade-in slide-in-from-left-4 duration-500">
-            {/* LOGO EN SU COLOR ORIGINAL SIN DEGRADAR */}
-            <div className="relative group">
+      <div className="min-h-screen flex flex-col justify-between">
+        {/* Contenido centrado */}
+        <main className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8">
+          <section
+            aria-label="Acceso a KIPU'S ERP"
+            className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center"
+          >
+            {/* Lado Izquierdo: Marca oficial Kipus + Lema */}
+            <div className="flex flex-col items-center justify-center gap-4 text-center select-none py-2">
               <img
                 src={kipusLogoFull}
-                alt="KIPUS LOGO"
-                className="h-32 sm:h-40 lg:h-48 xl:h-52 w-auto object-contain drop-shadow-md select-none transition-transform duration-300 hover:scale-105"
-              />
-            </div>
-
-            {/* SOLO ESTE TEXTO SOLICITADO */}
-            <h1 className="text-2xl xl:text-3xl font-black tracking-[0.22em] text-[#3E1169] uppercase select-none">
-              GESTIONA TU NEGOCIO
-            </h1>
-          </section>
-
-          {/* 
-            ------------------------------------------------------------------
-            COLUMNA DERECHA (50% en PC / 100% en Móvil): FORMULARIO DE LOGIN
-            ------------------------------------------------------------------
-          */}
-          <section className="w-full lg:w-1/2 flex flex-col items-center justify-center animate-in fade-in slide-in-from-right-4 duration-500">
-            {/* Cabecera en celular: Solo el Logo + "GESTIONA TU NEGOCIO" */}
-            <div className="lg:hidden flex flex-col items-center text-center space-y-2 mb-6">
-              <img
-                src={kipusLogoFull}
-                alt="KIPUS LOGO"
+                alt="KIPU'S ERP"
                 className="h-20 sm:h-24 w-auto object-contain drop-shadow-sm"
               />
               <h1 className="text-base sm:text-lg font-black tracking-[0.2em] text-[#3E1169] uppercase">
@@ -324,29 +368,43 @@ export const LoginPage: React.FC = () => {
               </h1>
             </div>
 
-            {/* Tarjeta del Formulario de Inicio de Sesión */}
+            {/* Lado Derecho: Tarjeta de Autenticación / Registro */}
             <div className="w-full max-w-md bg-white/95 backdrop-blur-md border border-[#E9D5FF] rounded-2xl shadow-lg shadow-purple-950/5 p-6 sm:p-8 space-y-5 sm:space-y-6">
-              
-              {/* Encabezado del Formulario */}
+              {/* Encabezado dinámico según modo */}
               <div className="space-y-1.5">
                 <span className="text-[11px] font-semibold text-[#5B1C8A] uppercase tracking-wider bg-[#5B1C8A]/10 px-2.5 py-0.5 rounded-full inline-block">
-                  Acceso al Sistema
+                  {authMode === 'login' ? 'Acceso al Sistema' : 'Nueva Tienda'}
                 </span>
                 <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-                  Iniciar sesión
+                  {authMode === 'login' ? 'Iniciar sesión' : 'Crear cuenta de tienda'}
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  Ingresa tus credenciales para acceder a tu panel de trabajo
+                  {authMode === 'login'
+                    ? 'Ingresa tus credenciales para acceder a tu panel de trabajo'
+                    : 'Registra tu negocio para comenzar a gestionar ventas e inventario'}
                 </p>
               </div>
 
-              {/* Mensaje de error si falla la autenticación */}
-              {sessionExpired && (
-                <div role="status" className="flex items-start gap-2 rounded-md border border-border bg-warning-soft p-3 text-sm text-warning-text">
+              {/* Mensaje de sesión expirada */}
+              {sessionExpired && authMode === 'login' && (
+                <div
+                  role="status"
+                  className="flex items-start gap-2 rounded-md border border-border bg-warning-soft p-3 text-sm text-warning-text"
+                >
                   <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
                   <p>Tu sesión se cerró por inactividad. Ingresa tus credenciales para continuar.</p>
                 </div>
               )}
+
+              {/* Mensaje de información (ej. olvidaste contraseña) */}
+              {infoMessage && (
+                <div className="flex items-start gap-2.5 p-3 rounded-lg bg-blue-50 border border-blue-200 text-xs text-blue-900 animate-in fade-in">
+                  <Info className="h-4 w-4 shrink-0 mt-0.5 text-blue-600" />
+                  <span className="leading-snug">{infoMessage}</span>
+                </div>
+              )}
+
+              {/* Mensaje de error */}
               {errorMessage && (
                 <div
                   role="alert"
@@ -357,158 +415,305 @@ export const LoginPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Formulario */}
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Campo: Usuario o correo */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="identifier" className="text-xs font-semibold text-foreground">
-                    Usuario o correo electrónico
-                  </Label>
-                  <div className="relative">
-                    <UserIcon className="absolute left-3 top-2.5 sm:top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
-                    <Input
-                      id="identifier"
-                      name="username"
-                      type="text"
-                      autoComplete="username"
-                      autoCapitalize="none"
-                      placeholder="admin o caja@kipus.pe"
-                      value={identifier}
-                      onChange={(e) => {
-                        setIdentifier(e.target.value);
-                        if (errorMessage) setErrorMessage(null);
-                      }}
-                      disabled={isSubmitting}
-                      className="h-10 sm:h-11 pl-9 text-sm rounded-lg border-input bg-white focus-visible:ring-2 focus-visible:ring-[#5B1C8A] transition-shadow"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Campo: Contraseña */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password" className="text-xs font-semibold text-foreground">
-                      Contraseña
+              {/* ========================================================
+                  FORMULARIO 1: INICIAR SESIÓN (Inputs completamente limpios)
+                  ======================================================== */}
+              {authMode === 'login' && (
+                <form onSubmit={handleLoginSubmit} className="space-y-4">
+                  {/* Campo: Usuario o correo */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="identifier" className="text-xs font-semibold text-foreground">
+                      Usuario o correo electrónico
                     </Label>
-                    <a
-                      href="#recuperar"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        fillDemoAccount('admin', 'admin123');
-                      }}
-                      className="text-xs text-[#5B1C8A] hover:underline font-medium"
-                    >
-                      ¿Olvidaste tu contraseña?
-                    </a>
+                    <div className="relative">
+                      <UserIcon className="absolute left-3 top-2.5 sm:top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <Input
+                        id="identifier"
+                        name="username"
+                        type="text"
+                        autoComplete="off"
+                        autoCapitalize="none"
+                        placeholder=""
+                        value={identifier}
+                        onChange={(e) => {
+                          setIdentifier(e.target.value);
+                          if (errorMessage) setErrorMessage(null);
+                        }}
+                        disabled={isSubmitting}
+                        className="h-10 sm:h-11 pl-9 text-sm rounded-lg border-input bg-white focus-visible:ring-2 focus-visible:ring-[#5B1C8A] transition-shadow"
+                        required
+                      />
+                    </div>
                   </div>
-                  <div className="relative">
-                    <LockIcon className="absolute left-3 top-2.5 sm:top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
-                    <Input
-                      id="password"
-                      name="password"
-                      type={showPassword ? 'text' : 'password'}
-                      autoComplete="current-password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => {
-                        setPassword(e.target.value);
-                        if (errorMessage) setErrorMessage(null);
-                      }}
-                      disabled={isSubmitting}
-                      className="h-10 sm:h-11 pl-9 pr-10 text-sm font-mono rounded-lg border-input bg-white focus-visible:ring-2 focus-visible:ring-[#5B1C8A] transition-shadow"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                      className="absolute right-2.5 top-2 sm:top-2.5 text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md focus:outline-hidden focus:ring-1 focus:ring-[#5B1C8A]"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
 
-                {/* Recordar sesión */}
-                <div className="flex items-center space-x-2 pt-0.5">
-                  <Checkbox
-                    id="recordar"
-                    checked={recordar}
-                    onCheckedChange={(checked) => setRecordar(!!checked)}
-                    className="data-[state=checked]:bg-[#5B1C8A] data-[state=checked]:border-[#5B1C8A]"
-                  />
-                  <Label
-                    htmlFor="recordar"
-                    className="text-xs text-muted-foreground font-normal cursor-pointer select-none"
-                  >
-                    Recordar sesión en este equipo
-                  </Label>
-                </div>
-
-                {/* Botón Iniciar sesión */}
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full h-10 sm:h-11 rounded-lg bg-[#5B1C8A] text-white font-semibold text-sm shadow-sm transition-all hover:bg-[#4A1472] active:scale-[0.99] mt-2 cursor-pointer"
-                >
-                  {isSubmitting ? (
-                    <span className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Iniciando sesión…</span>
-                    </span>
-                  ) : (
-                    <span>Iniciar sesión</span>
-                  )}
-                </Button>
-              </form>
-
-              {/* Cuentas de prueba rápidas (1 clic) */}
-              <div className="pt-4 border-t border-[#E9D5FF]/80 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-muted-foreground font-semibold">
-                    Cuentas de prueba (1 clic):
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">Demo local</span>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs">
-                  {DEMO_USERS.filter((u) => u.id !== 'user-super').map((demo) => {
-                    const isSelected = identifier === demo.username;
-                    const label =
-                      demo.rol === 'SUPER_ADMIN'
-                        ? 'Super Admin'
-                        : demo.rol === 'ADMINISTRADOR'
-                        ? 'Admin'
-                        : demo.rol === 'CAJERO'
-                        ? 'Cajero'
-                        : 'Almacén';
-
-                    return (
+                  {/* Campo: Contraseña */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password" className="text-xs font-semibold text-foreground">
+                        Contraseña
+                      </Label>
                       <button
-                        key={demo.id}
                         type="button"
-                        onClick={() => fillDemoAccount(demo.username, demo.password)}
-                        className={`py-2 px-1.5 rounded-lg border text-center transition-all cursor-pointer ${
-                          isSelected
-                            ? 'border-[#5B1C8A] bg-[#5B1C8A]/10 text-[#5B1C8A] font-semibold ring-1 ring-[#5B1C8A]'
-                            : 'border-border bg-white text-muted-foreground hover:text-foreground hover:bg-[#FAF6FD] hover:border-[#E9D5FF]'
-                        }`}
+                        onClick={handleForgotPassword}
+                        className="text-xs text-[#5B1C8A] hover:underline font-medium cursor-pointer"
                       >
-                        <span className="block text-xs leading-none font-medium truncate">
-                          {label}
-                        </span>
-                        <span className="block text-[10px] font-mono text-muted-foreground/80 mt-1 truncate">
-                          {demo.username}
-                        </span>
+                        ¿Olvidaste tu contraseña?
                       </button>
-                    );
-                  })}
-                </div>
-              </div>
+                    </div>
+                    <div className="relative">
+                      <LockIcon className="absolute left-3 top-2.5 sm:top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <Input
+                        id="password"
+                        name="password"
+                        type={showPassword ? 'text' : 'password'}
+                        autoComplete="current-password"
+                        placeholder=""
+                        value={password}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          if (errorMessage) setErrorMessage(null);
+                        }}
+                        disabled={isSubmitting}
+                        className="h-10 sm:h-11 pl-9 pr-10 text-sm font-mono rounded-lg border-input bg-white focus-visible:ring-2 focus-visible:ring-[#5B1C8A] transition-shadow"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                        className="absolute right-2.5 top-2 sm:top-2.5 text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md focus:outline-hidden focus:ring-1 focus:ring-[#5B1C8A] cursor-pointer"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Recordar sesión */}
+                  <div className="flex items-center space-x-2 pt-0.5">
+                    <Checkbox
+                      id="recordar"
+                      checked={recordar}
+                      onCheckedChange={(checked) => setRecordar(!!checked)}
+                      className="data-[state=checked]:bg-[#5B1C8A] data-[state=checked]:border-[#5B1C8A]"
+                    />
+                    <Label
+                      htmlFor="recordar"
+                      className="text-xs text-muted-foreground font-normal cursor-pointer select-none"
+                    >
+                      Recordar sesión en este equipo
+                    </Label>
+                  </div>
+
+                  {/* Botón Iniciar sesión */}
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full h-10 sm:h-11 rounded-lg bg-[#5B1C8A] text-white font-semibold text-sm shadow-sm transition-all hover:bg-[#4A1472] active:scale-[0.99] mt-2 cursor-pointer"
+                  >
+                    {isSubmitting ? (
+                      <span className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Iniciando sesión…</span>
+                      </span>
+                    ) : (
+                      <span>Iniciar sesión</span>
+                    )}
+                  </Button>
+
+                  {/* Opción Crear Cuenta (Reemplaza los botones de demo) */}
+                  <div className="pt-4 border-t border-[#E9D5FF]/80 text-center">
+                    <p className="text-xs text-muted-foreground">
+                      ¿No tienes una cuenta de tienda?{' '}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setErrorMessage(null);
+                          setInfoMessage(null);
+                          setAuthMode('register');
+                        }}
+                        className="font-semibold text-[#5B1C8A] hover:text-[#4A1472] hover:underline cursor-pointer transition-colors"
+                      >
+                        Crear cuenta
+                      </button>
+                    </p>
+                  </div>
+                </form>
+              )}
+
+              {/* ========================================================
+                  FORMULARIO 2: CREAR CUENTA DE TIENDA
+                  ======================================================== */}
+              {authMode === 'register' && (
+                <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
+                  {/* Nombre de la Tienda */}
+                  <div className="space-y-1">
+                    <Label htmlFor="regNombreTienda" className="text-xs font-semibold text-foreground">
+                      Nombre de la Tienda o Negocio <span className="text-destructive">*</span>
+                    </Label>
+                    <div className="relative">
+                      <Store className="absolute left-3 top-2.5 sm:top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <Input
+                        id="regNombreTienda"
+                        type="text"
+                        placeholder=""
+                        value={regNombreTienda}
+                        onChange={(e) => setRegNombreTienda(e.target.value)}
+                        disabled={isSubmitting}
+                        className="h-10 pl-9 text-sm rounded-lg border-input bg-white focus-visible:ring-2 focus-visible:ring-[#5B1C8A]"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Nombre Completo del Dueño */}
+                  <div className="space-y-1">
+                    <Label htmlFor="regNombreCompleto" className="text-xs font-semibold text-foreground">
+                      Tu Nombre Completo (Dueño / Administrador) <span className="text-destructive">*</span>
+                    </Label>
+                    <div className="relative">
+                      <UserIcon className="absolute left-3 top-2.5 sm:top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <Input
+                        id="regNombreCompleto"
+                        type="text"
+                        placeholder=""
+                        value={regNombreCompleto}
+                        onChange={(e) => setRegNombreCompleto(e.target.value)}
+                        disabled={isSubmitting}
+                        className="h-10 pl-9 text-sm rounded-lg border-input bg-white focus-visible:ring-2 focus-visible:ring-[#5B1C8A]"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Usuario de login */}
+                  <div className="space-y-1">
+                    <Label htmlFor="regUsername" className="text-xs font-semibold text-foreground">
+                      Usuario para inicio de sesión <span className="text-destructive">*</span>
+                    </Label>
+                    <div className="relative">
+                      <UserIcon className="absolute left-3 top-2.5 sm:top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <Input
+                        id="regUsername"
+                        type="text"
+                        autoCapitalize="none"
+                        autoComplete="off"
+                        placeholder=""
+                        value={regUsername}
+                        onChange={(e) =>
+                          setRegUsername(e.target.value.toLowerCase().replace(/\s/g, ''))
+                        }
+                        disabled={isSubmitting}
+                        className="h-10 pl-9 text-sm font-mono rounded-lg border-input bg-white focus-visible:ring-2 focus-visible:ring-[#5B1C8A]"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Correo Electrónico */}
+                  <div className="space-y-1">
+                    <Label htmlFor="regEmail" className="text-xs font-semibold text-foreground">
+                      Correo Electrónico <span className="text-destructive">*</span>
+                    </Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-2.5 sm:top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <Input
+                        id="regEmail"
+                        type="email"
+                        placeholder=""
+                        value={regEmail}
+                        onChange={(e) => setRegEmail(e.target.value)}
+                        disabled={isSubmitting}
+                        className="h-10 pl-9 text-sm rounded-lg border-input bg-white focus-visible:ring-2 focus-visible:ring-[#5B1C8A]"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Contraseña */}
+                  <div className="space-y-1">
+                    <Label htmlFor="regPassword" className="text-xs font-semibold text-foreground">
+                      Contraseña (mínimo 6 caracteres) <span className="text-destructive">*</span>
+                    </Label>
+                    <div className="relative">
+                      <LockIcon className="absolute left-3 top-2.5 sm:top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <Input
+                        id="regPassword"
+                        type={regShowPassword ? 'text' : 'password'}
+                        placeholder=""
+                        value={regPassword}
+                        onChange={(e) => setRegPassword(e.target.value)}
+                        disabled={isSubmitting}
+                        className="h-10 pl-9 pr-10 text-sm font-mono rounded-lg border-input bg-white focus-visible:ring-2 focus-visible:ring-[#5B1C8A]"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setRegShowPassword(!regShowPassword)}
+                        aria-label={regShowPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                        className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md cursor-pointer"
+                      >
+                        {regShowPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Teléfono opcional */}
+                  <div className="space-y-1">
+                    <Label htmlFor="regTelefono" className="text-xs font-semibold text-foreground">
+                      Teléfono / WhatsApp de contacto <span className="text-muted-foreground text-[10px] font-normal">(Opcional)</span>
+                    </Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-2.5 sm:top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <Input
+                        id="regTelefono"
+                        type="text"
+                        placeholder=""
+                        value={regTelefono}
+                        onChange={(e) => setRegTelefono(e.target.value)}
+                        disabled={isSubmitting}
+                        className="h-10 pl-9 text-sm rounded-lg border-input bg-white focus-visible:ring-2 focus-visible:ring-[#5B1C8A]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Botón de envío */}
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full h-10 sm:h-11 rounded-lg bg-[#5B1C8A] text-white font-semibold text-sm shadow-sm transition-all hover:bg-[#4A1472] active:scale-[0.99] mt-2 cursor-pointer gap-2"
+                  >
+                    {isSubmitting ? (
+                      <span className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Creando tienda…</span>
+                      </span>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        <span>Crear mi tienda y empezar</span>
+                      </>
+                    )}
+                  </Button>
+
+                  {/* Volver a Iniciar sesión */}
+                  <div className="pt-3 border-t border-[#E9D5FF]/80 text-center">
+                    <p className="text-xs text-muted-foreground">
+                      ¿Ya tienes una cuenta de tienda?{' '}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setErrorMessage(null);
+                          setInfoMessage(null);
+                          setAuthMode('login');
+                        }}
+                        className="font-semibold text-[#5B1C8A] hover:text-[#4A1472] hover:underline cursor-pointer transition-colors"
+                      >
+                        Iniciar sesión
+                      </button>
+                    </p>
+                  </div>
+                </form>
+              )}
             </div>
           </section>
         </main>

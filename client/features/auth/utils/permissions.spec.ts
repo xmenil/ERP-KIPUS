@@ -45,6 +45,11 @@ describe('Permisos y Roles de Usuario en KIPU\'S ERP', () => {
   });
 
   describe('Control de acceso a rutas canAccessRoute', () => {
+    it('permite el acceso público a las rutas de Login y Registro', () => {
+      expect(canAccessRoute(APP_ROUTES.LOGIN, undefined)).toBe(true);
+      expect(canAccessRoute(APP_ROUTES.REGISTER, undefined)).toBe(true);
+    });
+
     it('permite al Super Administrador acceder a su panel exclusivo y restringe a otros roles', () => {
       expect(canAccessRoute(APP_ROUTES.SUPER_ADMIN, 'SUPER_ADMIN')).toBe(true);
       expect(canAccessRoute(APP_ROUTES.SUPER_ADMIN, 'ADMINISTRADOR')).toBe(false);

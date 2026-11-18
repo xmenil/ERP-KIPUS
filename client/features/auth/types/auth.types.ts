@@ -16,11 +16,23 @@ export interface LoginCredentials {
   recordar?: boolean;
 }
 
+export interface RegisterPayload {
+  nombreTienda: string;
+  nombreCompleto: string;
+  username: string;
+  email: string;
+  password: string;
+  telefono?: string;
+  ruc?: string;
+  recordar?: boolean;
+}
+
 export interface AuthContextType {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   sessionExpired: boolean;
   login: (credentials: LoginCredentials) => Promise<boolean>;
+  register: (payload: RegisterPayload) => Promise<boolean>;
   logout: () => void;
 }

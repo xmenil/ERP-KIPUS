@@ -1,4 +1,4 @@
-import { AuthUser, LoginCredentials } from '../types/auth.types';
+import { AuthUser, LoginCredentials, RegisterPayload } from '../types/auth.types';
 import { SessionStore } from './sessionStore';
 import { apiClient } from '@/services/api/apiClient';
 
@@ -147,6 +147,48 @@ export class AuthService {
         return authUser;
       }
       throw err;
+    }
+  }
+
+  /**
+   * Registra una nueva tienda y cuenta de administrador, guardando sesión activa.
+   */
+  public async register(payload: RegisterPayload): Promise<AuthUser> {
+    try {
+      const response = await apiClient.post<LoginApiResponse>('/auth/register', payload);
+
+      if (!response || !response.user || !response.token) {
+        throw new Error('Respuesta inválida del servidor al registrar tienda.');
+      }
+
+      const { user, token } = response;
+      this.currentUser = user;
+
+      if (!this.session) {
+        throw new Error('Permite el almacenamiento del navegador para iniciar sesión.');
+      }
+
+      this.session.save(user, payload.recordar ?? true, token);
+      return user;
+    } catch (err: any) {
+      if (err?.message && !err.message.includes('servidor backend')) {
+        throw err;
+      }
+      // Fallback local en caso de estar offline
+      const initials = (payload.nombreCompleto.substring(0, 2) || 'TD').toUpperCase();
+      const newUser: AuthUser = {
+        id: `user-${Date.now()}`,
+        username: payload.username.trim().toLowerCase(),
+        email: payload.email.trim().toLowerCase(),
+        nombreCompleto: payload.nombreCompleto.trim(),
+        rol: 'ADMINISTRADOR',
+        sucursal: `${payload.nombreTienda.trim()} - Sede Central`,
+        avatarInitials: initials,
+      };
+
+      this.currentUser = newUser;
+      this.session?.save(newUser, payload.recordar ?? true, 'local-register-jwt-token');
+      return newUser;
     }
   }
 

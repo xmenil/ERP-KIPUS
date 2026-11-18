@@ -6,6 +6,7 @@
 export const APP_ROUTES = {
   HOME: '/',
   LOGIN: '/login',
+  REGISTER: '/registro',
   DASHBOARD: '/dashboard',
   VENTAS: '/ventas',
   PRODUCTOS: '/productos', // Redirige a /inventario

@@ -35,13 +35,13 @@ export const getRoleDisplayName = (rol?: string): string => {
  * Valida si un rol tiene autorización para acceder a una ruta determinada.
  */
 export const canAccessRoute = (pathname: string, rol?: string): boolean => {
-  if (!rol) return false;
-
   // Normalizar ruta quitando barras finales y parámetros
   const cleanPath = pathname.split('?')[0].split('#')[0].replace(/\/+$/, '') || '/';
 
-  // Rutas públicas o universales
-  if (cleanPath === APP_ROUTES.LOGIN) return true;
+  // Rutas públicas o universales (incluso sin sesión iniciada)
+  if (cleanPath === APP_ROUTES.LOGIN || cleanPath === APP_ROUTES.REGISTER) return true;
+
+  if (!rol) return false;
 
   // Ruta exclusiva de Super Admin
   if (cleanPath === APP_ROUTES.SUPER_ADMIN) {
